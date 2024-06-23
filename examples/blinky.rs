@@ -4,37 +4,33 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-// use core::mem::{size_of, size_of_val};
+use hal::{
+    clock::{self, HSI},
+    gpio::{Floating, GpioA, GpioPin, Input, Output, PullUp},
+};
 
+use embedded_hal::digital::v2::{InputPin, OutputPin, ToggleableOutputPin};
 use py32f030_hal as hal;
-use hal::{InputPin, OutputPin, hal::digital::v2::ToggleableOutputPin};
 
 const LOOP_CNT: u32 = 200000;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     defmt::println!("Hello, world!");
-    defmt::info!("info");
-    defmt::trace!("trace");
-    defmt::warn!("warn");
-    defmt::debug!("debug");
-    defmt::error!("error");
+    let key: GpioPin<GpioA, 12, Input<Floating>> = GpioPin::new();
+    let mut led: GpioPin<GpioA, 11, Output<PullUp>> = GpioPin::new();
 
-    let port = hal::gpio::GPIOA::Port;
-    let p = port.split();
+    cortex_m::asm::delay(1000 * 1000 * 5);
+    let _sysclk = clock::Sysclock::<clock::PLL<HSI>>::config().unwrap();
 
-    let mut led = p.PA11.into_output();
-
-    led.set_output_type(hal::gpio::PinOutputType::PushPull).unwrap();
-    let _ = led.set_low().unwrap();
-    let _ = led.set_high().unwrap();
-
-    defmt::info!("led: {}", led.is_high().unwrap());
-    
+    cortex_m::asm::delay(1000 * 1000 * 5);
+    defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
+    let mut cnt = 0;
     loop {
-        for _ in 0..LOOP_CNT {
-            cortex_m::asm::nop();
-        }
-        led.toggle().unwrap();
+        cortex_m::asm::delay(1000 * 1000 * 5);
+        cnt += 1;
+        defmt::info!("cnt: {}", cnt);
+        let _ = led.toggle();
+        defmt::info!("{}", key.is_low());
     }
 }

@@ -653,7 +653,7 @@ mod v2 {
     }
 
     impl<PORT: GpioHal, const PIN: Pin, MODE: Config> digital::v2::OutputPin
-        for GpioPin<PORT, PIN, Input<MODE>>
+        for GpioPin<PORT, PIN, Output<MODE>>
     {
         type Error = Infallible;
 
@@ -664,6 +664,23 @@ mod v2 {
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
             PORT::write(PIN, PinLevel::Hight);
+            Ok(())
+        }
+    }
+
+    impl<PORT: GpioHal, const PIN: Pin, MODE: Config> digital::v2::ToggleableOutputPin
+        for GpioPin<PORT, PIN, Output<MODE>>
+    {
+        type Error = Infallible;
+        fn toggle(&mut self) -> Result<(), Self::Error> {
+            PORT::write(
+                PIN,
+                if PORT::read(PIN) == PinLevel::Hight {
+                    PinLevel::Low
+                } else {
+                    PinLevel::Hight
+                },
+            );
             Ok(())
         }
     }
