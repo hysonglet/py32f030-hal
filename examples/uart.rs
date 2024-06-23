@@ -13,7 +13,7 @@ use py32f030_hal as hal;
 fn main() -> ! {
     defmt::println!("examples: clock");
 
-    let mco: AnyPin<Af> =
+    let rx_pin: AnyPin<Af> =
         unsafe { AnyPin::steal(GpioPort::GpioA, 1) }.into_af(PinAF::from(PA1::MCO as u32));
 
     cortex_m::asm::delay(1000 * 1000 * 5);

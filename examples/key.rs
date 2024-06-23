@@ -5,7 +5,7 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use hal::clock::{self, Mco, SysClkSelect, HSE, HSI};
-use hal::gpio::{self, Af, AnyPin, GpioPort, PinAF, PA1};
+use hal::gpio::{self, Af, Floating, GpioA, GpioPin, Input, PinAF, PullUp, PA1};
 use hal::{hal::digital::v2::ToggleableOutputPin, InputPin, OutputPin};
 use py32f030_hal as hal;
 
@@ -13,8 +13,7 @@ use py32f030_hal as hal;
 fn main() -> ! {
     defmt::println!("examples: clock");
 
-    let mco: AnyPin<Af> =
-        unsafe { AnyPin::steal(GpioPort::GpioA, 1) }.into_af(PinAF::from(PA1::MCO as u32));
+    let key: GpioPin<GpioA, 12, Input<Floating>> = GpioPin::new();
 
     cortex_m::asm::delay(1000 * 1000 * 5);
     // let sysclk = clock::Sysclock::<clock::HSIDiv<1>>::config().unwrap();
@@ -31,5 +30,7 @@ fn main() -> ! {
         cortex_m::asm::delay(1000 * 1000 * 5);
         cnt += 1;
         defmt::info!("cnt: {}", cnt);
+
+        defmt::info!("{}", key.is_low());
     }
 }

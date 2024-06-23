@@ -49,7 +49,7 @@ impl BitOption {
     }
     #[inline]
     pub(crate) fn bit_mask_idx_get<const BIT_WIDTH: usize>(idx: usize, origin: u32) -> u32 {
-        Self::bit_mask_idx::<BIT_WIDTH>(idx) & origin >> (BIT_WIDTH * idx)
+        (Self::bit_mask_idx::<BIT_WIDTH>(idx) & origin) >> (BIT_WIDTH * idx)
     }
 
     #[inline]

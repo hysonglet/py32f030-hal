@@ -5,6 +5,8 @@ use crate::pac;
 use core::marker::PhantomData;
 
 static mut F_CPU: u32 = 8000000;
+static mut F_PCLK: u32 = 8000000;
+static mut F_HCLK: u32 = 8000000;
 
 const TIMEOUT: u32 = 10000;
 const DELAY_TICK_CNT: u32 = 100000;
@@ -13,9 +15,26 @@ pub fn sys_core_clock() -> u32 {
     unsafe { F_CPU }
 }
 
+pub fn sys_pclk() -> u32 {
+    unsafe { F_PCLK }
+}
+
+pub fn sys_hclk() -> u32 {
+    unsafe { F_HCLK }
+}
+
 fn sys_core_clock_update(hz: u32) {
+    let peripheral = Rcc::peripheral();
     unsafe {
         F_CPU = hz;
+    }
+
+    let ppre: PclkDiv = peripheral.cfgr.read().ppre().bits().into();
+    let hpre: HclkDiv = peripheral.cfgr.read().hpre().bits().into();
+
+    unsafe {
+        F_HCLK = F_CPU / ppre.div();
+        F_PCLK = F_HCLK / hpre.div();
     }
 }
 
@@ -415,6 +434,107 @@ where
         sys_core_clock_update(Self::hz());
 
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum PclkDiv {
+    Div1 = 1,
+    Div2 = 4,
+    Div4 = 5,
+    Div8 = 6,
+    Div16 = 7,
+}
+
+#[derive(Clone, Copy)]
+pub enum HclkDiv {
+    Div1 = 1,
+    Div2 = 8,
+    Div4 = 9,
+    Div8 = 10,
+    Div16 = 11,
+    Div64 = 12,
+    Div128 = 13,
+    Div256 = 14,
+    Div512 = 15,
+}
+
+impl From<u8> for PclkDiv {
+    fn from(value: u8) -> Self {
+        match value {
+            0..4 => Self::Div1,
+            4 => Self::Div2,
+            5 => Self::Div4,
+            6 => Self::Div8,
+            7 => Self::Div16,
+            _ => panic!("Error"),
+        }
+    }
+}
+
+impl From<u8> for HclkDiv {
+    fn from(value: u8) -> Self {
+        match value {
+            0..8 => Self::Div1,
+            8 => Self::Div2,
+            9 => Self::Div4,
+            10 => Self::Div8,
+            11 => Self::Div16,
+            12 => Self::Div64,
+            13 => Self::Div128,
+            14 => Self::Div256,
+            15 => Self::Div512,
+            _ => panic!("Error"),
+        }
+    }
+}
+
+impl HclkDiv {
+    fn div(&self) -> u32 {
+        match *self {
+            Self::Div1 => 1,
+            Self::Div2 => 2,
+            Self::Div4 => 4,
+            Self::Div8 => 8,
+            Self::Div16 => 16,
+            Self::Div64 => 64,
+            Self::Div128 => 128,
+            Self::Div256 => 256,
+            Self::Div512 => 512,
+        }
+    }
+    pub fn config(&self) {
+        let peripheral = Rcc::peripheral();
+        peripheral
+            .cfgr
+            .modify(|_, w| unsafe { w.hpre().bits(*self as u8) });
+
+        // 更新全局变量
+        unsafe { F_HCLK = F_CPU / self.div() }
+    }
+}
+
+impl PclkDiv {
+    fn div(&self) -> u32 {
+        match *self {
+            Self::Div1 => 1,
+            Self::Div2 => 2,
+            Self::Div4 => 4,
+            Self::Div8 => 8,
+            Self::Div16 => 16,
+        }
+    }
+
+    pub fn config(&self) {
+        let peripheral = Rcc::peripheral();
+        peripheral
+            .cfgr
+            .modify(|_, w| unsafe { w.ppre().bits(*self as u8) });
+
+        // 更新全局变量
+        unsafe {
+            F_PCLK = F_HCLK / self.div();
+        }
     }
 }
 

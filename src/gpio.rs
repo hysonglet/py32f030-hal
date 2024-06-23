@@ -5,13 +5,11 @@ pub struct Input<MODE = Floating> {
     _mode: PhantomData<MODE>,
 }
 
-pub struct Output<MODE> {
+pub struct Output<MODE = Floating> {
     _mode: PhantomData<MODE>,
 }
 
-pub struct Af<MODE> {
-    _mode: PhantomData<MODE>,
-}
+pub struct Af;
 
 pub struct Analog;
 pub struct Floating;
@@ -37,10 +35,10 @@ impl<MODE: Config> Config for Output<MODE> {
     }
 }
 
-impl<MODE: Config> Config for Af<MODE> {
+impl Config for Af {
     fn config<PORT: GpioHal>(pin: Pin) {
         PORT::mode(pin, PinMode::Af);
-        MODE::config::<PORT>(pin);
+        // MODE::config::<PORT>(pin);
     }
 }
 
@@ -79,12 +77,23 @@ impl Config for Floating {
     }
 }
 
+#[derive(Default)]
 pub struct GpioPin<PORT: GpioHal, const PIN: Pin, MODE> {
     _port: PhantomData<PORT>,
     _mode: PhantomData<MODE>,
 }
 
 impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
+    pub fn new() -> Self {
+        PORT::enable(true);
+        MODE::config::<PORT>(PIN);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
     pub fn into_input(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<MODE>> {
         PORT::enable(true);
         Input::<MODE>::config::<PORT>(PIN);
@@ -96,7 +105,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<MODE>> {
+    pub fn into_output(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<MODE>> {
         PORT::enable(true);
         Output::<MODE>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -107,7 +116,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_analog() -> Self {
+    pub fn into_analog() -> GpioPin<PORT, PIN, Analog> {
         PORT::enable(true);
         Floating::config::<PORT>(PIN);
         Analog::config::<PORT>(PIN);
@@ -118,10 +127,10 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af() -> GpioPin<PORT, PIN, Af<MODE>> {
+    pub fn into_af(af: PinAF) -> GpioPin<PORT, PIN, Af> {
         PORT::enable(true);
         Floating::config::<PORT>(PIN);
-        Af::<MODE>::config::<PORT>(PIN);
+        PORT::af(PIN, af);
 
         GpioPin {
             _mode: PhantomData,
@@ -132,6 +141,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+use core::default;
 use core::marker::PhantomData;
 
 use crate::clock::peripheral::GpioClock;
@@ -287,7 +297,7 @@ macro_rules! gpio_pin_def {
                     ]
             ),*
     ) => {
-        struct $PortStruct;
+        pub struct $PortStruct;
 
         $(
             #[allow(clippy::upper_case_acronyms)]
@@ -321,7 +331,7 @@ macro_rules! gpio_pin_def {
                         r.bits(),
                         mode as u32,
                     ))
-                })
+                });
             }
 
             #[inline]
@@ -523,272 +533,6 @@ gpio_pin_def!(GpioF, gpiof, GPIOF, GPIOF,
     PF4_BOOT0 => []
 );
 
-// struct GpioA;
-
-// impl Peripheral for GpioA {
-//     type Target = &'static pac::gpioa::RegisterBlock;
-//     fn peripheral() -> Self::Target {
-//         unsafe { pac::GPIOA::PTR.as_ref().unwrap() }
-//     }
-// }
-
-// impl GpioHal for GpioA {
-//     #[inline]
-//     fn mode(pin: Pin, mode: PinMode) {
-//         let peripheral = Self::peripheral();
-//         peripheral.moder.modify(|r, w| unsafe {
-//             w.bits(BitOption::bit_mask_idx_modify::<2>(
-//                 pin,
-//                 r.bits(),
-//                 mode as u32,
-//             ))
-//         })
-//     }
-
-//     #[inline]
-//     fn output_type(pin: Pin, output_type: PinOutputType) {
-//         let peripheral = Self::peripheral();
-//         peripheral.otyper.modify(|r, w| unsafe {
-//             w.bits(BitOption::bit_mask_idx_modify::<1>(
-//                 pin,
-//                 r.bits(),
-//                 output_type as u32,
-//             ))
-//         })
-//     }
-
-//     fn io_type(pin: Pin, io_type: PinIoType) {
-//         let (push_pull, output_type) = match io_type {
-//             PinIoType::Pullup => (PinPullUpDown::PullUp, PinOutputType::PushPull),
-//             PinIoType::PullDown => (PinPullUpDown::PollDown, PinOutputType::PushPull),
-//             PinIoType::Floating => (PinPullUpDown::No, PinOutputType::PushPull),
-//             PinIoType::OpenDrain => (PinPullUpDown::No, PinOutputType::OpenDrain),
-//         };
-
-//         Self::push_pull(pin, push_pull);
-//         Self::output_type(pin, output_type)
-//     }
-
-//     #[inline]
-//     fn speed(pin: Pin, speed: PinSpeed) {
-//         Self::peripheral().ospeedr.modify(|r, w| unsafe {
-//             w.bits(BitOption::bit_mask_idx_modify::<2>(
-//                 pin,
-//                 r.bits(),
-//                 speed as u32,
-//             ))
-//         })
-//     }
-
-//     #[inline]
-//     fn push_pull(pin: Pin, push_pull: PinPullUpDown) {
-//         Self::peripheral().pupdr.modify(|r, w| unsafe {
-//             w.bits(BitOption::bit_mask_idx_modify::<2>(
-//                 pin,
-//                 r.bits(),
-//                 push_pull as u32,
-//             ))
-//         })
-//     }
-
-//     #[inline]
-//     fn read(pin: Pin) -> PinLevel {
-//         let r = Self::peripheral().idr.read().bits();
-//         BitOption::bit_mask_idx_get::<1>(pin, r).into()
-//     }
-
-//     #[inline]
-//     fn write(pin: Pin, level: PinLevel) {
-//         Self::peripheral().odr.modify(|r, w| unsafe {
-//             w.bits(BitOption::bit_mask_idx_modify::<1>(
-//                 pin,
-//                 r.bits(),
-//                 level as u32,
-//             ))
-//         })
-//     }
-
-//     #[inline]
-//     fn lock(_pin: Pin, _lock: bool) {
-//         // Self::peripheral().lckr.modify(|r, w| unsafe {
-//         //     w.bits(BitOption::bit_mask_pin_set::<1>(pin, r.bits(), lock as u32))
-//         // })
-//         todo!()
-//     }
-
-//     #[inline]
-//     fn af(pin: Pin, af: PinAF) {
-//         if pin < 8 {
-//             Self::peripheral().afrl.modify(|r, w| unsafe {
-//                 w.bits(BitOption::bit_mask_idx_modify::<4>(
-//                     pin,
-//                     r.bits(),
-//                     af as u32,
-//                 ))
-//             })
-//         } else {
-//             Self::peripheral().afrh.modify(|r, w| unsafe {
-//                 w.bits(BitOption::bit_mask_idx_modify::<4>(
-//                     pin - 8,
-//                     r.bits(),
-//                     af as u32,
-//                 ))
-//             })
-//         }
-//     }
-//     #[inline]
-//     fn clear(pin: Pin) {
-//         Self::peripheral()
-//             .bsrr
-//             .write(|w| unsafe { w.bits(BitOption::bit_mask_idx_modify::<1>(pin + 16, 0, 1)) })
-//     }
-//     #[inline]
-//     fn set(pin: Pin) {
-//         Self::peripheral()
-//             .bsrr
-//             .write(|w| unsafe { w.bits(BitOption::bit_mask_idx_modify::<1>(pin, 0, 1)) })
-//     }
-//     #[inline]
-//     fn reset(pin: Pin) {
-//         Self::peripheral()
-//             .brr
-//             .write(|w| unsafe { w.bits(1 << pin) })
-//     }
-//     #[inline]
-//     fn enable(en: bool) {
-//         GpioClock::GPIOA.enable(en)
-//     }
-// }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum GpioPort {
-    GpioA,
-    GpioB,
-    GpioF,
-}
-
-// #[derive(Clone, Copy, PartialEq)]
-// pub enum PinNumber {
-//     Pin0 = 0,
-//     Pin1 = 1,
-//     Pin2 = 2,
-//     Pin3 = 3,
-//     Pin4 = 4,
-//     Pin5 = 5,
-//     Pin6 = 6,
-//     Pin7 = 7,
-//     Pin8 = 8,
-//     Pin9 = 9,
-//     Pin10 = 10,
-//     Pin11 = 11,
-//     Pin12 = 12,
-//     Pin13 = 13,
-//     Pin14 = 14,
-//     Pin15 = 15,
-// }
-
-impl<MODE: Config> AnyPin<MODE> {
-    fn config(&self, speed: PinSpeed) {
-        match self.port {
-            GpioPort::GpioA => {
-                GpioA::enable(true);
-                MODE::config::<GpioA>(self.pin);
-                GpioA::speed(self.pin, speed);
-            }
-            GpioPort::GpioB => {}
-            GpioPort::GpioF => {}
-        }
-    }
-
-    fn write(&self, level: PinLevel) {
-        match self.port {
-            GpioPort::GpioA => GpioA::write(self.pin, level),
-            GpioPort::GpioB => {}
-            GpioPort::GpioF => {}
-        }
-    }
-
-    fn read(&self) -> PinLevel {
-        match self.port {
-            GpioPort::GpioA => GpioA::read(self.pin),
-            GpioPort::GpioB => {
-                todo!()
-            }
-            GpioPort::GpioF => {
-                todo!()
-            }
-        }
-    }
-}
-
-pub struct AnyPin<MODE: Config> {
-    port: GpioPort,
-    pin: Pin,
-    _mode: PhantomData<MODE>,
-}
-
-impl<MODE: Config> AnyPin<MODE> {
-    /// Unsafely crate a new type-erase pin
-    ///
-    /// # Safety
-    ///
-    /// You must ensure that you’re only using one instance of this type at a time.
-    pub unsafe fn steal(port: GpioPort, pin: Pin) -> Self {
-        assert!(pin < 16);
-        Self {
-            port,
-            pin,
-            _mode: PhantomData,
-        }
-    }
-}
-
-impl<MODE: Config> AnyPin<MODE> {
-    pub fn into_input(self, speed: PinSpeed) -> AnyPin<Input<MODE>> {
-        let any_pin: AnyPin<Input<MODE>> = AnyPin {
-            port: self.port,
-            pin: self.pin,
-            _mode: PhantomData,
-        };
-
-        any_pin.config(speed);
-        any_pin
-    }
-
-    pub fn into_output(self, speed: PinSpeed) -> AnyPin<Output<MODE>> {
-        let any_pin: AnyPin<Output<MODE>> = AnyPin {
-            port: self.port,
-            pin: self.pin,
-            _mode: PhantomData,
-        };
-
-        any_pin.config(speed);
-        any_pin
-    }
-
-    pub fn into_analog(self) -> AnyPin<Analog> {
-        let any_pin: AnyPin<Analog> = AnyPin {
-            port: self.port,
-            pin: self.pin,
-            _mode: PhantomData,
-        };
-        any_pin.config(PinSpeed::VeryLow);
-        any_pin
-    }
-
-    pub fn into_af(self) -> AnyPin<Af<MODE>> {
-        let any_pin: AnyPin<Af<MODE>> = AnyPin {
-            port: self.port,
-            pin: self.pin,
-            _mode: PhantomData,
-        };
-        any_pin.config(PinSpeed::VeryLow);
-        any_pin
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 use embedded_hal::digital;
 
@@ -831,30 +575,6 @@ mod v2 {
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
             PORT::write(PIN, PinLevel::Hight);
-            Ok(())
-        }
-    }
-
-    impl<MODE: Config> digital::v2::InputPin for AnyPin<Input<MODE>> {
-        type Error = Infallible;
-        fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
-        }
-        fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
-        }
-    }
-
-    impl<MODE: Config> digital::v2::OutputPin for AnyPin<Output<MODE>> {
-        type Error = Infallible;
-
-        fn set_low(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Low);
-            Ok(())
-        }
-
-        fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Hight);
             Ok(())
         }
     }
