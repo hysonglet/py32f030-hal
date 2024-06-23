@@ -9,7 +9,9 @@ pub struct Output<MODE = Floating> {
     _mode: PhantomData<MODE>,
 }
 
-pub struct Af;
+pub struct Af<MODE> {
+    _mode: PhantomData<MODE>,
+}
 
 pub struct Analog;
 pub struct Floating;
@@ -35,10 +37,10 @@ impl<MODE: Config> Config for Output<MODE> {
     }
 }
 
-impl Config for Af {
+impl<MODE: Config> Config for Af<MODE> {
     fn config<PORT: GpioHal>(pin: Pin) {
         PORT::mode(pin, PinMode::Af);
-        // MODE::config::<PORT>(pin);
+        MODE::config::<PORT>(pin);
     }
 }
 
@@ -94,9 +96,9 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_input(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<MODE>> {
+    pub fn into_input_floating(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<Floating>> {
         PORT::enable(true);
-        Input::<MODE>::config::<PORT>(PIN);
+        Input::<Floating>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
 
         GpioPin {
@@ -105,9 +107,64 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<MODE>> {
+    pub fn into_input_push_up(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullUp>> {
         PORT::enable(true);
-        Output::<MODE>::config::<PORT>(PIN);
+        Input::<PullUp>::config::<PORT>(PIN);
+        PORT::speed(PIN, speed);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_input_push_down(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullDown>> {
+        PORT::enable(true);
+        Input::<PullDown>::config::<PORT>(PIN);
+        PORT::speed(PIN, speed);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_output_floating(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<Floating>> {
+        PORT::enable(true);
+        Output::<Floating>::config::<PORT>(PIN);
+        PORT::speed(PIN, speed);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_output_push_up(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullUp>> {
+        PORT::enable(true);
+        Output::<PullUp>::config::<PORT>(PIN);
+        PORT::speed(PIN, speed);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_output_push_down(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullDown>> {
+        PORT::enable(true);
+        Output::<PullDown>::config::<PORT>(PIN);
+        PORT::speed(PIN, speed);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_output_open_drain(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<OpenDrain>> {
+        PORT::enable(true);
+        Output::<OpenDrain>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
 
         GpioPin {
@@ -127,9 +184,42 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af(af: PinAF) -> GpioPin<PORT, PIN, Af> {
+    pub fn into_af_floating(af: PinAF) -> GpioPin<PORT, PIN, Af<Floating>> {
         PORT::enable(true);
         Floating::config::<PORT>(PIN);
+        PORT::af(PIN, af);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_af_push_up(af: PinAF) -> GpioPin<PORT, PIN, Af<PullUp>> {
+        PORT::enable(true);
+        PullUp::config::<PORT>(PIN);
+        PORT::af(PIN, af);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_af_push_down(af: PinAF) -> GpioPin<PORT, PIN, Af<PullDown>> {
+        PORT::enable(true);
+        PullDown::config::<PORT>(PIN);
+        PORT::af(PIN, af);
+
+        GpioPin {
+            _mode: PhantomData,
+            _port: PhantomData,
+        }
+    }
+
+    pub fn into_af_open_drain(af: PinAF) -> GpioPin<PORT, PIN, Af<OpenDrain>> {
+        PORT::enable(true);
+        OpenDrain::config::<PORT>(PIN);
         PORT::af(PIN, af);
 
         GpioPin {
@@ -141,7 +231,6 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use core::default;
 use core::marker::PhantomData;
 
 use crate::clock::peripheral::GpioClock;
