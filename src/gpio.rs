@@ -19,7 +19,7 @@ pub struct PullUp;
 pub struct PullDown;
 pub struct OpenDrain;
 
-pub trait Config {
+trait Config {
     fn config<PORT: GpioHal>(pin: Pin);
 }
 
@@ -96,7 +96,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_input_floating(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<Floating>> {
+    pub fn into_input_floating(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Input<Floating>> {
         PORT::enable(true);
         Input::<Floating>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -107,7 +107,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_input_push_up(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullUp>> {
+    pub fn into_input_push_up(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullUp>> {
         PORT::enable(true);
         Input::<PullUp>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -118,7 +118,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_input_push_down(speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullDown>> {
+    pub fn into_input_push_down(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Input<PullDown>> {
         PORT::enable(true);
         Input::<PullDown>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -129,7 +129,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output_floating(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<Floating>> {
+    pub fn into_output_floating(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Output<Floating>> {
         PORT::enable(true);
         Output::<Floating>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -140,7 +140,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output_push_up(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullUp>> {
+    pub fn into_output_push_up(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullUp>> {
         PORT::enable(true);
         Output::<PullUp>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -151,7 +151,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output_push_down(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullDown>> {
+    pub fn into_output_push_down(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Output<PullDown>> {
         PORT::enable(true);
         Output::<PullDown>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -162,7 +162,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_output_open_drain(speed: PinSpeed) -> GpioPin<PORT, PIN, Output<OpenDrain>> {
+    pub fn into_output_open_drain(self, speed: PinSpeed) -> GpioPin<PORT, PIN, Output<OpenDrain>> {
         PORT::enable(true);
         Output::<OpenDrain>::config::<PORT>(PIN);
         PORT::speed(PIN, speed);
@@ -173,7 +173,7 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_analog() -> GpioPin<PORT, PIN, Analog> {
+    pub fn into_analog(self) -> GpioPin<PORT, PIN, Analog> {
         PORT::enable(true);
         Floating::config::<PORT>(PIN);
         Analog::config::<PORT>(PIN);
@@ -184,10 +184,11 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af_floating(af: PinAF) -> GpioPin<PORT, PIN, Af<Floating>> {
+    pub fn into_af_floating(self, af: PinAF, speed: PinSpeed) -> GpioPin<PORT, PIN, Af<Floating>> {
         PORT::enable(true);
         Floating::config::<PORT>(PIN);
         PORT::af(PIN, af);
+        PORT::speed(PIN, speed);
 
         GpioPin {
             _mode: PhantomData,
@@ -195,10 +196,11 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af_push_up(af: PinAF) -> GpioPin<PORT, PIN, Af<PullUp>> {
+    pub fn into_af_push_up(self, af: PinAF, speed: PinSpeed) -> GpioPin<PORT, PIN, Af<PullUp>> {
         PORT::enable(true);
         PullUp::config::<PORT>(PIN);
         PORT::af(PIN, af);
+        PORT::speed(PIN, speed);
 
         GpioPin {
             _mode: PhantomData,
@@ -206,10 +208,11 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af_push_down(af: PinAF) -> GpioPin<PORT, PIN, Af<PullDown>> {
+    pub fn into_af_push_down(self, af: PinAF, speed: PinSpeed) -> GpioPin<PORT, PIN, Af<PullDown>> {
         PORT::enable(true);
         PullDown::config::<PORT>(PIN);
         PORT::af(PIN, af);
+        PORT::speed(PIN, speed);
 
         GpioPin {
             _mode: PhantomData,
@@ -217,15 +220,24 @@ impl<PORT: GpioHal, const PIN: Pin, MODE: Config> GpioPin<PORT, PIN, MODE> {
         }
     }
 
-    pub fn into_af_open_drain(af: PinAF) -> GpioPin<PORT, PIN, Af<OpenDrain>> {
+    pub fn into_af_open_drain(
+        self,
+        af: PinAF,
+        speed: PinSpeed,
+    ) -> GpioPin<PORT, PIN, Af<OpenDrain>> {
         PORT::enable(true);
         OpenDrain::config::<PORT>(PIN);
         PORT::af(PIN, af);
+        PORT::speed(PIN, speed);
 
         GpioPin {
             _mode: PhantomData,
             _port: PhantomData,
         }
+    }
+
+    pub fn speed(&self, speed: PinSpeed) {
+        PORT::speed(PIN, speed);
     }
 }
 
@@ -355,7 +367,7 @@ impl From<PinLevel> for bool {
 #[derive(Debug)]
 pub enum Error {}
 
-pub trait GpioHal {
+trait GpioHal {
     fn push_pull(pin: Pin, push_pull: PinPullUpDown);
     fn output_type(pin: Pin, output_type: PinOutputType);
     fn io_type(pin: Pin, io_type: PinIoType);
