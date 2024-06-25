@@ -5,8 +5,6 @@ use crate::pac;
 use core::marker::PhantomData;
 
 static mut F_CPU: u32 = 8000000;
-static mut F_PCLK: u32 = 8000000;
-static mut F_HCLK: u32 = 8000000;
 
 const TIMEOUT: u32 = 10000;
 const DELAY_TICK_CNT: u32 = 100000;
@@ -16,25 +14,18 @@ pub fn sys_core_clock() -> u32 {
 }
 
 pub fn sys_pclk() -> u32 {
-    unsafe { F_PCLK }
+    let hpre: HclkDiv = Rcc::peripheral().cfgr.read().hpre().bits().into();
+    sys_hclk() / hpre.div()
 }
 
 pub fn sys_hclk() -> u32 {
-    unsafe { F_HCLK }
+    let ppre: PclkDiv = Rcc::peripheral().cfgr.read().ppre().bits().into();
+    sys_core_clock() / ppre.div()
 }
 
 fn sys_core_clock_update(hz: u32) {
-    let peripheral = Rcc::peripheral();
     unsafe {
         F_CPU = hz;
-    }
-
-    let ppre: PclkDiv = peripheral.cfgr.read().ppre().bits().into();
-    let hpre: HclkDiv = peripheral.cfgr.read().hpre().bits().into();
-
-    unsafe {
-        F_HCLK = F_CPU / ppre.div();
-        F_PCLK = F_HCLK / hpre.div();
     }
 }
 
@@ -508,9 +499,6 @@ impl HclkDiv {
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.hpre().bits(*self as u8) });
-
-        // 更新全局变量
-        unsafe { F_HCLK = F_CPU / self.div() }
     }
 }
 
@@ -530,11 +518,6 @@ impl PclkDiv {
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.ppre().bits(*self as u8) });
-
-        // 更新全局变量
-        unsafe {
-            F_PCLK = F_HCLK / self.div();
-        }
     }
 }
 

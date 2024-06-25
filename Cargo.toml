@@ -9,6 +9,7 @@ edition = "2021"
 bare-metal = { version = "1.0.0" }
 cast = "0.3"
 cortex-m-rt = "0.7"
+critical-section = { version = "1.1.2" }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 nb = "1"
 void = { version = "1.0", default-features = false }

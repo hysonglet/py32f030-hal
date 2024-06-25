@@ -1,12 +1,12 @@
 use core::f32;
 use core::intrinsics::floorf32;
 
-use crate::clock::{self, PllSelect};
+use crate::clock;
 use crate::common::Peripheral;
 use crate::pac;
 
-struct Usart1;
-struct Usart2;
+pub struct Usart1;
+pub struct Usart2;
 
 #[derive(Debug)]
 pub enum Error {
@@ -65,7 +65,7 @@ pub enum BaudRate {
     Bps230400 = 230400,
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, Clone, Copy, PartialEq)]
 pub enum OverSampling {
     #[default]
     OverSampling16 = 0,
@@ -107,8 +107,12 @@ pub struct Config<T: UsartConfig> {
 
 pub trait UsartConfig {}
 
+#[derive(Default)]
 pub struct Usart {}
+#[derive(Default)]
 pub struct Uart {}
+
+impl UsartConfig for Uart {}
 
 impl Peripheral for Usart1 {
     type Target = &'static pac::usart1::RegisterBlock;
@@ -243,7 +247,12 @@ impl UsartHal for Usart1 {
             .modify(|_, w| w.over8().bit(config.over_sampling.into()));
 
         // 设置波特率
-        let div: f32 = clock::sys_pclk() as f32 / config.baud_rate as u32 as f32;
+        let over_sampling: u32 = if config.over_sampling == OverSampling::OverSampling16 {
+            16
+        } else {
+            8
+        };
+        let div: f32 = clock::sys_pclk() as f32 / (config.baud_rate as u32 * over_sampling) as f32;
         let mantissa: u16 = unsafe { floorf32(div) } as u16;
         let fraction: u8 = (16.0 * (div - mantissa as f32)) as u8;
         peripheral.brr.modify(|_, w| unsafe {
@@ -254,5 +263,31 @@ impl UsartHal for Usart1 {
         });
 
         Ok(())
+    }
+}
+
+impl Usart1 {
+    pub fn new<MODE: UsartConfig>(config: Config<MODE>) -> Self {
+        Self::enable(true);
+
+        let _ = Self::config(config);
+        let _ = Self::start();
+
+        Self {}
+    }
+
+    pub fn write(&self, buf: &[u8], timeout: usize) -> Result<usize, (usize, Error)> {
+        defmt::info!("{}", buf);
+        Self::write_block(buf, timeout)
+    }
+
+    pub fn read(&self, buf: &mut [u8], timeout: usize) -> Result<usize, (usize, Error)> {
+        Self::read_block(buf, timeout)
+    }
+}
+
+impl Drop for Usart1 {
+    fn drop(&mut self) {
+        Self::enable(false);
     }
 }

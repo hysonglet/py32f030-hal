@@ -3,6 +3,7 @@
 #![allow(clippy::uninit_assumed_init)]
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
+#![allow(non_snake_case)]
 
 pub use embedded_hal as hal;
 pub use embedded_hal::digital::v2::{InputPin, OutputPin};
@@ -13,4 +14,3 @@ pub mod common;
 pub mod gpio;
 pub mod macro_def;
 pub mod usart;
-// pub mod rcc;
