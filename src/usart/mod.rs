@@ -6,6 +6,7 @@ use crate::gpio::{self, AnyPin};
 use crate::gpio::{gpioa, gpiob, gpiof};
 use crate::macro_def::{impl_pin_af, pin_af_for_instance_def};
 use crate::mcu::peripherals;
+use crate::mode::{Async, Blocking, Mode};
 use hal::sealed;
 
 pin_af_for_instance_def!(TxPin, Instance);
@@ -147,28 +148,28 @@ impl Usart {
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
 
-pub struct UsartRx<'d, T: Instance> {
+pub struct UsartRx<'d, T: Instance, M: Mode> {
     // _p: PeripheralRef<'d, T>,
-    _p: PhantomData<T>,
+    _p: PhantomData<(T, M)>,
     _rxd: Option<PeripheralRef<'d, AnyPin>>,
     _rts: Option<PeripheralRef<'d, AnyPin>>,
 }
 
-pub struct UsartTx<'d, T: Instance> {
-    _p: PhantomData<T>,
+pub struct UsartTx<'d, T: Instance, M: Mode> {
+    _p: PhantomData<(T, M)>,
     _txd: Option<PeripheralRef<'d, AnyPin>>,
     _cts: Option<PeripheralRef<'d, AnyPin>>,
 }
 
-pub struct FlexUsart<'d, T: Instance> {
-    pub rx: UsartRx<'d, T>,
-    pub tx: UsartTx<'d, T>,
+pub struct FlexUsart<'d, T: Instance, M: Mode> {
+    pub rx: UsartRx<'d, T, M>,
+    pub tx: UsartTx<'d, T, M>,
 }
 
 // use crate::gpio::sealed::Pin;
 
-impl<'d, T: Instance> FlexUsart<'d, T> {
-    pub fn split(self) -> (UsartRx<'d, T>, UsartTx<'d, T>) {
+impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
+    pub fn split(self) -> (UsartRx<'d, T, M>, UsartTx<'d, T, M>) {
         (self.rx, self.tx)
     }
 
@@ -205,7 +206,7 @@ impl<'d, T: Instance> FlexUsart<'d, T> {
     }
 
     fn new_inner(
-        usart: PeripheralRef<'d, T>,
+        _usart: PeripheralRef<'d, T>,
         rxd: Option<PeripheralRef<'d, AnyPin>>,
         txd: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
@@ -217,13 +218,19 @@ impl<'d, T: Instance> FlexUsart<'d, T> {
         T::config(config);
 
         Self {
-            rx: UsartRx::new(rxd, rts),
-            tx: UsartTx::new(txd, cts),
+            rx: UsartRx::<T, M>::new(rxd, rts),
+            tx: UsartTx::<T, M>::new(txd, cts),
         }
     }
 }
 
-impl<'d, T: Instance> UsartRx<'d, T> {
+impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
+    pub fn read_blocking(&self, buf: &mut [u8]) {
+        T::read_bytes_blocking(buf)
+    }
+}
+
+impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
     pub(crate) fn new(
         rxd: Option<PeripheralRef<'d, AnyPin>>,
         rts: Option<PeripheralRef<'d, AnyPin>>,
@@ -237,13 +244,15 @@ impl<'d, T: Instance> UsartRx<'d, T> {
             _rts: rts,
         }
     }
+}
 
-    pub fn read_block(&self, buf: &mut [u8]) {
-        T::read_bytes_block(buf)
+impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
+    pub fn write_bytes_blocking(&self, buf: &[u8]) {
+        T::write_bytes_blocking(buf);
     }
 }
 
-impl<'d, T: Instance> UsartTx<'d, T> {
+impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
     pub(crate) fn new(
         txd: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
@@ -257,13 +266,10 @@ impl<'d, T: Instance> UsartTx<'d, T> {
             _cts: cts,
         }
     }
-
-    pub fn write_bytes_block(&self, buf: &[u8]) {
-        T::write_bytes_block(buf);
-    }
 }
 
-macro_rules! impl_usart {
+// sealed usart impl
+macro_rules! impl_sealed_usart {
     (
         $peripheral: ident, $usart_id: ident
     ) => {
@@ -278,9 +284,10 @@ macro_rules! impl_usart {
 }
 
 // 为 usart1/2 实现 Instance 和 sealed::Instance trait
-impl_usart!(USART1, USART1);
-impl_usart!(USART2, USART2);
+impl_sealed_usart!(USART1, USART1);
+impl_sealed_usart!(USART2, USART2);
 
+// 指定 引脚功能，生成与外设功能绑定的引脚 trait
 impl_pin_af!(gpioa, PA0, USART1, CtsPin, AF1);
 impl_pin_af!(gpioa, PA0, USART2, CtsPin, AF4);
 impl_pin_af!(gpioa, PA0, USART2, TxPin, AF9);

@@ -3,7 +3,7 @@
 
 use core::fmt::Write;
 use defmt::Debug2Format;
-use hal::usart::FlexUsart;
+use hal::{mode::Blocking, usart::FlexUsart};
 use heapless::String;
 use py32f030_hal as hal;
 use {defmt_rtt as _, panic_probe as _};
@@ -27,8 +27,8 @@ fn main() -> ! {
         cnt += 1;
         buf.clear();
         let _ = write!(&mut buf, "{}\r\n", cnt);
-        tx.write_bytes_block(buf.as_bytes());
-        rx.read_block(&mut r_buf);
+        tx.write_bytes_blocking(buf.as_bytes());
+        rx.read_blocking(&mut r_buf);
         cortex_m::asm::delay(1000 * 1000 * 10);
         defmt::info!("send: {} ", buf.as_bytes());
         defmt::info!("recv: {}", r_buf);

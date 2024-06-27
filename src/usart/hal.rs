@@ -38,23 +38,22 @@ pub mod sealed {
         }
 
         #[inline]
-        fn read_byte_block() -> u8 {
+        fn read_byte_blocking() -> u8 {
             let block = Self::block();
 
             while block.sr.read().rxne().bit_is_clear() {}
-
             block.dr.read().bits() as u8
         }
 
         #[inline]
-        fn read_bytes_block(buf: &mut [u8]) {
+        fn read_bytes_blocking(buf: &mut [u8]) {
             for item in buf {
-                *item = Self::read_byte_block()
+                *item = Self::read_byte_blocking()
             }
         }
 
         #[inline]
-        fn write_byte_block(data: u8) {
+        fn write_byte_blocking(data: u8) {
             let block = Self::block();
 
             // txe: 0: 未传输完， 1： 传输完毕
@@ -63,9 +62,9 @@ pub mod sealed {
         }
 
         #[inline]
-        fn write_bytes_block(buf: &[u8]) {
+        fn write_bytes_blocking(buf: &[u8]) {
             for item in buf {
-                Self::write_byte_block(*item);
+                Self::write_byte_blocking(*item);
             }
         }
 

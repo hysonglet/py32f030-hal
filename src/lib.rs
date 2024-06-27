@@ -6,8 +6,6 @@
 #![allow(non_snake_case)]
 
 use config::SysClockSource;
-pub use embedded_hal as hal;
-pub use embedded_hal::digital::v2::{InputPin, OutputPin};
 use mcu::Peripherals;
 pub use PY32f030xx_pac as pac;
 
