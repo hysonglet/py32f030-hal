@@ -4,22 +4,25 @@ pub trait PeriphPtr {
     fn block() -> Self::Target;
 }
 
-pub fn wait_fun<F>(t_us: u32, f: F) -> bool
+pub enum Error {
+    Timeout,
+}
+
+pub fn wait_fun<F>(tick: u32, f: F) -> Result<(), Error>
 where
     F: Fn() -> bool,
 {
-    #[allow(unused)]
-    let mut cnt = t_us;
+    let mut cnt = tick;
+    #[allow(clippy::never_loop)]
     loop {
-        if f() == true {
-            break true;
+        if f() {
+            return Ok(());
         }
         cnt -= 1;
-        #[cfg(debug_assertions)]
+        cortex_m::asm::delay(1);
         if cnt == 0 {
-            panic!("timeout for wating")
+            return Err(Error::Timeout);
         }
-        break false;
     }
 }
 
@@ -32,7 +35,7 @@ pub(crate) struct BitOption;
 impl BitOption {
     #[inline]
     pub fn bit_mask_idx<const BIT_WIDTH: usize>(idx: usize) -> u32 {
-        ((0x01 << BIT_WIDTH) - 1) << (BIT_WIDTH * idx)
+        ((0x01u32 << BIT_WIDTH) - 1) << (BIT_WIDTH * idx)
     }
     #[inline]
     pub(crate) fn bit_mask_idx_modify<const BIT_WIDTH: usize>(

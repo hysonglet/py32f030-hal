@@ -1,10 +1,12 @@
+mod hal;
+
 use core::ops::Not;
+use hal::*;
 
 use crate::clock::peripheral::GpioClock;
-use crate::pac;
 use embassy_hal_internal::{impl_peripheral, into_ref, Peripheral, PeripheralRef};
-use sealed::GpioPinState;
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum GpioPort {
     GPIOA = 0,
@@ -13,7 +15,7 @@ pub enum GpioPort {
 }
 
 impl GpioPort {
-    pub fn enable(&self, en: bool) {
+    fn enable(&self, en: bool) {
         match *self {
             GpioPort::GPIOA => GpioClock::GPIOA.enable(en),
             GpioPort::GPIOB => GpioClock::GPIOB.enable(en),
@@ -21,7 +23,7 @@ impl GpioPort {
         }
     }
 
-    pub fn reset(&self) {
+    fn reset(&self) {
         match *self {
             GpioPort::GPIOA => GpioClock::GPIOA.reset(),
             GpioPort::GPIOB => GpioClock::GPIOB.reset(),
@@ -60,7 +62,7 @@ pub enum PinSpeed {
 }
 
 // 定义 enum PinAf
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum PinAF {
     AF0 = 0,
     AF1 = 1,
@@ -180,169 +182,20 @@ impl From<PinLevel> for bool {
 #[derive(Debug)]
 pub enum Error {}
 
-pub(crate) mod sealed {
-    use super::*;
-    use crate::common::BitOption;
-
-    pub trait GpioPinState {
-        fn port_pin(&self) -> u8;
-
-        #[inline]
-        fn port(&self) -> GpioPort {
-            let port = (self.port_pin() >> 4) as usize;
-            assert!(port < 3);
-            port.into()
-        }
-        #[inline]
-        fn pin(&self) -> usize {
-            (self.port_pin() & 0x0f) as usize
-        }
-        #[inline]
-        fn block(&self) -> &'static pac::gpioa::RegisterBlock {
-            match self.port() {
-                GpioPort::GPIOA => unsafe { pac::GPIOA::PTR.as_ref().unwrap() },
-                GpioPort::GPIOB => unsafe {
-                    (pac::GPIOB::PTR as *const pac::gpioa::RegisterBlock)
-                        .as_ref()
-                        .unwrap()
-                },
-                GpioPort::GPIOF => unsafe {
-                    (pac::GPIOF::PTR as *const pac::gpioa::RegisterBlock)
-                        .as_ref()
-                        .unwrap()
-                },
-            }
-        }
-
-        #[inline]
-        fn set_mode(&self, mode: PinMode) {
-            let block = self.block();
-
-            block.moder.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
-                    r.bits(),
-                    mode as u32,
-                ))
-            })
-        }
-
-        #[inline]
-        fn set_output_type(&self, output_type: PinOutputType) {
-            self.block().otyper.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<1>(
-                    self.pin(),
-                    r.bits(),
-                    output_type as u32,
-                ))
-            })
-        }
-
-        #[inline]
-        fn set_io_type(&self, io_type: PinIoType) {
-            let (pushpull, output_type) = io_type.split();
-            self.set_push_pull(pushpull);
-            self.set_output_type(output_type)
-        }
-
-        #[inline]
-        fn set_push_pull(&self, push_pull: PinPullUpDown) {
-            self.block().pupdr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
-                    r.bits(),
-                    push_pull as u32,
-                ))
-            })
-        }
-
-        #[inline]
-        fn read(&self) -> PinLevel {
-            let r = self.block().idr.read().bits();
-            BitOption::bit_mask_idx_get::<1>(self.pin(), r).into()
-        }
-
-        #[inline]
-        fn write(&self, level: PinLevel) {
-            self.block().odr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<1>(
-                    self.pin(),
-                    r.bits(),
-                    level as u32,
-                ))
-            })
-        }
-
-        #[inline]
-        fn lock(&self, _lock: bool) {
-            todo!()
-        }
-
-        #[inline]
-        fn set_af(&self, af: PinAF) {
-            let block = self.block();
-
-            if self.pin() < 8 {
-                block.afrl.modify(|r, w| unsafe {
-                    w.bits(BitOption::bit_mask_idx_modify::<4>(
-                        self.pin(),
-                        r.bits(),
-                        af as u32,
-                    ))
-                })
-            } else {
-                block.afrh.modify(|r, w| unsafe {
-                    w.bits(BitOption::bit_mask_idx_modify::<4>(
-                        self.pin(),
-                        r.bits(),
-                        af as u32,
-                    ))
-                })
-            }
-        }
-
-        #[inline]
-        fn clear(&self) {
-            self.block()
-                .bsrr
-                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(self.pin() + 16)) })
-        }
-
-        #[inline]
-        fn set(&self) {
-            self.block()
-                .bsrr
-                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(self.pin())) })
-        }
-
-        #[inline]
-        fn reset(&self) {
-            self.block()
-                .brr
-                .write(|w| unsafe { w.bits(1 << self.pin()) })
-        }
-
-        #[inline]
-        fn set_speed(&self, speed: PinSpeed) {
-            self.block().ospeedr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
-                    r.bits(),
-                    speed as u32,
-                ))
-            })
-        }
-    }
-}
-
 pub struct AnyPin {
     port_pin: u8,
 }
 
 impl_peripheral!(AnyPin);
-impl GpioPinState for AnyPin {
+impl sealed::Pin for AnyPin {
     fn port_pin(&self) -> u8 {
         self.port_pin
+    }
+}
+
+impl Pin for AnyPin {
+    fn degrade(self) -> AnyPin {
+        self
     }
 }
 
@@ -350,7 +203,7 @@ pub struct Flex<'d> {
     pub(crate) pin: PeripheralRef<'d, AnyPin>,
 }
 
-pub trait GpioPin: Peripheral<P = Self> + Into<AnyPin> + GpioPinState + Sized + 'static {
+pub trait Pin: Peripheral<P = Self> + Into<AnyPin> + sealed::Pin + Sized + 'static {
     fn degrade(self) -> AnyPin {
         AnyPin {
             port_pin: self.port_pin(),
@@ -358,9 +211,11 @@ pub trait GpioPin: Peripheral<P = Self> + Into<AnyPin> + GpioPinState + Sized + 
     }
 }
 
+use sealed::Pin as _;
+
 impl<'d> Flex<'d> {
     #[inline]
-    pub fn new(pin: impl Peripheral<P = impl GpioPin> + 'd) -> Self {
+    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
         into_ref!(pin);
         Self {
             pin: pin.map_into(),
@@ -389,11 +244,12 @@ impl<'d> Flex<'d> {
         });
     }
 
-    pub fn set_as_af(&self, af: PinAF, speed: PinSpeed) {
+    pub fn set_as_af(&self, af: PinAF, speed: PinSpeed, io_type: PinIoType) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Af);
             self.pin.set_af(af);
             self.pin.set_speed(speed);
+            self.pin.set_io_type(io_type);
         });
     }
 
@@ -424,7 +280,7 @@ impl AnyPin {
     pub unsafe fn steal(port: GpioPort, pin: u8) -> Self {
         assert!(pin < 16);
         // safe
-        let port_pin = (((port as u8) << 4) | pin) as u8;
+        let port_pin = ((port as u8) << 4) | pin;
         Self { port_pin }
     }
 }
@@ -443,11 +299,9 @@ pub struct Analog<'d> {
     pub(crate) _pin: Flex<'d>,
 }
 
-pub type Pin = usize;
-
 impl<'d> Input<'d> {
     pub fn new(
-        pin: impl Peripheral<P = impl GpioPin> + 'd,
+        pin: impl Peripheral<P = impl Pin> + 'd,
         pull: PinPullUpDown,
         speed: PinSpeed,
     ) -> Self {
@@ -465,7 +319,7 @@ impl<'d> Input<'d> {
 
 impl<'d> Output<'d> {
     pub fn new(
-        pin: impl Peripheral<P = impl GpioPin> + 'd,
+        pin: impl Peripheral<P = impl Pin> + 'd,
         io_type: PinIoType,
         speed: PinSpeed,
     ) -> Self {
@@ -487,20 +341,21 @@ impl<'d> Output<'d> {
 
 impl<'d> Af<'d> {
     pub fn new(
-        pin: impl Peripheral<P = impl GpioPin> + 'd,
+        pin: impl Peripheral<P = impl Pin> + 'd,
         af: impl Into<PinAF>,
         speed: PinSpeed,
+        io_type: PinIoType,
     ) -> Self {
         let pin = Flex::new(pin);
 
-        pin.set_as_af(af.into(), speed);
+        pin.set_as_af(af.into(), speed, io_type);
 
         Self { _pin: pin }
     }
 }
 
 impl<'d> Analog<'d> {
-    pub fn new(pin: impl Peripheral<P = impl GpioPin> + 'd) -> Self {
+    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
         let pin = Flex::new(pin);
 
         pin.set_as_analog();
@@ -614,8 +469,9 @@ macro_rules! gpio_pin_def {
     ) => {
         pub mod $gpio_mod {
             use super::*;
+            use crate::mcu::peripherals;
 
-            pub struct $gpio_port;
+            // pub struct $gpio_port;
 
             pub struct Port {
                 pin: u8,
@@ -633,18 +489,29 @@ macro_rules! gpio_pin_def {
                 )*
             }
 
-            impl $gpio_port {
+            impl peripherals::$gpio_port {
                 pub fn split(self) -> Pins {
+                    self.enable(true);
                     Pins {
                         $(
                             $port_pin_name: $port_pin_name,
                         )*
                     }
                 }
+
+                pub fn enable(&self, en: bool) {
+                    GpioPort::$gpio_port.enable(en);
+                }
+
+                pub fn reset(&self) {
+                    GpioPort::$gpio_port.reset();
+                }
             }
 
             $(
                 pub struct $port_pin_name;
+
+                impl_peripheral!($port_pin_name);
 
                 impl $port_pin_name {
                     pub fn erase_pin(self) -> Port {
@@ -666,6 +533,27 @@ macro_rules! gpio_pin_def {
                         (value as u32).into()
                     }
                 }
+
+                impl sealed::Pin for $port_pin_name {
+                    fn port_pin(&self) -> u8 {
+                        (GpioPort::$gpio_port as u8) << 4 | $pin_index
+                    }
+                }
+
+                impl Pin for $port_pin_name {
+                    fn degrade(self) -> AnyPin {
+                        AnyPin {
+                            port_pin: (GpioPort::$gpio_port as u8) << 4 | $pin_index
+                        }
+                    }
+                }
+
+                impl From<$port_pin_name> for AnyPin {
+                    fn from(value: $port_pin_name) -> Self {
+                        // unsafe { AnyPin::steal(GpioPort::$gpio_port, $pin_index) }
+                        value.degrade()
+                    }
+                }
             )*
         }
     };
@@ -681,6 +569,11 @@ gpio_pin_def!(gpioa, GPIOA
     [
         SPI1_SCK = 0, USART1_RTS = 1, LED_DATA_C = 3,USART2_RTS = 4, EVENTOUT = 7,USART2_RX = 9,
         SPI1_MOSI = 10,TIM1_CH4 = 13,TIM1_CH2N = 14, MCO = 15
+    ],
+    PA2 => A2:2,
+    [
+        SPI1_MOSI = 0, USART1_TX = 1, LED_DATA_D = 3,USART2_TX = 4, COMP2_OUT = 7,SPI1_SCK = 10,
+        I2C_SDA = 12, TIM3_CH1 = 13
     ],
     PA3 => A3:3,
     [
@@ -769,4 +662,17 @@ gpio_pin_def!(gpiof, GPIOF
 );
 
 #[cfg(test)]
-fn test() {}
+fn test() {
+    // use crate::mcu::peripherals;
+
+    // let gpioa = peripherals;
+
+    // let gpioa = gpioa::GPIOA.split();
+    // let p0 = gpioa.PA0;
+    // let _p0: AnyPin = p0.into();
+    // // p0.read();
+    // let _p1 = gpioa.PA1.erase_pin().erase_port();
+
+    // let _led = Output::new(gpioa.PA4.degrade(), PinIoType::Pullup, PinSpeed::Low);
+    // let _key = Output::new(gpioa.PA5, PinIoType::Pullup, PinSpeed::Low);
+}

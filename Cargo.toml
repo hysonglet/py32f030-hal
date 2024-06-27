@@ -16,39 +16,38 @@ void = { version = "1.0", default-features = false }
 panic-halt = "0.2.0"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-defmt = "0.3.2"
-defmt-rtt = "0.4"
+defmt = { version = "0.3.2", option = true }
+defmt-rtt = { version = "0.4", option = true }
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "inline-asm",
 ] }
 PY32f030xx-pac = "0.1.0"
 num-traits = { version = "0.2", default-features = false }
+heapless = "0.7"
 
 embassy-hal-internal = { version = "0.1.0", features = [
     "cortex-m",
     "prio-bits-3",
-], option = true }
+] }
+
 
 [profile.dev]
 codegen-units = 1
-# incremental = false
 opt-level = "z"
 lto = "fat"
 debug = true
-link-dead-code = false
 overflow-checks = true
 strip = false
-
 
 [profile.release]
 codegen-units = 1
 opt-level = "z"
-lto = "fat"
+lto = true
 debug = false
 link-dead-code = false
 overflow-checks = false
-strip = false
+strip = true
 
 [features]
 default = ["extern_clk"]
@@ -63,3 +62,6 @@ usbd-serial = "0.1.1"
 
 [[example]]
 name = "blinky"
+
+[[example]]
+name = "embassy_uart"
