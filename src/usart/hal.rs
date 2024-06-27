@@ -9,6 +9,7 @@ pub mod sealed {
 
     pub trait Instance {
         fn id() -> Usart;
+
         #[inline]
         fn block() -> &'static pac::usart1::RegisterBlock {
             match Self::id() {
@@ -97,6 +98,7 @@ pub mod sealed {
         fn config(config: Config) {
             let block = Self::block();
 
+            // 必须在串口停止状态下才能重新配置
             Self::stop();
 
             // 设置停止位
@@ -145,6 +147,7 @@ pub mod sealed {
                     .bits(fraction)
             });
 
+            // 开启串口
             Self::start();
         }
     }
