@@ -79,8 +79,3 @@ impl_pin_af!(gpiof, PF2_NRST, USART2, RxPin, AF4);
 
 impl_pin_af!(gpiof, PF3, USART1, TxPin, AF0);
 impl_pin_af!(gpiof, PF3, USART2, TxPin, AF4);
-
-#[cfg(test)]
-fn test() {
-    // let uart = FlexUsart::new(USART1);
-}

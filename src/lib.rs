@@ -11,6 +11,8 @@ pub use PY32f030xx_pac as pac;
 
 pub mod clock;
 pub mod common;
+#[cfg(feature = "embassy")]
+pub mod embassy;
 pub mod gpio;
 pub mod mcu;
 pub mod usart;
@@ -30,14 +32,6 @@ pub mod config {
     pub struct Config {
         pub sys_clk: SysClockSource,
     }
-
-    // impl Default for Config {
-    //     fn default() -> Self {
-    //         Self {
-    //             sys_clk: SysClockSource::default(),
-    //         }
-    //     }
-    // }
 }
 
 pub fn init(config: config::Config) -> Peripherals {
@@ -51,6 +45,9 @@ pub fn init(config: config::Config) -> Peripherals {
             clock::Sysclock::<clock::PLL<clock::HSI>>::config().unwrap();
         }
     }
+
+    #[cfg(feature = "embassy")]
+    embassy::init();
 
     peripherals
 }

@@ -139,7 +139,7 @@ pub struct Config {
     // pub mode: T,
 }
 
-use defmt::Debug2Format;
+// use defmt::Debug2Format;
 use embassy_hal_internal::into_ref;
 use embassy_hal_internal::Peripheral;
 use embassy_hal_internal::PeripheralRef;
@@ -202,7 +202,7 @@ impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
             |rxd| {
                 into_ref!(rxd);
                 rxd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::Pullup);
-                defmt::info!("rxd: {} ", Debug2Format(&(rxd.af())));
+                // defmt::info!("rxd: {} ", Debug2Format(&(rxd.af())));
                 Some(rxd.map_into())
             },
         );
@@ -212,7 +212,7 @@ impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
             |txd| {
                 into_ref!(txd);
                 txd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::Pullup);
-                defmt::info!("txd: {} ", Debug2Format(&(txd.af())));
+                // defmt::info!("txd: {} ", Debug2Format(&(txd.af())));
                 Some(txd.map_into())
             },
         );
@@ -295,4 +295,9 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
             _cts: cts,
         }
     }
+}
+
+#[cfg(test)]
+fn test() {
+    // let uart = FlexUsart::new(USART1);
 }

@@ -453,7 +453,7 @@ pub enum HclkDiv {
 impl From<u8> for PclkDiv {
     fn from(value: u8) -> Self {
         match value {
-            0..4 => Self::Div1,
+            0..=3 => Self::Div1,
             4 => Self::Div2,
             5 => Self::Div4,
             6 => Self::Div8,
@@ -466,7 +466,7 @@ impl From<u8> for PclkDiv {
 impl From<u8> for HclkDiv {
     fn from(value: u8) -> Self {
         match value {
-            0..8 => Self::Div1,
+            0..=7 => Self::Div1,
             8 => Self::Div2,
             9 => Self::Div4,
             10 => Self::Div8,

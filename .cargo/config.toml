@@ -3,15 +3,18 @@
 [target.thumbv6m-none-eabi]
 runner = 'probe-rs run --chip PY32F030x8'
 rustflags = [
-  "-C", "link-arg=-Tlink.x",
-  # --- ADD following new flag ---
-  # todo 发布后需要把这个删掉减少flash占用
-  "-C", "link-arg=-Tdefmt.x",
+    "-C",
+    "link-arg=-Tlink.x",
+    # --- ADD following new flag ---
+    # todo 发布后需要把这个删掉减少flash占用
+    "-C",
+    "link-arg=-Tdefmt.x",
 ]
 
 [build]
 target = "thumbv6m-none-eabi"
 
 [env]
-DEFMT_LOG = "info"
+#DEFMT_LOG = "info"
+DEFMT_LOG = "trace"
 CRYSTAL_HZ = "8000000"

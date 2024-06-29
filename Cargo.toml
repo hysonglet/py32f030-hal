@@ -13,8 +13,8 @@ critical-section = { version = "1.1.2" }
 embedded-hal = { version = "0.2", features = ["unproven"] }
 nb = "1"
 void = { version = "1.0", default-features = false }
-panic-halt = "0.2.0"
-panic-probe = { version = "0.3", features = ["print-defmt"] }
+panic-halt = { version = "0.2.0", option = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], option = true }
 
 defmt = { version = "0.3.2", option = true }
 defmt-rtt = { version = "0.4", option = true }
@@ -22,15 +22,54 @@ cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "inline-asm",
 ] }
-PY32f030xx-pac = "0.1.0"
+atomic-polyfill = "1.0.1"
+PY32f030xx-pac = { version = "0.1.0", features = ["rt"] }
 num-traits = { version = "0.2", default-features = false }
 heapless = "0.7"
-
 embassy-hal-internal = { version = "0.1.0", features = [
     "cortex-m",
     "prio-bits-3",
 ] }
+embassy-time-driver = { version = "0.1.0", default-features = false, optional = true }
+embassy-sync = { version = "0.5.0", optional = true }
+embassy-executor = { version = "0.5.0", optional = true, features = [
+    "arch-cortex-m",
+    "executor-thread",
+] }
+embassy-time = { version = "0.3.0", features = [
+    "generic-queue-16",
+], optional = true }
+embassy-futures = { version = "0.1.0", features = ["defmt"] }
 
+[features]
+## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
+time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
+default = ["extern_clk", "embassy"]
+extern_clk = []
+inner_clk = []
+embassy = [
+    "dep:embassy-executor",
+    "dep:embassy-sync",
+    "dep:embassy-time",
+    "time-driver",
+]
+
+# critical-section-impl = ["critical-section:restore-state-u8"]
+
+
+[dev-dependencies]
+panic-halt = "0.2"
+usb-device = "0.2.7"
+usbd-serial = "0.1.1"
+
+[[example]]
+name = "blinky"
+
+[[example]]
+name = "embassy_uart"
+
+[[example]]
+name = "embassy_delay"
 
 [profile.dev]
 codegen-units = 1
@@ -47,21 +86,4 @@ lto = true
 debug = false
 link-dead-code = false
 overflow-checks = false
-strip = true
-
-[features]
-default = ["extern_clk"]
-extern_clk = []
-inner_clk = []
-
-
-[dev-dependencies]
-panic-halt = "0.2"
-usb-device = "0.2.7"
-usbd-serial = "0.1.1"
-
-[[example]]
-name = "blinky"
-
-[[example]]
-name = "embassy_uart"
+# strip = true
