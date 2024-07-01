@@ -660,19 +660,3 @@ gpio_pin_def!(gpiof, GPIOF
     PF3 => F3:3,[USART1_TX = 0, SPI2_MISO = 3, USART2_TX = 4],
     PF4_BOOT0 => F4:4,[]
 );
-
-#[cfg(test)]
-fn test() {
-    // use crate::mcu::peripherals;
-
-    // let gpioa = peripherals;
-
-    // let gpioa = gpioa::GPIOA.split();
-    // let p0 = gpioa.PA0;
-    // let _p0: AnyPin = p0.into();
-    // // p0.read();
-    // let _p1 = gpioa.PA1.erase_pin().erase_port();
-
-    // let _led = Output::new(gpioa.PA4.degrade(), PinIoType::Pullup, PinSpeed::Low);
-    // let _key = Output::new(gpioa.PA5, PinIoType::Pullup, PinSpeed::Low);
-}

@@ -53,6 +53,7 @@ embassy = [
     "dep:embassy-time",
     "time-driver",
 ]
+defmt = []
 
 # critical-section-impl = ["critical-section:restore-state-u8"]
 
@@ -86,4 +87,4 @@ lto = true
 debug = false
 link-dead-code = false
 overflow-checks = false
-# strip = true
+strip = true

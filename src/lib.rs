@@ -36,7 +36,7 @@ pub mod config {
 
 pub fn init(config: config::Config) -> Peripherals {
     let peripherals = Peripherals::take();
-
+    cortex_m::asm::delay(1000 * 1000 * 5);
     match config.sys_clk {
         SysClockSource::HSE => {
             clock::Sysclock::<clock::HSE>::config().unwrap();
@@ -45,6 +45,9 @@ pub fn init(config: config::Config) -> Peripherals {
             clock::Sysclock::<clock::PLL<clock::HSI>>::config().unwrap();
         }
     }
+
+    #[cfg(feature = "defmt")]
+    defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
 
     #[cfg(feature = "embassy")]
     embassy::init();

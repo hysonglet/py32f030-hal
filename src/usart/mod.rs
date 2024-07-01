@@ -1,5 +1,5 @@
 mod hal;
-mod pin;
+mod pins;
 use core::marker::PhantomData;
 
 use crate::clock;

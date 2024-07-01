@@ -33,11 +33,11 @@ pub struct SystickDriver {
     period_count: AtomicU64,
 }
 
-const ALARM_STATE_NEW: AlarmState = AlarmState::new();
+// const ALARM_STATE_NEW: AlarmState = AlarmState::new();
 
 embassy_time_driver::time_driver_impl!(static DRIVER: SystickDriver = SystickDriver {
     alarm_count: AtomicU8::new(0),
-    alarms: Mutex::new([ALARM_STATE_NEW; ALARM_COUNT]),
+    alarms: Mutex::new([AlarmState::new(); ALARM_COUNT]),
     period_count: AtomicU64::new(0)
 });
 
@@ -70,9 +70,9 @@ impl SystickDriver {
         unsafe { Self::block().csr.modify(|v| v | Self::SYST_CSR_ENABLE) }
     }
 
-    fn disable_counter() {
-        unsafe { Self::block().csr.modify(|v| v & !Self::SYST_CSR_ENABLE) }
-    }
+    // fn disable_counter() {
+    //     unsafe { Self::block().csr.modify(|v| v & !Self::SYST_CSR_ENABLE) }
+    // }
 
     /// Enables SysTick interrupt
     #[inline]
@@ -98,13 +98,12 @@ impl SystickDriver {
 
 impl SystickDriver {
     fn init(&'static self) {
-        // defmt::info!("start");
         Self::disable_interrupt();
         Self::set_clock_source(SystClkSource::Core);
         Self::clear_current();
 
         let cnt_per_tick = sys_core_clock() / TICK_HZ as u32;
-        // defmt::info!("{} {} {}", cnt_per_tick, sys_core_clock(), TICK_HZ);
+
         Self::set_reload(cnt_per_tick);
 
         critical_section::with(|_| {
@@ -153,11 +152,7 @@ impl Driver for SystickDriver {
                 }
             });
 
-        // id.map_or_else(None, |id| Some(AlarmHandle::new(id)))
-        match id {
-            Ok(id) => Some(AlarmHandle::new(id)),
-            Err(_) => None,
-        }
+        id.map_or_else(|_| None, |id| Some(AlarmHandle::new(id)))
     }
 
     fn set_alarm_callback(&self, alarm: AlarmHandle, callback: fn(*mut ()), ctx: *mut ()) {
