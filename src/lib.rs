@@ -13,6 +13,7 @@ pub mod clock;
 pub mod common;
 #[cfg(feature = "embassy")]
 pub mod embassy;
+pub mod exit;
 pub mod gpio;
 pub mod mcu;
 pub mod usart;
