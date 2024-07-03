@@ -23,9 +23,9 @@ const EXIT_GPIO_COUNT: usize = 17;
 const ATOMIC_WAKE_CONST: AtomicWaker = AtomicWaker::new();
 static EXIT_GPIO_WAKERS: [AtomicWaker; EXIT_GPIO_COUNT] = [ATOMIC_WAKE_CONST; EXIT_GPIO_COUNT];
 
-impl Instance for Exit {}
+impl Instance for Exti {}
 
-struct Exit;
+struct Exti;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Line {
@@ -105,13 +105,13 @@ impl From<usize> for Line {
 //     }
 // }
 
-pub struct ExitInput<'d> {
+pub struct ExtiInput<'d> {
     pin: Input<'d>,
 }
 
-impl<'d> Unpin for ExitInput<'d> {}
+impl<'d> Unpin for ExtiInput<'d> {}
 
-impl<'d> ExitInput<'d> {
+impl<'d> ExtiInput<'d> {
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         pull: PinPullUpDown,
@@ -129,7 +129,7 @@ impl<'d> ExitInput<'d> {
     }
 
     pub async fn wait_for_low(&self) {
-        let fut = ExitInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
+        let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
         if self.get_level() == PinLevel::Low {
             return;
         }
@@ -137,7 +137,7 @@ impl<'d> ExitInput<'d> {
     }
 
     pub async fn wait_for_high(&self) {
-        let fut = ExitInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
+        let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
         if self.get_level() == PinLevel::Hight {
             return;
         }
@@ -145,23 +145,23 @@ impl<'d> ExitInput<'d> {
     }
 
     pub async fn wait_for_rising_edge(&self) {
-        let fut = ExitInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
+        let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
         fut.await
     }
 
     pub async fn wait_for_falling_edge(&self) {
-        let fut = ExitInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
+        let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
         fut.await
     }
 
     pub async fn wait_for_any_edge(&self) {
         let fut =
-            ExitInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::RisingFalling);
+            ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::RisingFalling);
         fut.await
     }
 }
 
-impl<'a> embedded_hal::digital::v2::InputPin for ExitInput<'a> {
+impl<'a> embedded_hal::digital::v2::InputPin for ExtiInput<'a> {
     type Error = Infallible;
     fn is_low(&self) -> Result<bool, Self::Error> {
         self.pin.is_low()
@@ -210,27 +210,27 @@ impl Edge {
     }
 }
 
-struct ExitInputFuture<'a> {
+struct ExtiInputFuture<'a> {
     line: Line,
     edge: Edge,
     life: PhantomData<&'a mut AnyPin>,
 }
 
-impl<'a> ExitInputFuture<'a> {
+impl<'a> ExtiInputFuture<'a> {
     fn new(port: GpioPort, pin: usize, edge: Edge) -> Self {
         let line: Line = pin.into();
         // line 选择
-        Exit::exit_channle_select(line, port.into());
+        Exti::exit_channle_select(line, port.into());
 
         critical_section::with(|_| {
             // 设置上升沿触发条件
-            Exit::line_ring_edge(line, edge.is_rising());
+            Exti::line_ring_edge(line, edge.is_rising());
             // 设置下降沿的触发条件
-            Exit::line_falling_edge(line, edge.is_falling());
+            Exti::line_falling_edge(line, edge.is_falling());
 
             // clear pending bit
-            Exit::clear_pending(line);
-            Exit::line_pend_enable(line, true);
+            Exti::clear_pending(line);
+            Exti::line_pend_enable(line, true);
         });
 
         Self {
@@ -241,7 +241,7 @@ impl<'a> ExitInputFuture<'a> {
     }
 }
 
-impl<'d> Future for ExitInputFuture<'d> {
+impl<'d> Future for ExtiInputFuture<'d> {
     type Output = ();
     fn poll(
         self: core::pin::Pin<&mut Self>,
@@ -249,7 +249,7 @@ impl<'d> Future for ExitInputFuture<'d> {
     ) -> core::task::Poll<Self::Output> {
         EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
 
-        if !Exit::is_line_pend_enable(self.line) {
+        if !Exti::is_line_pend_enable(self.line) {
             Poll::Ready(())
         } else {
             Poll::Pending
@@ -257,13 +257,13 @@ impl<'d> Future for ExitInputFuture<'d> {
     }
 }
 
-impl<'d> Drop for ExitInputFuture<'d> {
+impl<'d> Drop for ExtiInputFuture<'d> {
     fn drop(&mut self) {
         critical_section::with(|_| {
             if self.edge.is_rising() {
-                Exit::line_ring_edge(self.line, false);
+                Exti::line_ring_edge(self.line, false);
             } else if self.edge.is_falling() {
-                Exit::line_falling_edge(self.line, false);
+                Exti::line_falling_edge(self.line, false);
             }
             // Exit::line_falling_edge(self.line, false);
             // Exit::line_pend_enable(self.line, false);
@@ -287,10 +287,10 @@ fn EXTI4_15() {
 }
 
 unsafe fn on_gpio_line_irq(mask: u32) {
-    let flag = Exit::block().pr.read().bits() & mask;
+    let flag = Exti::block().pr.read().bits() & mask;
     for line in BitIter(flag) {
-        Exit::line_pend_enable(Line::from(line as usize), false);
-        Exit::clear_pending(Line::from(line as usize));
+        Exti::line_pend_enable(Line::from(line as usize), false);
+        Exti::clear_pending(Line::from(line as usize));
         EXIT_GPIO_WAKERS[line as usize].wake();
     }
 }

@@ -2,7 +2,7 @@
 #![no_main]
 
 use embedded_hal::digital::v2::InputPin;
-use hal::exit::ExitInput;
+use hal::exit::ExtiInput;
 use hal::gpio::{PinPullUpDown, PinSpeed};
 use py32f030_hal as hal;
 use {defmt_rtt as _, panic_probe as _};
@@ -11,7 +11,7 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 
 #[embassy_executor::task]
-async fn run(key: ExitInput<'static>) {
+async fn run(key: ExtiInput<'static>) {
     loop {
         defmt::info!("wating for key push...");
         key.wait_for_low().await;
@@ -28,7 +28,7 @@ async fn main(_spawner: Spawner) {
 
     defmt::info!("Hello World!");
 
-    let key: ExitInput = ExitInput::new(gpioa.PA12, PinPullUpDown::No, PinSpeed::Low);
+    let key: ExtiInput = ExtiInput::new(gpioa.PA12, PinPullUpDown::No, PinSpeed::Low);
     _spawner.spawn(run(key)).unwrap();
 
     let mut cnt: u32 = 0;

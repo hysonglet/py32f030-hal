@@ -22,9 +22,11 @@ pub mod sealed {
     }
 
     pub(crate) trait Instance {
+        #[inline]
         fn block() -> &'static pac::exti::RegisterBlock {
             unsafe { pac::EXTI::PTR.as_ref().unwrap() }
         }
+
         #[inline]
         fn line_ring_edge(line: Line, en: bool) {
             Self::block().rtsr.modify(|r, w| unsafe {
@@ -47,7 +49,7 @@ pub mod sealed {
             })
         }
 
-        #[inline]
+        // #[inline]
         // fn get_pending(line: Line) -> bool {
         //     BitOption::bit_mask_idx_get::<1>(line as usize, Self::block().pr.read().bits()) != 0
         // }
@@ -102,6 +104,7 @@ pub mod sealed {
             }
         }
 
+        #[inline]
         fn line_pend_enable(line: Line, en: bool) {
             Self::block().imr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
@@ -112,6 +115,7 @@ pub mod sealed {
             });
         }
 
+        #[inline]
         fn is_line_pend_enable(line: Line) -> bool {
             BitOption::bit_mask_idx_get::<1>(line as usize, Self::block().imr.read().bits()) != 0
         }
