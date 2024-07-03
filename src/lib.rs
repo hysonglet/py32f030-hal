@@ -53,6 +53,8 @@ pub fn init(config: config::Config) -> Peripherals {
     #[cfg(feature = "embassy")]
     embassy::init();
 
+    exit::init();
+
     peripherals
 }
 

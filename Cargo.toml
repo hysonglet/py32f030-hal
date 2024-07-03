@@ -11,6 +11,7 @@ cast = "0.3"
 cortex-m-rt = "0.7"
 critical-section = { version = "1.1.2" }
 embedded-hal = { version = "0.2", features = ["unproven"] }
+embedded-io = "0.6.1"
 nb = "1"
 void = { version = "1.0", default-features = false }
 panic-halt = { version = "0.2.0", option = true }

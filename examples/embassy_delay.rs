@@ -23,10 +23,11 @@ async fn main(_spawner: Spawner) {
     defmt::info!("Hello World!");
 
     _spawner.spawn(run()).unwrap();
+
     let mut cnt: u32 = 0;
     loop {
         defmt::info!("high {} ", cnt);
         cnt += 1;
-        Timer::after_secs(1).await;
+        Timer::after_secs(5).await;
     }
 }

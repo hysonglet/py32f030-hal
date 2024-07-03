@@ -47,10 +47,12 @@ pub mod sealed {
         }
 
         #[inline]
-        fn read_bytes_blocking(buf: &mut [u8]) {
+        fn read_bytes_blocking(buf: &mut [u8]) -> usize {
+            let len = buf.len();
             for item in buf {
                 *item = Self::read_byte_blocking()
             }
+            len
         }
 
         #[inline]
@@ -63,10 +65,12 @@ pub mod sealed {
         }
 
         #[inline]
-        fn write_bytes_blocking(buf: &[u8]) {
+        fn write_bytes_blocking(buf: &[u8]) -> usize {
+            let len = buf.len();
             for item in buf {
                 Self::write_byte_blocking(*item);
             }
+            len
         }
 
         #[inline]
@@ -78,6 +82,17 @@ pub mod sealed {
         #[inline]
         fn rx_enable(en: bool) {
             Self::block().cr1.modify(|_, w| w.re().bit(en))
+        }
+
+        #[inline]
+        fn rx_ready() -> bool {
+            Self::block().sr.read().rxne().bit()
+        }
+
+        #[inline]
+        fn tx_ready() -> bool {
+            // todo!();
+            Self::block().sr.read().txe().bit()
         }
 
         #[inline]

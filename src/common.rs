@@ -46,10 +46,10 @@ impl BitOption {
         let val = val << (BIT_WIDTH * pin);
         origin & !Self::bit_mask_idx::<BIT_WIDTH>(pin) | val
     }
-    // #[inline]
-    // pub(crate) fn bit_mask_idx_clear<const BIT_WIDTH: usize>(idx: usize, origin: u32) -> u32 {
-    //     origin & !Self::bit_mask_idx::<BIT_WIDTH>(idx)
-    // }
+    #[inline]
+    pub(crate) fn bit_mask_idx_clear<const BIT_WIDTH: usize>(idx: usize, origin: u32) -> u32 {
+        origin & !Self::bit_mask_idx::<BIT_WIDTH>(idx)
+    }
     #[inline]
     pub(crate) fn bit_mask_idx_get<const BIT_WIDTH: usize>(idx: usize, origin: u32) -> u32 {
         (Self::bit_mask_idx::<BIT_WIDTH>(idx) & origin) >> (BIT_WIDTH * idx)

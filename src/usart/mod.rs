@@ -242,8 +242,16 @@ impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
 }
 
 impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
-    pub fn read_blocking(&self, buf: &mut [u8]) {
+    pub fn read_blocking(&self, buf: &mut [u8]) -> usize {
         T::read_bytes_blocking(buf)
+    }
+
+    pub fn nb_read(&self) -> Result<u8, nb::Error<Error>> {
+        if T::rx_ready() {
+            Ok(T::read_byte_blocking())
+        } else {
+            Err(nb::Error::WouldBlock)
+        }
     }
 }
 
@@ -294,6 +302,56 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
             _txd: txd,
             _cts: cts,
         }
+    }
+}
+
+impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking> {
+    type Error = Error;
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        self.nb_read()
+    }
+}
+
+impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blocking> {
+    type Error = Error;
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        while !T::tx_ready() {}
+        Ok(())
+    }
+
+    fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
+        T::write_byte_blocking(word);
+        Ok(())
+    }
+}
+
+impl embedded_io::Error for Error {
+    fn kind(&self) -> embedded_io::ErrorKind {
+        embedded_io::ErrorKind::Other
+    }
+}
+
+impl<'d, T: Instance> embedded_io::ErrorType for UsartRx<'d, T, Blocking> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_io::Read for UsartRx<'d, T, Blocking> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        Ok(T::read_bytes_blocking(buf))
+    }
+}
+
+impl<'d, T: Instance> embedded_io::ErrorType for UsartTx<'d, T, Blocking> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        Ok(T::write_bytes_blocking(buf))
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        todo!()
     }
 }
 

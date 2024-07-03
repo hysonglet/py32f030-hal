@@ -222,6 +222,14 @@ impl<'d> Flex<'d> {
         }
     }
 
+    pub fn port(&self) -> GpioPort {
+        self.pin.port()
+    }
+
+    pub fn pin(&self) -> usize {
+        self.pin.pin()
+    }
+
     pub fn set_as_input(&self, pull: PinPullUpDown, speed: PinSpeed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Input);
