@@ -13,7 +13,7 @@ pub mod clock;
 pub mod common;
 #[cfg(feature = "embassy")]
 pub mod embassy;
-pub mod exit;
+pub mod exti;
 pub mod gpio;
 pub mod mcu;
 pub mod usart;
@@ -53,7 +53,7 @@ pub fn init(config: config::Config) -> Peripherals {
     #[cfg(feature = "embassy")]
     embassy::init();
 
-    exit::init();
+    exti::init();
 
     peripherals
 }
