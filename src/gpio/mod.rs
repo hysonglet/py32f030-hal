@@ -6,6 +6,7 @@ use hal::*;
 use crate::clock::peripheral::GpioClock;
 use embassy_hal_internal::{impl_peripheral, into_ref, Peripheral, PeripheralRef};
 
+/// GPIO Port Index
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum GpioPort {
@@ -43,7 +44,7 @@ impl From<usize> for GpioPort {
     }
 }
 
-// 定义 enum PinMode
+/// Gpio Pin mode
 #[derive(Clone, Copy)]
 pub enum PinMode {
     Input = 0,
@@ -52,7 +53,7 @@ pub enum PinMode {
     Analog = 3,
 }
 
-// 定义 enum PinSpeed
+// Gpio Pin speed
 #[derive(Clone, Copy)]
 pub enum PinSpeed {
     VeryLow = 0,
@@ -61,7 +62,7 @@ pub enum PinSpeed {
     VeryHigh = 3,
 }
 
-// 定义 enum PinAf
+// Gpio pin 功能复用
 #[derive(Debug, Clone, Copy)]
 pub enum PinAF {
     AF0 = 0,
@@ -106,7 +107,7 @@ impl From<u32> for PinAF {
     }
 }
 
-// 定义 enum PinPullUpDown
+/// Gpio pin 上下拉
 #[derive(Clone, Copy)]
 pub enum PinPullUpDown {
     No = 0,
@@ -114,12 +115,14 @@ pub enum PinPullUpDown {
     PollDown = 2,
 }
 
+/// Gpio pin 输出类型
 #[derive(Clone, Copy)]
 pub enum PinOutputType {
     PushPull = 0,
     OpenDrain = 1,
 }
 
+/// Gpio io 类型，综合了上拉和输出开漏模式
 #[derive(Clone, Copy, PartialEq)]
 pub enum PinIoType {
     Floating,
@@ -140,12 +143,14 @@ impl PinIoType {
     }
 }
 
+/// gpio 锁配置
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum PinLock {
     Unlock = 0,
     Lock = 1,
 }
 
+/// Gpio io 电平
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum PinLevel {
     Low = 0,
@@ -182,6 +187,7 @@ impl From<PinLevel> for bool {
 #[derive(Debug)]
 pub enum Error {}
 
+/// AnyPin
 pub struct AnyPin {
     port_pin: u8,
 }
@@ -199,6 +205,7 @@ impl Pin for AnyPin {
     }
 }
 
+/// Flex 接口的 pin
 pub struct Flex<'d> {
     pub(crate) pin: PeripheralRef<'d, AnyPin>,
 }
@@ -293,9 +300,12 @@ impl AnyPin {
     }
 }
 
+/// 输入类型的引脚
 pub struct Input<'d> {
     pub(crate) pin: Flex<'d>,
 }
+
+/// 输出类型的引脚
 pub struct Output<'d> {
     pub(crate) pin: Flex<'d>,
 }
@@ -303,6 +313,7 @@ pub struct Af<'d> {
     pub(crate) _pin: Flex<'d>,
 }
 
+/// 模拟引脚
 pub struct Analog<'d> {
     pub(crate) _pin: Flex<'d>,
 }

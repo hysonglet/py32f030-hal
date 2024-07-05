@@ -1,6 +1,6 @@
 pub mod sealed {
     use crate::common::BitOption;
-    use crate::exit::Line;
+    use crate::exti::Line;
     use crate::gpio::GpioPort;
     use crate::{gpio, pac};
 

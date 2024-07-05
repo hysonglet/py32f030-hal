@@ -10,6 +10,7 @@ use hal::sealed;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
 
+// 定义 串口的特殊引脚 trait
 pin_af_for_instance_def!(TxPin, Instance);
 pin_af_for_instance_def!(RxPin, Instance);
 pin_af_for_instance_def!(RtsPin, Instance);
@@ -41,6 +42,7 @@ pub enum Error {
     WriteTimeout,
 }
 
+/// 串口停止位
 #[derive(Default)]
 pub enum StopBits {
     #[default]
@@ -48,6 +50,7 @@ pub enum StopBits {
     Stop2 = 1,
 }
 
+/// 串口数据长度
 #[derive(Default)]
 pub enum WordLen {
     #[default]
@@ -55,6 +58,7 @@ pub enum WordLen {
     WordLen9 = 1,
 }
 
+/// 串口配置的校验位
 #[derive(Default, PartialEq)]
 pub enum Parity {
     #[default]
@@ -63,6 +67,7 @@ pub enum Parity {
     Odd = 2,
 }
 
+/// 串口流控
 #[derive(Default)]
 pub enum HwFlowCtrl {
     #[default]
@@ -72,6 +77,7 @@ pub enum HwFlowCtrl {
     RtsCts = 3,
 }
 
+/// 串口的波特率定义
 #[derive(Default)]
 pub enum BaudRate {
     // Auto = 0,
@@ -91,6 +97,7 @@ pub enum BaudRate {
     Bps230400 = 230400,
 }
 
+/// 串口时钟过采样配置
 #[derive(Default, Clone, Copy, PartialEq)]
 pub enum OverSampling {
     #[default]
@@ -114,6 +121,7 @@ impl From<OverSampling> for bool {
     }
 }
 
+/// 串口数据位定义
 #[derive(Default, PartialEq)]
 pub enum DataBits {
     #[default]
@@ -127,6 +135,7 @@ impl From<DataBits> for bool {
     }
 }
 
+/// 串口的综合配置结构体
 #[derive(Default)]
 pub struct Config {
     pub baud_rate: BaudRate,
@@ -144,6 +153,7 @@ use embassy_hal_internal::into_ref;
 use embassy_hal_internal::Peripheral;
 use embassy_hal_internal::PeripheralRef;
 
+/// 串口号定义
 #[derive(Clone, Copy, PartialEq)]
 pub enum Usart {
     USART1,
@@ -151,6 +161,7 @@ pub enum Usart {
 }
 
 impl Usart {
+    /// 使能串口外设时钟
     fn enable(&self, en: bool) {
         match *self {
             Self::USART1 => clock::peripheral::PeripheralClock::USART1.enable(en),
@@ -158,6 +169,7 @@ impl Usart {
         }
     }
 
+    /// 复位串口外设
     fn reset(&self) {
         match *self {
             Self::USART1 => clock::peripheral::PeripheralClock::USART1.reset(),
@@ -165,6 +177,8 @@ impl Usart {
         }
     }
 }
+
+/// 串口接收处理的对象
 pub struct UsartRx<'d, T: Instance, M: Mode> {
     // _p: PeripheralRef<'d, T>,
     _p: PhantomData<(T, M)>,
@@ -172,12 +186,14 @@ pub struct UsartRx<'d, T: Instance, M: Mode> {
     _rts: Option<PeripheralRef<'d, AnyPin>>,
 }
 
+/// 串口发送对象
 pub struct UsartTx<'d, T: Instance, M: Mode> {
     _p: PhantomData<(T, M)>,
     _txd: Option<PeripheralRef<'d, AnyPin>>,
     _cts: Option<PeripheralRef<'d, AnyPin>>,
 }
 
+/// 串口对象
 pub struct FlexUsart<'d, T: Instance, M: Mode> {
     pub rx: UsartRx<'d, T, M>,
     pub tx: UsartTx<'d, T, M>,

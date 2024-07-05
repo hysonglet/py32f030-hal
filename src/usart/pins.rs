@@ -4,6 +4,7 @@ use crate::macro_def::impl_pin_af;
 use crate::mcu::peripherals;
 
 // 指定 引脚功能，生成与外设功能绑定的引脚 trait
+// 为所有具有 USART 功能的引脚实现相应功能的 trait
 impl_pin_af!(gpioa, PA0, USART1, CtsPin, AF1);
 impl_pin_af!(gpioa, PA0, USART2, CtsPin, AF4);
 impl_pin_af!(gpioa, PA0, USART2, TxPin, AF9);
