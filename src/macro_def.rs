@@ -19,27 +19,6 @@ macro_rules! field_umask_val_make {
     }};
 }
 
-/// 生成一个枚举
-#[macro_export]
-macro_rules! enum_impl_from_make {
-    (
-        $(#[$meta: meta])*
-        $vis: vis enum $name: ident <$ty: ty>{
-            $(
-                $(#[$item_meta: meta])*
-                $item: ident -> $val: expr,
-            )*}
-    ) => {
-        $(#[$meta])*
-        $vis enum $name{
-            $(
-                $(#[$item_meta])*
-                $item = $val
-            ),*
-        }
-    };
-}
-
 /// 生成一个 $ty 类型的mask
 /// ```rust
 /// let x = num_mask!(u32; 1, 2 3);  // x = 0b1110

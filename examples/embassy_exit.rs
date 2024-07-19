@@ -2,7 +2,7 @@
 #![no_main]
 
 use embedded_hal::digital::v2::InputPin;
-use hal::exit::ExtiInput;
+use hal::exti::ExtiInput;
 use hal::gpio::{PinPullUpDown, PinSpeed};
 use py32f030_hal as hal;
 use {defmt_rtt as _, panic_probe as _};
@@ -26,7 +26,7 @@ async fn main(_spawner: Spawner) {
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
 
-    defmt::info!("Hello World!");
+    defmt::info!("Example: embassy exti!");
 
     let key: ExtiInput = ExtiInput::new(gpioa.PA12, PinPullUpDown::No, PinSpeed::Low);
     _spawner.spawn(run(key)).unwrap();

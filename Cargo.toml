@@ -43,11 +43,11 @@ embassy-time = { version = "0.3.0", features = [
 embassy-futures = { version = "0.1.0", features = ["defmt"] }
 
 [features]
+dma = []
+
 ## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
 time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
-default = ["extern_clk", "embassy"]
-extern_clk = []
-inner_clk = []
+default = ["embassy", "dma"]
 embassy = [
     "dep:embassy-executor",
     "dep:embassy-sync",

@@ -15,6 +15,6 @@ rustflags = [
 target = "thumbv6m-none-eabi"
 
 [env]
-#DEFMT_LOG = "info"
-DEFMT_LOG = "trace"
+DEFMT_LOG = "info"
+# DEFMT_LOG = "trace"
 CRYSTAL_HZ = "8000000"

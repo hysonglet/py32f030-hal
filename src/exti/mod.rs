@@ -11,11 +11,9 @@ use crate::{
     gpio::{AnyPin, GpioPort, Input, PinLevel, PinPullUpDown, PinSpeed},
 };
 
+use critical_section::CriticalSection;
 use embassy_hal_internal::{into_ref, Peripheral};
 use embassy_sync::waitqueue::AtomicWaker;
-use embassy_time_driver::set_alarm;
-use embedded_hal::fmt;
-// use hal::sealed;
 
 use self::hal::sealed::Instance;
 
@@ -190,7 +188,7 @@ impl Iterator for BitIter {
 
 #[derive(PartialEq)]
 enum Edge {
-    None,
+    // None,
     Rising,
     Falling,
     RisingFalling,
@@ -205,9 +203,9 @@ impl Edge {
         *self == Self::Falling || *self == Self::RisingFalling
     }
 
-    fn is_none(&self) -> bool {
-        *self == Self::None
-    }
+    // fn is_none(&self) -> bool {
+    //     *self == Self::None
+    // }
 }
 
 struct ExtiInputFuture<'a> {
@@ -295,7 +293,7 @@ unsafe fn on_gpio_line_irq(mask: u32) {
     }
 }
 
-pub(crate) fn init() {
+pub(crate) fn init(_cs: CriticalSection) {
     unsafe {
         cortex_m::peripheral::NVIC::unmask(interrupt::EXTI4_15);
         cortex_m::peripheral::NVIC::unmask(interrupt::EXTI0_1);

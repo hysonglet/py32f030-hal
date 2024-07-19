@@ -11,10 +11,12 @@ pub use PY32f030xx_pac as pac;
 
 pub mod clock;
 pub mod common;
+pub mod dma;
 #[cfg(feature = "embassy")]
 pub mod embassy;
 pub mod exti;
 pub mod gpio;
+// pub mod i2c;
 pub mod mcu;
 pub mod usart;
 
@@ -53,7 +55,12 @@ pub fn init(config: config::Config) -> Peripherals {
     #[cfg(feature = "embassy")]
     embassy::init();
 
-    exti::init();
+    critical_section::with(|cs| {
+        exti::init(cs);
+
+        #[cfg(feature = "dma")]
+        dma::init(cs);
+    });
 
     peripherals
 }
