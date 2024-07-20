@@ -17,7 +17,7 @@ async fn main(_spawner: Spawner) {
     let mut src: [u32; 4] = [1, 2, 3, 4];
     let mut dst: [u32; 4] = [0; 4];
 
-    let dma = dma::FlexDmaChannel::new(
+    let dma = dma::AnyChannel::new(
         p.DmaChannel1,
         dma::Config::new_mem2mem(
             src.as_mut_ptr() as u32,
@@ -25,7 +25,7 @@ async fn main(_spawner: Spawner) {
             dst.as_mut_ptr() as u32,
             true,
             dma::Priorities::Low,
-            dma::Mode::OneTime(4),
+            dma::Mode::OneTime(src.len() as u16),
             dma::Burst::World,
         ),
     )
@@ -34,9 +34,10 @@ async fn main(_spawner: Spawner) {
     dma.start();
     dma.wait_finish_block();
 
+    defmt::info!("src: {} ", src);
+    defmt::info!("dst: {} ", dst);
+
     loop {
-        defmt::info!("src: {} ", src);
-        defmt::info!("dst: {} ", dst);
         Timer::after_secs(5).await;
     }
 }

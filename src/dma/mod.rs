@@ -75,17 +75,21 @@ impl_sealed_dma_channel!(DmaChannel1, Channel1);
 impl_sealed_dma_channel!(DmaChannel2, Channel2);
 impl_sealed_dma_channel!(DmaChannel3, Channel3);
 
-pub struct FlexDmaChannel<T: DmaChannel> {
+pub struct AnyChannel<T: DmaChannel> {
     _p: PhantomData<T>,
 }
 
-impl<T: DmaChannel> FlexDmaChannel<T> {
+impl<T: DmaChannel> AnyChannel<T> {
     pub fn config(config: Config) -> Result<(), Error> {
         T::config(config)
     }
 
     pub fn new(_dmachannel: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
         into_ref!(_dmachannel);
+
+        // 关闭通道，dma 通道配置只有在 en 为 0 时候才能有效配置
+        T::enable(false);
+
         T::config(config)?;
 
         Ok(Self { _p: PhantomData })
@@ -104,7 +108,7 @@ impl<T: DmaChannel> FlexDmaChannel<T> {
     }
 }
 
-impl<T: DmaChannel> Drop for FlexDmaChannel<T> {
+impl<T: DmaChannel> Drop for AnyChannel<T> {
     fn drop(&mut self) {
         T::enable(false);
     }

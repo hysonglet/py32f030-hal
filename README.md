@@ -68,4 +68,4 @@ Available examples:
 
 ##  关于
 公众号：`Rust嵌入式`
-![Rust嵌入式](https://s.imgkb.xyz/i/abcdocker/2024/07/20/669bac54b9156.jpg){: .center}
+<img src="https://s.imgkb.xyz/i/abcdocker/2024/07/20/669bac54b9156.jpg" alt="Rust嵌入式" style="display: block; margin: 0 auto;">

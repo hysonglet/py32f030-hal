@@ -43,7 +43,6 @@ pub(super) mod sealed {
 
             let channel = Self::channel();
 
-            // 关闭通道，dma 通道配置只有在 en 为 0 时候才能有效配置
             Self::enable(false);
 
             match channel {
