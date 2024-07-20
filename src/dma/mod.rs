@@ -163,8 +163,8 @@ impl Config {
         config.periphDataSize = burst;
 
         config.memAddr = src_addr;
-        config.periphAddr = dst_addr;
         config.memInc = src_inc;
+        config.periphAddr = dst_addr;
         config.periphInc = dst_inc;
 
         config
@@ -233,7 +233,6 @@ impl Dma {
     }
 
     fn init() {
-        Self::reset();
         Self::enable(true);
     }
 }

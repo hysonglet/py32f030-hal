@@ -27,6 +27,7 @@ pub(super) mod sealed {
             }
         }
 
+        // 读取剩余数量的
         fn remain_count() -> u16 {
             let block = Self::block();
             let cnt = match Self::channel() {
@@ -68,8 +69,15 @@ pub(super) mod sealed {
                         // 半传输中断
                         // 传输完成中断
                     );
-                    block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
-                    block.cpar2.write(|w| unsafe { w.bits(config.memAddr) });
+                    if config.diretion == Direction::MemoryToMemory
+                        || config.diretion == Direction::MemoryToMemory
+                    {
+                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
+                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
+                    } else {
+                        block.cmar1.write(|w| unsafe { w.bits(config.periphAddr) });
+                        block.cpar1.write(|w| unsafe { w.bits(config.memAddr) });
+                    }
 
                     // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
                     // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。

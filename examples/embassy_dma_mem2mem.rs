@@ -20,9 +20,9 @@ async fn main(_spawner: Spawner) {
     let dma = dma::FlexDmaChannel::new(
         p.DmaChannel1,
         dma::Config::new_mem2mem(
-            dst.as_mut_ptr() as u32,
-            true,
             src.as_mut_ptr() as u32,
+            true,
+            dst.as_mut_ptr() as u32,
             true,
             dma::Priorities::Low,
             dma::Mode::OneTime(4),
