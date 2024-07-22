@@ -1,5 +1,4 @@
 embassy_hal_internal::peripherals! {
-
     // GPIO
     GPIOA,
     GPIOB,
@@ -8,6 +7,9 @@ embassy_hal_internal::peripherals! {
     // USART
     USART1,
     USART2,
+
+    // I2c
+    I2C,
 
     // DMA
     DmaChannel1,

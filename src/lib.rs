@@ -11,12 +11,13 @@ pub use PY32f030xx_pac as pac;
 
 pub mod clock;
 pub mod common;
+pub mod delay;
 pub mod dma;
 #[cfg(feature = "embassy")]
 pub mod embassy;
 pub mod exti;
 pub mod gpio;
-// pub mod i2c;
+pub mod i2c;
 pub mod mcu;
 pub mod usart;
 

@@ -321,6 +321,8 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking> {
     type Error = Error;
     fn read(&mut self) -> nb::Result<u8, Self::Error> {

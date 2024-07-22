@@ -228,16 +228,20 @@ impl Config {
 struct Dma;
 
 impl Dma {
+    #[inline]
     fn enable(en: bool) {
         PeripheralClock::DMA.enable(en);
     }
 
+    #[inline]
     fn reset() {
         PeripheralClock::DMA.reset();
     }
 
+    #[inline]
     fn init() {
         Self::enable(true);
+        Self::reset();
     }
 }
 
