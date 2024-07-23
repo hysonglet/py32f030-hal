@@ -12,8 +12,4 @@ impl<'d, T: I2cInstance, M: Mode> Slave<'d, T, M> {
     }
 }
 
-impl<'d, T: I2cInstance> Slave<'d, T, Blocking> {
-    pub(super) fn new() -> Self {
-        Self { _t: PhantomData }
-    }
-}
+impl<'d, T: I2cInstance> Slave<'d, T, Blocking> {}

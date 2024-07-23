@@ -11,7 +11,7 @@ use panic_halt as _;
 fn main() -> ! {
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
-    let mut led = Output::new(gpioa.PA0, PinIoType::Pullup, PinSpeed::Low);
+    let mut led = Output::new(gpioa.PA0, PinIoType::PullUp, PinSpeed::Low);
 
     loop {
         let _ = led.toggle();

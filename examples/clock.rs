@@ -17,9 +17,9 @@ fn main() -> ! {
         unsafe { AnyPin::steal(GpioPort::GpioA, 1) }.into_af(PinAF::from(PA1::MCO as u32));
 
     cortex_m::asm::delay(1000 * 1000 * 5);
-    // let sysclk = clock::Sysclock::<clock::HSIDiv<1>>::config().unwrap();
-    // let sysclk = clock::Sysclock::<clock::HSE>::config().unwrap();
-    // let sysclk = clock::Sysclock::<clock::PLL<HSE>>::config().unwrap();
+    // let sysclk = clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
+    // let sysclk = clock::SysClock::<clock::HSE>::config().unwrap();
+    // let sysclk = clock::SysClock::<clock::PLL<HSE>>::config().unwrap();
     let sysclk = clock::Sysclock::<clock::PLL<HSI>>::config().unwrap();
 
     Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);

@@ -43,10 +43,10 @@ pub fn init(config: config::Config) -> Peripherals {
     cortex_m::asm::delay(1000 * 1000 * 5);
     match config.sys_clk {
         SysClockSource::HSE => {
-            clock::Sysclock::<clock::HSE>::config().unwrap();
+            clock::SysClock::<clock::HSE>::config().unwrap();
         }
         SysClockSource::HSI => {
-            clock::Sysclock::<clock::PLL<clock::HSI>>::config().unwrap();
+            clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
         }
     }
 

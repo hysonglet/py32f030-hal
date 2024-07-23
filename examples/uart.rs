@@ -19,7 +19,7 @@ fn main() -> ! {
     defmt::println!("examples: clock");
 
     cortex_m::asm::delay(1000 * 1000 * 5);
-    let sysclk = clock::Sysclock::<clock::PLL<HSI>>::config().unwrap();
+    let sysclk = clock::SysClock::<clock::PLL<HSI>>::config().unwrap();
 
     Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);
 

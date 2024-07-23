@@ -17,7 +17,7 @@ fn main() -> ! {
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
 
-    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::Pullup, PinSpeed::Low);
+    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, PinSpeed::Low);
     let _ = lcd_rst.set_low();
     delay_ms(200);
     let _ = lcd_rst.set_high();

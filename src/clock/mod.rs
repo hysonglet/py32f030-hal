@@ -548,11 +548,11 @@ impl From<u32> for McoDIV {
     }
 }
 
-pub struct Sysclock<CLK: SysClkSelect> {
+pub struct SysClock<CLK: SysClkSelect> {
     _clk: PhantomData<CLK>,
 }
 
-impl<CLK: SysClkSelect> Sysclock<CLK> {
+impl<CLK: SysClkSelect> SysClock<CLK> {
     pub fn config() -> Result<Self, Error> {
         CLK::config()?;
         Ok(Self { _clk: PhantomData })

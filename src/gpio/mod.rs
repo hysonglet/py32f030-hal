@@ -126,7 +126,7 @@ pub enum PinOutputType {
 #[derive(Clone, Copy, PartialEq)]
 pub enum PinIoType {
     Floating,
-    Pullup,
+    PullUp,
     PullDown,
     OpenDrain,
 }
@@ -134,7 +134,7 @@ pub enum PinIoType {
 impl PinIoType {
     fn split(self) -> (PinPullUpDown, PinOutputType) {
         let (push_pull, output_type) = match self {
-            PinIoType::Pullup => (PinPullUpDown::PullUp, PinOutputType::PushPull),
+            PinIoType::PullUp => (PinPullUpDown::PullUp, PinOutputType::PushPull),
             PinIoType::PullDown => (PinPullUpDown::PollDown, PinOutputType::PushPull),
             PinIoType::Floating => (PinPullUpDown::No, PinOutputType::PushPull),
             PinIoType::OpenDrain => (PinPullUpDown::No, PinOutputType::OpenDrain),
