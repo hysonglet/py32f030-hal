@@ -8,24 +8,6 @@ pub enum Error {
     Timeout,
 }
 
-pub fn wait_fun<F>(tick: u32, f: F) -> Result<(), Error>
-where
-    F: Fn() -> bool,
-{
-    let mut cnt = tick;
-    #[allow(clippy::never_loop)]
-    loop {
-        if f() {
-            return Ok(());
-        }
-        cnt -= 1;
-        cortex_m::asm::delay(1);
-        if cnt == 0 {
-            return Err(Error::Timeout);
-        }
-    }
-}
-
 pub(crate) trait Peripheral {
     type Target;
     fn peripheral() -> Self::Target;

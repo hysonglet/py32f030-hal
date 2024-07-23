@@ -1,4 +1,5 @@
 mod hal;
+pub mod master;
 mod pins;
 
 use core::marker::PhantomData;
@@ -8,12 +9,10 @@ use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::Mode;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use master::Master;
 
-pub struct Master<'d, T: I2cInstance> {
-    _t: PhantomData<&'d T>,
-}
-pub struct Slave<'d, T: I2cInstance> {
-    _t: PhantomData<&'d T>,
+pub struct Slave<'d, T: I2cInstance, M: Mode> {
+    _t: PhantomData<(&'d T, M)>,
 }
 
 pub trait I2cInstance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
@@ -41,10 +40,12 @@ impl I2c {
 // /// 快速模式下最大时钟频率
 // const SPEED_HZ_FAST_CLK_MAX: usize = 4000_000;
 
-pub const SPEED_HZ_STAND: usize = 1000_000;
-pub const SPEED_HZ_FAST: usize = 4000_000;
+/// IIC 标准模式最快速度
+pub const SPEED_HZ_STAND: usize = 100_000;
+/// IIC 快速模式最快速度
+pub const SPEED_HZ_FAST: usize = 400_000;
 
-// 主从模式
+/// 主从模式
 pub enum Rule {
     Master,
     Slave,
@@ -84,8 +85,8 @@ impl_sealed_i2c!(I2C, I2c1);
 pub struct AnyI2c<'d, T: I2cInstance, M: Mode> {
     _t: PhantomData<&'d T>,
     _mode: PhantomData<M>,
-    sda: PeripheralRef<'d, AnyPin>,
-    scl: PeripheralRef<'d, AnyPin>,
+    _sda: PeripheralRef<'d, AnyPin>,
+    _scl: PeripheralRef<'d, AnyPin>,
 }
 
 impl<'d, T: I2cInstance, M: Mode> AnyI2c<'d, T, M> {
@@ -95,11 +96,11 @@ impl<'d, T: I2cInstance, M: Mode> AnyI2c<'d, T, M> {
         Ok(())
     }
 
-    pub fn new_master() -> Master<'d, T> {
-        todo!()
+    pub fn as_master(self) -> Master<'d, T, M> {
+        Master::<'_, T, M>::new()
     }
 
-    pub fn new_slave() -> Slave<'d, T> {
+    pub fn as_slave() -> Slave<'d, T, M> {
         todo!()
     }
 
@@ -108,21 +109,23 @@ impl<'d, T: I2cInstance, M: Mode> AnyI2c<'d, T, M> {
         scl: impl Peripheral<P = impl SclPin<T>> + 'd,
         sda: impl Peripheral<P = impl SdaPin<T>> + 'd,
         config: Config,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         into_ref!(_i2c, scl, sda);
 
         // od + pullup
+        // 配置引脚功能为AF功能，开漏模式
         scl.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
         sda.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
 
-        let _ = Self::new_inner(config);
+        // 初始化
+        Self::new_inner(config)?;
 
-        Self {
+        Ok(Self {
             _t: PhantomData,
             _mode: PhantomData,
-            sda: sda.map_into(),
-            scl: scl.map_into(),
-        }
+            _sda: sda.map_into(),
+            _scl: scl.map_into(),
+        })
     }
 }
 
@@ -135,5 +138,11 @@ impl Default for Config {
     fn default() -> Self {
         // 默认速度100K
         Self { speed: 100_000 }
+    }
+}
+
+impl Config {
+    pub fn speed(self, speed: usize) -> Self {
+        Self { speed: speed }
     }
 }

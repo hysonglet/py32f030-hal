@@ -1,6 +1,6 @@
 pub(super) mod sealed {
     use crate::clock::sys_pclk;
-    use crate::delay::wait_for_flag_timeout;
+    use crate::delay::wait_for_true_timeout;
     use crate::i2c::I2c;
     use crate::i2c::*;
     use crate::pac;
@@ -29,37 +29,73 @@ pub(super) mod sealed {
             Self::i2c().enable(en)
         }
 
+        /// 重启 I2c外设
         #[inline]
         fn reset() {
             Self::i2c().reset()
         }
 
-        fn bus_release() {
-            Self::block().cr1.modify(|_, w| w.swrst().set_bit())
-        }
-
+        /// 查看总线是否释放
+        #[inline]
         fn is_bus_release() -> bool {
             Self::block().cr1.read().swrst().bit()
         }
 
+        /// 生成开始信号
         #[inline]
         fn start() {
             Self::block().cr1.modify(|_, w| w.start().set_bit())
         }
 
+        /// 检查是否成功发出了开始信号
         fn start_flag() -> bool {
             Self::block().sr1.read().sb().bit()
         }
 
+        /// 地址已被发送（主模式）/地址匹配（从模式）。
+        /// 软件读取 I2C_SR1 寄存器后，再读 I2C_SR2 寄存器将清除该位；当 PE=0 时，由硬件清除。
+        ///
+        /// - 地址匹配（Slave）：0：地址不匹配或没有收到地址； 1：收到的地址匹配。
+        /// 当收到的从地址与 OAR 寄存器或 general call 地址匹配，硬件将置位该位。
+        ///    Note: 在 slave 模式下，推荐进行完整的清零
+        /// sequece，即在 ADDR 被置位后，先读 SR1 寄存器，再读 SR2 寄存器。
+        /// - 地址已发送（Master）：0：地址发送没有结束；1：地址发送结束。
+        /// 7 位地址时，当收到 ACK byte 后置位。
+        /// Note: 在收到 NACK 后，该寄存器不会被置位。
         fn address_flag() -> bool {
             Self::block().sr1.read().addr().bit()
         }
 
+        /// 应答失败标志
+        /// 应答失败标志。0：没有应答失败； 1：应答失败。
+        /// 当没有返回应答时，硬件将置位该寄存器。该位由软件写 0 清除，或当 PE=0 时由硬件清除。
+        fn answer_faild() -> bool {
+            Self::block().sr1.read().af().bit()
+        }
+
+        /// 清除 af 标志
+        fn clear_answer_faild() {
+            Self::block().sr1.modify(|_, w| w.af().clear_bit())
+        }
+
+        /// 生成停止信号
         #[inline]
         fn stop() {
             Self::block().cr1.modify(|_, w| w.stop().set_bit())
         }
 
+        /// 软重启
+        /// 当被置位时，I2C 处于复位状态。在复位释放前，要确保 I2C 的引脚被释放，总线是空闲状态。
+        /// - 0：I2C 模块不处于复位状态
+        ///
+        /// - 1：I2C 模块处于复位状态
+        /// 注：该位可以用于 error 或 locked 状态时重新初始化 I2C。如 BUSY 位为 1，在总线上又没有检测到停止条件时。
+        #[inline]
+        fn soft_reset() {
+            Self::block().cr1.modify(|_, w| w.swrst().set_bit())
+        }
+
+        /// 将数据写入传输寄存器
         #[inline]
         fn transmit(data: u8) {
             Self::block().dr.modify(|_, w| unsafe { w.dr().bits(data) });
@@ -71,6 +107,7 @@ pub(super) mod sealed {
             Self::block().cr1.modify(|_, w| w.ack().bit(is_ack))
         }
 
+        /// 写入从地址寄存器
         #[inline]
         fn address(address: u8) {
             Self::block()
@@ -78,10 +115,18 @@ pub(super) mod sealed {
                 .modify(|_, w| unsafe { w.add().bits(address) });
         }
 
-        fn clear_address() {
+        /// 清除 address 标志
+        #[inline]
+        fn clear_address_flag() {
             let block = Self::block();
             let _ = block.sr1.read();
             let _ = block.sr2.read();
+        }
+
+        /// 清除仲裁丢失标志
+        #[inline]
+        fn clear_arlo() {
+            Self::block().sr1.modify(|_, w| w.arlo().clear_bit());
         }
 
         /// 发送寄存器内容为空
@@ -118,11 +163,25 @@ pub(super) mod sealed {
             Self::block().sr1.read().btf().bit()
         }
 
+        /// 总线忙
         #[inline]
         fn busy() -> bool {
             Self::block().sr2.read().busy().bit()
         }
 
+        // #[inline]
+        // fn debug() {
+        //     defmt::info!("cr1: {:x}", Self::block().cr1.read().bits());
+        //     defmt::info!("cr2: {:x}", Self::block().cr2.read().bits());
+        //     defmt::info!("sr1: {:x}", Self::block().sr1.read().bits());
+        //     defmt::info!("sr2: {:x}", Self::block().sr2.read().bits());
+        // }
+
+        /// ACK/PEC 位置（用于数据接收），软件可置位/清零该寄存器，或 PE=0 时由硬件清零。
+        ///
+        /// - 0：ACK 位控制当前移位寄存器内正在接收的字节的(N)ACK。PEC 位表明当前移位寄存器内的字节是 PEC
+        /// - 1：ACK 位控制在移位寄存器里接收的下一个字节的(N)ACK。PEC 位表明在移位寄存器里接收的下一个字节是 PEC
+        ///      注：POS 位只能用在 2 字节的接收配置中，必须在接收数据之前配置。为了 NACK 第 2 个字节，必须在清除 ADDR 之后清除 ACK 位。为了检测第 2 个字节的 PEC，必须在配置了POS 位之后，ADDR stretch 事件时设置 PEC位。
         #[inline]
         fn clear_pos() {
             Self::block().cr1.modify(|_, w| w.pos().clear_bit());
@@ -130,42 +189,64 @@ pub(super) mod sealed {
 
         fn master_transmit_block(address: u8, buf: &[u8]) -> Result<usize, Error> {
             // 如果总线处于busy状态，则退出
-            wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::busy() == false)
-                .map_err(|_| Error::Busy)?;
+            // wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::busy() == false)
+            //     .map_err(|_| Error::Busy)?;
 
             Self::clear_pos();
 
             Self::start();
             // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::start_flag())
-                .map_err(|_| Error::Start)?;
+            let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::start_flag()).map_err(
+                |_| {
+                    Self::clear_arlo();
+                    Error::Start
+                },
+            )?;
 
             Self::transmit(address << 1);
+
             // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::address_flag())
-                .map_err(|_| Error::Address)?;
-            Self::clear_address();
+            let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::address_flag()).map_err(
+                |_| {
+                    // Self::debug();
+                    // 清除 af 置位
+                    Self::clear_answer_faild();
+                    Self::stop();
+                    Error::Address
+                },
+            )?;
+            Self::clear_address_flag();
 
             // TRA 位指示主设备是在接收器模式还是发送器模式。
 
             let mut iter = buf.iter();
             if let Some(d) = iter.next() {
                 // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
-                let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty())
+                let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty())
                     .map_err(|_| Error::Tx)?;
                 Self::transmit(*d);
             }
             while let Some(t) = iter.next() {
                 // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
-                let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty())
-                    .map_err(|_| Error::Tx)?;
+                let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty()).map_err(
+                    |_| {
+                        Self::stop();
+                        Error::Tx
+                    },
+                )?;
                 Self::transmit(*t);
             }
             // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty())
-                .map_err(|_| Error::Tx)?;
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::transmit_finish())
-                .map_err(|_| Error::Tx)?;
+            let _ =
+                wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty()).map_err(|_| {
+                    Self::stop();
+                    Error::Tx
+                })?;
+            let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::transmit_finish())
+                .map_err(|_| {
+                    Self::stop();
+                    Error::Tx
+                })?;
 
             Self::stop();
 
@@ -178,15 +259,15 @@ pub(super) mod sealed {
 
             Self::start();
             // EV5：SB=1, 先读 SR1 寄存器，再写 DR 寄存器，清零该位
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::start_flag())
+            let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::start_flag())
                 .map_err(|_| Error::Start)?;
 
             Self::transmit((address << 1) | 1);
 
             // EV6：ADDR，先读 SR1，再读 SR2，清零该位
-            let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::address_flag())
+            let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::address_flag())
                 .map_err(|_| Error::Address)?;
-            Self::clear_address();
+            Self::clear_address_flag();
 
             let len = buf.len();
 
@@ -196,7 +277,7 @@ pub(super) mod sealed {
                 if remain > 2 {
                     Self::ack(true);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
 
                     // 读取数据
@@ -211,7 +292,7 @@ pub(super) mod sealed {
                     Self::ack(false);
 
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
@@ -223,7 +304,7 @@ pub(super) mod sealed {
                 } else if remain == 1 {
                     Self::ack(false);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    let _ = wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    let _ = wait_for_true_timeout(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
@@ -237,20 +318,22 @@ pub(super) mod sealed {
 
         fn config(config: Config) -> Result<(), Error> {
             let block = Self::block();
-            let plk = sys_pclk();
 
             Self::enable_config(false);
 
+            let plk = sys_pclk();
             // 标准模式下为：2MHz, 快速模式下为：4MHz
             // iic模块时钟，需要使用pclk的hz来匹配
             // 标准模式下 freq >= 4
             // 快速模式下 freq >= 12
             let freq = plk / 1000 / 1000;
-            // assert!()
+
             //freq
             block
                 .cr2
                 .modify(|_, w| unsafe { w.freq().bits(freq as u8) });
+
+            defmt::info!("plk: {}", plk);
 
             if config.speed > SPEED_HZ_FAST {
                 return Err(Error::SpeedMode);
@@ -258,6 +341,7 @@ pub(super) mod sealed {
 
             let ccr = if config.speed <= SPEED_HZ_STAND {
                 let ccr = plk / 2 / config.speed as u32;
+                defmt::info!("ccr: {}", ccr);
                 if ccr <= 0x04 {
                     return Err(Error::PClock);
                 }
@@ -277,6 +361,7 @@ pub(super) mod sealed {
                         return Err(Error::PClock);
                     }
                 };
+                defmt::info!("ccr: {}", ccr);
 
                 // fs bit, false: 标准模式， true：快速模式
                 block.ccr.modify(|_, w| w.f_s().bit(true));

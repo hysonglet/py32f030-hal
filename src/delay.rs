@@ -4,7 +4,8 @@ use cortex_m::asm::delay;
 
 pub fn delay_us(us: usize) {
     for _ in 0..us {
-        delay(1000);
+        // 16M： 4
+        delay(4);
     }
 }
 
@@ -21,7 +22,7 @@ pub fn delay_s(s: usize) {
 }
 
 #[inline]
-pub fn wait_for_flag_timeout<F>(timeout_us: usize, f: F) -> Result<(), ()>
+pub fn wait_for_true_timeout<F>(timeout_us: usize, f: F) -> Result<(), ()>
 where
     F: Fn() -> bool,
 {
