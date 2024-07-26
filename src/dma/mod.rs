@@ -6,6 +6,7 @@ use embassy_hal_internal::{into_ref, Peripheral};
 
 mod hal;
 
+/// 传输的优先级
 pub enum Priorities {
     Low = 0,
     Medium = 1,
@@ -13,6 +14,7 @@ pub enum Priorities {
     VeryHigh = 3,
 }
 
+/// DMA 传输的宽度
 #[derive(Clone, Copy)]
 pub enum Burst {
     // 1 byte
@@ -23,6 +25,7 @@ pub enum Burst {
     World = 2,
 }
 
+/// 通道 id
 #[derive(PartialEq, Clone, Copy)]
 pub enum Channel {
     Channel1 = 1,
@@ -41,12 +44,14 @@ pub enum Channel {
 //     }
 // }
 
+/// DMA模式，单次或循环
 #[derive(PartialEq)]
 pub enum Mode {
     OneTime(u16),
     Repeat(u16),
 }
 
+/// DMA传输方向
 #[derive(PartialEq)]
 pub enum Direction {
     PeriphToMemory,
@@ -157,21 +162,17 @@ impl Config {
         mode: Mode,
         burst: Burst,
     ) -> Self {
-        let mut config = Self::default();
-
-        config.diretion = Direction::MemoryToMemory;
-        config.prioritie = priorite;
-
-        config.mode = mode;
-        config.memDataSize = burst;
-        config.periphDataSize = burst;
-
-        config.memAddr = src_addr;
-        config.memInc = src_inc;
-        config.periphAddr = dst_addr;
-        config.periphInc = dst_inc;
-
-        config
+        Self {
+            diretion: Direction::MemoryToMemory,
+            prioritie: priorite,
+            mode,
+            memDataSize: burst,
+            periphDataSize: burst,
+            memAddr: src_addr,
+            memInc: src_inc,
+            periphAddr: dst_addr,
+            periphInc: dst_inc,
+        }
     }
 
     pub fn new_mem2periph(
@@ -183,20 +184,17 @@ impl Config {
         mode: Mode,
         burst: Burst,
     ) -> Config {
-        let mut config = Self::default();
-
-        config.diretion = Direction::MemoryToPeriph;
-        config.prioritie = priorite;
-        config.mode = mode;
-        config.memDataSize = burst;
-        config.periphDataSize = burst;
-
-        config.memAddr = src_addr;
-        config.periphAddr = dst_addr;
-        config.memInc = src_inc;
-        config.periphInc = dst_inc;
-
-        config
+        Self {
+            diretion: Direction::MemoryToPeriph,
+            prioritie: priorite,
+            mode,
+            memDataSize: burst,
+            periphDataSize: burst,
+            memAddr: src_addr,
+            periphAddr: dst_addr,
+            memInc: src_inc,
+            periphInc: dst_inc,
+        }
     }
 
     pub fn new_periph2mem(
@@ -208,20 +206,17 @@ impl Config {
         mode: Mode,
         burst: Burst,
     ) -> Config {
-        let mut config = Self::default();
-
-        config.diretion = Direction::PeriphToMemory;
-        config.prioritie = priorite;
-        config.mode = mode;
-        config.memDataSize = burst;
-        config.periphDataSize = burst;
-
-        config.memAddr = src_addr;
-        config.periphAddr = dst_addr;
-        config.memInc = src_inc;
-        config.periphInc = dst_inc;
-
-        config
+        Self {
+            diretion: Direction::PeriphToMemory,
+            prioritie: priorite,
+            mode,
+            memDataSize: burst,
+            periphDataSize: burst,
+            memAddr: src_addr,
+            periphAddr: dst_addr,
+            memInc: src_inc,
+            periphInc: dst_inc,
+        }
     }
 }
 

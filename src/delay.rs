@@ -1,7 +1,5 @@
 use cortex_m::asm::delay;
 
-// use embassy_time;
-
 pub fn delay_us(us: usize) {
     for _ in 0..us {
         // 16M： 4
@@ -32,5 +30,5 @@ where
         }
         delay_us(1);
     }
-    return Err(());
+    Err(())
 }

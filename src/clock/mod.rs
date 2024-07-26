@@ -1,3 +1,6 @@
+//！ MCU时钟配置模块
+//! 时钟初始化逻辑，提供获取系统时钟等接口
+
 pub mod peripheral;
 
 use crate::common::Peripheral;
@@ -46,19 +49,21 @@ pub enum Error {
     SysTimeout,
 }
 
+/// 返回时钟频率
 pub trait ClockFrequency {
     fn hz() -> u32;
 }
 
+/// 输入时钟的trait
 pub trait Clock {
     #[inline]
     fn enable() -> Result<(), Error> {
         Self::set(true)
     }
-    #[inline]
-    fn disable() -> Result<(), Error> {
-        Self::set(false)
-    }
+    // #[inline]
+    // fn disable() -> Result<(), Error> {
+    //     Self::set(false)
+    // }
     fn set(en: bool) -> Result<(), Error>;
 }
 
@@ -428,6 +433,7 @@ where
     }
 }
 
+/// PLK 时钟分频
 #[derive(Clone, Copy)]
 pub enum PclkDiv {
     Div1 = 1,
@@ -437,6 +443,7 @@ pub enum PclkDiv {
     Div16 = 7,
 }
 
+/// Hcl 时钟分频
 #[derive(Clone, Copy)]
 pub enum HclkDiv {
     Div1 = 1,
@@ -521,6 +528,7 @@ impl PclkDiv {
     }
 }
 
+/// Mco输出分频
 pub enum McoDIV {
     DIV1 = 0,
     DIV2 = 1,
@@ -548,6 +556,7 @@ impl From<u32> for McoDIV {
     }
 }
 
+/// 系统时钟
 pub struct SysClock<CLK: SysClkSelect> {
     _clk: PhantomData<CLK>,
 }
@@ -566,6 +575,7 @@ impl<CLK: SysClkSelect> SysClock<CLK> {
 /// MCO output
 pub struct Mco;
 
+/// MCO 输出选择器
 pub enum McoSelect {
     Disable = 0,
     SysClk = 1,

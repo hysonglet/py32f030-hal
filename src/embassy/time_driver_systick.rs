@@ -26,7 +26,7 @@ impl AlarmState {
         }
     }
 }
-
+/// 系统时钟
 pub struct SystickDriver {
     alarm_count: AtomicU8,
     alarms: Mutex<[AlarmState; ALARM_COUNT]>,

@@ -58,7 +58,7 @@ pub enum PeripheralClock {
 }
 
 impl PeripheralClock {
-    pub fn enable(&self, en: bool) {
+    pub(crate) fn enable(&self, en: bool) {
         if (*self as u32) < 32 {
             Rcc::peripheral().ahbenr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
@@ -86,7 +86,7 @@ impl PeripheralClock {
         }
     }
 
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         if (*self as u32) < 32 {
             if *self == Self::FLASH || *self == Self::SRAM {
                 panic!()
@@ -110,4 +110,12 @@ impl PeripheralClock {
             })
         }
     }
+}
+
+/// 外设使能和重启
+pub trait PeripheralEnable {
+    /// 使能和去能外设时钟
+    fn enable(&self, en: bool);
+    /// 复位外设
+    fn reset(&self);
 }

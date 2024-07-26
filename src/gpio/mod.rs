@@ -3,7 +3,7 @@ mod hal;
 use core::ops::Not;
 use hal::*;
 
-use crate::clock::peripheral::GpioClock;
+use crate::clock::peripheral::{GpioClock, PeripheralEnable};
 use embassy_hal_internal::{impl_peripheral, into_ref, Peripheral, PeripheralRef};
 
 /// GPIO Port Index
@@ -15,7 +15,7 @@ pub enum GpioPort {
     GPIOF = 2,
 }
 
-impl GpioPort {
+impl PeripheralEnable for GpioPort {
     fn enable(&self, en: bool) {
         match *self {
             GpioPort::GPIOA => GpioClock::GPIOA.enable(en),
@@ -53,7 +53,7 @@ pub enum PinMode {
     Analog = 3,
 }
 
-// Gpio Pin speed
+/// Gpio Pin speed
 #[derive(Clone, Copy)]
 pub enum PinSpeed {
     VeryLow = 0,
@@ -62,7 +62,7 @@ pub enum PinSpeed {
     VeryHigh = 3,
 }
 
-// Gpio pin 功能复用
+/// Gpio pin 功能复用
 #[derive(Debug, Clone, Copy)]
 pub enum PinAF {
     AF0 = 0,
@@ -309,6 +309,8 @@ pub struct Input<'d> {
 pub struct Output<'d> {
     pub(crate) pin: Flex<'d>,
 }
+
+/// 功能复用类型的引脚
 pub struct Af<'d> {
     pub(crate) _pin: Flex<'d>,
 }
@@ -476,6 +478,7 @@ pub mod v2 {
     }
 }
 
+/// 所有 gpio 引脚定义和功能复用定义的宏
 macro_rules! gpio_pin_def {
     (
         $gpio_mod: ident, $gpio_port: ident
@@ -578,6 +581,7 @@ macro_rules! gpio_pin_def {
     };
 }
 
+// GPIOA
 gpio_pin_def!(gpioa, GPIOA
     PA0 => A0:0,
     [
@@ -659,6 +663,7 @@ gpio_pin_def!(gpioa, GPIOA
     ]
 );
 
+// GPIOB
 gpio_pin_def!(gpiob, GPIOB
     PB0 => B0:0,[SPI1_NSS = 0, TIM3_CH3 = 1, TIM1_CH2N = 2, EVENTOUT = 5,COMP1_OUT = 7],
     PB1 => B1:1,[TIM14_CH1 = 0, TIM3_CH4 = 1, TIM1_CH3N = 2, EVENTOUT = 7],
@@ -672,6 +677,7 @@ gpio_pin_def!(gpiob, GPIOB
         SPI2_NSS = 11, I2C_SDA = 12, TIM17_CH1 = 13,  IR_OUT = 15]
 );
 
+// GPIOF
 gpio_pin_def!(gpiof, GPIOF
     PF0_OSC_IN => F0:0,[TIM14_CH1 = 2, SPI2_SCK = 3, USART2_RX = 4, USART1_RX = 8, USART2_TX = 9, I2C_SDA = 12],
     PF1_OSC_OUT => F1:1,[SPI2_MISO = 3, USART2_TX = 4, USART1_TX = 8, USART2_RX = 9, SPI1_NSS = 10, I2C_SCL = 12, TIM14_CH1 = 13],

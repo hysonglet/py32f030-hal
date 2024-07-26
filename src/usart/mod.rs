@@ -3,6 +3,7 @@ mod pins;
 use core::marker::PhantomData;
 
 use crate::clock;
+use crate::clock::peripheral::{PeripheralClock, PeripheralEnable};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
@@ -160,20 +161,20 @@ pub enum Usart {
     USART2,
 }
 
-impl Usart {
+impl PeripheralEnable for Usart {
     /// 使能串口外设时钟
     fn enable(&self, en: bool) {
         match *self {
-            Self::USART1 => clock::peripheral::PeripheralClock::USART1.enable(en),
-            Self::USART2 => clock::peripheral::PeripheralClock::UART2.enable(en),
+            Self::USART1 => PeripheralClock::USART1.enable(en),
+            Self::USART2 => PeripheralClock::UART2.enable(en),
         }
     }
 
     /// 复位串口外设
     fn reset(&self) {
         match *self {
-            Self::USART1 => clock::peripheral::PeripheralClock::USART1.reset(),
-            Self::USART2 => clock::peripheral::PeripheralClock::UART2.reset(),
+            Self::USART1 => PeripheralClock::USART1.reset(),
+            Self::USART2 => PeripheralClock::UART2.reset(),
         }
     }
 }

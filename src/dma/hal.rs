@@ -69,7 +69,7 @@ pub(super) mod sealed {
                         // 传输完成中断
                     );
                     if config.diretion == Direction::MemoryToMemory
-                        || config.diretion == Direction::MemoryToMemory
+                    // || config.diretion == Direction::MemoryToMemory
                     {
                         block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
                         block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });

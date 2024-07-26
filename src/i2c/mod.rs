@@ -1,44 +1,39 @@
 mod hal;
 pub mod master;
 mod pins;
+pub mod slave;
 
 use core::marker::PhantomData;
 
-use crate::clock::peripheral;
+use crate::clock::peripheral::{PeripheralClock, PeripheralEnable};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::Mode;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
-use master::Master;
+pub use master::Master;
+pub use slave::Slave;
 
-pub struct Slave<'d, T: I2cInstance, M: Mode> {
-    _t: PhantomData<(&'d T, M)>,
-}
+pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
-pub trait I2cInstance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
-
+///  mcu i2c 的索引
 #[derive(PartialEq)]
 pub enum I2c {
     I2c1,
 }
-impl I2c {
+
+impl PeripheralEnable for I2c {
     fn enable(&self, en: bool) {
         match *self {
-            Self::I2c1 => peripheral::PeripheralClock::I2C.enable(en),
+            Self::I2c1 => PeripheralClock::I2C.enable(en),
         }
     }
 
     fn reset(&self) {
         match *self {
-            Self::I2c1 => peripheral::PeripheralClock::I2C.reset(),
+            Self::I2c1 => PeripheralClock::I2C.reset(),
         }
     }
 }
-
-// /// 标准模式下最大时钟频率
-// const SPEED_HZ_STAND_CLK_MAX: usize = 2000_000;
-// /// 快速模式下最大时钟频率
-// const SPEED_HZ_FAST_CLK_MAX: usize = 4000_000;
 
 /// IIC 标准模式最快速度
 pub const SPEED_HZ_STAND: usize = 100_000;
@@ -51,6 +46,7 @@ pub enum Rule {
     Slave,
 }
 
+/// IIC 配置和运行的错误类型
 #[derive(Debug)]
 pub enum Error {
     Busy,
@@ -64,8 +60,8 @@ pub enum Error {
     RX,
 }
 
-pin_af_for_instance_def!(SdaPin, I2cInstance);
-pin_af_for_instance_def!(SclPin, I2cInstance);
+pin_af_for_instance_def!(SdaPin, Instance);
+pin_af_for_instance_def!(SclPin, Instance);
 
 macro_rules! impl_sealed_i2c {
     (
@@ -76,20 +72,20 @@ macro_rules! impl_sealed_i2c {
                 I2c::$i2c_id
             }
         }
-        impl I2cInstance for crate::mcu::peripherals::$peripheral {}
+        impl Instance for crate::mcu::peripherals::$peripheral {}
     };
 }
 
 impl_sealed_i2c!(I2C, I2c1);
 
-pub struct AnyI2c<'d, T: I2cInstance, M: Mode> {
+pub struct AnyI2c<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,
     _mode: PhantomData<M>,
     _sda: PeripheralRef<'d, AnyPin>,
     _scl: PeripheralRef<'d, AnyPin>,
 }
 
-impl<'d, T: I2cInstance, M: Mode> AnyI2c<'d, T, M> {
+impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
     fn new_inner(config: Config) -> Result<(), Error> {
         T::i2c().enable(true);
         T::config(config)?;
@@ -143,6 +139,6 @@ impl Default for Config {
 
 impl Config {
     pub fn speed(self, speed: usize) -> Self {
-        Self { speed: speed }
+        Self { speed }
     }
 }
