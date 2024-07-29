@@ -1,12 +1,7 @@
-pub trait PeriphPtr {
-    type Target;
-
-    fn block() -> Self::Target;
-}
-
-pub enum Error {
-    Timeout,
-}
+/// Error
+// pub enum Error {
+//     Timeout,
+// }
 
 pub(crate) trait Peripheral {
     type Target;

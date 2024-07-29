@@ -18,6 +18,7 @@ use embassy_sync::waitqueue::AtomicWaker;
 use self::hal::sealed::Instance;
 
 const EXIT_GPIO_COUNT: usize = 17;
+#[allow(clippy::declare_interior_mutable_const)]
 const ATOMIC_WAKE_CONST: AtomicWaker = AtomicWaker::new();
 static EXIT_GPIO_WAKERS: [AtomicWaker; EXIT_GPIO_COUNT] = [ATOMIC_WAKE_CONST; EXIT_GPIO_COUNT];
 

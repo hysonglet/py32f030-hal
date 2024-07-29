@@ -12,20 +12,36 @@ static mut F_CPU: u32 = 8000000;
 const TIMEOUT: u32 = 10000;
 const DELAY_TICK_CNT: u32 = 100000;
 
+/// 返回系统时钟的频率，单位：Hz
+#[inline]
 pub fn sys_core_clock() -> u32 {
     unsafe { F_CPU }
 }
 
+/// 返回 PCLK 时钟频率，单位： Hz
 pub fn sys_pclk() -> u32 {
-    let hpre: HclkDiv = Rcc::peripheral().cfgr.read().hpre().bits().into();
-    sys_hclk() / hpre.div()
-}
-
-pub fn sys_hclk() -> u32 {
     let ppre: PclkDiv = Rcc::peripheral().cfgr.read().ppre().bits().into();
-    sys_core_clock() / ppre.div()
+    sys_hclk() / ppre.div()
 }
 
+/// 返回 HCLK 时钟频率，单位：Hz
+pub fn sys_hclk() -> u32 {
+    let hpre: HclkDiv = Rcc::peripheral().cfgr.read().hpre().bits().into();
+    sys_core_clock() / hpre.div()
+}
+
+pub fn timer_pclk() -> u32 {
+    let ppre: PclkDiv = Rcc::peripheral().cfgr.read().ppre().bits().into();
+    let sys_pclk = sys_pclk();
+
+    if ppre == PclkDiv::Div1 {
+        sys_pclk
+    } else {
+        2 * sys_pclk
+    }
+}
+
+#[inline]
 fn sys_core_clock_update(hz: u32) {
     unsafe {
         F_CPU = hz;
@@ -68,7 +84,7 @@ pub trait Clock {
 }
 
 /// 低速内部时钟：32KHz
-///Low-speed internal clock
+/// Low-speed internal clock
 pub struct LSI;
 
 /// 低速外部时钟：32KHz
@@ -205,9 +221,14 @@ impl<const HZ: u32> Clock for HSE<HZ> {
 
         peripheral.cr.modify(|_, w| w.hseon().bit(en));
 
-        if HZ < 4000000 || HZ > 32000000 {
-            panic!("HZ only allow in [4~32M]");
-        }
+        assert!(
+            HZ < 4000000 || HZ > 32000000,
+            "HZ:{} only allow in [4~32M]",
+            HZ
+        );
+        // if HZ < 4000000 || HZ > 32000000 {
+        //     panic!("HZ only allow in [4~32M]");
+        // }
 
         let v = if HZ < 8000000 {
             1
@@ -434,7 +455,7 @@ where
 }
 
 /// PLK 时钟分频
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PclkDiv {
     Div1 = 1,
     Div2 = 4,

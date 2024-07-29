@@ -1,6 +1,6 @@
 mod pins;
 
-mod advanced_timer;
+pub mod advanced_timer;
 
 enum Timer {
     // 1

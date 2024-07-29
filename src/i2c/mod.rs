@@ -35,9 +35,9 @@ impl PeripheralEnable for I2c {
     }
 }
 
-/// IIC 标准模式最快速度
+/// IIC 标准模式最快速度: 100K
 pub const SPEED_HZ_STAND: usize = 100_000;
-/// IIC 快速模式最快速度
+/// IIC 快速模式最快速度: 400K
 pub const SPEED_HZ_FAST: usize = 400_000;
 
 /// 主从模式
