@@ -1,7 +1,9 @@
+mod counter;
 mod hal;
-use core::marker::PhantomData;
+use core::{marker::PhantomData, u16};
 
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+pub use counter::Counter;
+use embassy_hal_internal::{into_ref, Peripheral};
 
 use crate::{
     clock::peripheral::{PeripheralClock, PeripheralEnable},
@@ -43,7 +45,7 @@ pub enum Channel {
 pub enum Error {}
 
 /// 记数模式
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum CountDirection {
     /// 向上计数模式，是从 0 到自动装载值的计数器，然后又从 0 重新开始计数，并产生一个计数的溢出事件。
     /// 如果重复计数器被使用，则在向上计数器重复几次（对重复计数器可编程）后，产生更新事件。否则，在每个计数溢出时，产生更新事件。
@@ -64,7 +66,7 @@ impl From<CountDirection> for bool {
 
 ///时钟分频因子
 /// 这 2 位定义在定时器时钟(CK_INT)频率，死区时间和由死区发生器与数字滤波器(ETR,Tix)所用的采样时钟之间的分频比例
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum ClockDiv {
     ///  tDTS = tCK_INT
     DIV1,
@@ -89,13 +91,14 @@ pub enum CenterAlignedMode {
 }
 
 /// 定时器基本配置
+#[derive(Clone, Copy)]
 pub struct BaseConfig {
     count_direction: CountDirection,
     center_aligned_mode: CenterAlignedMode,
     prescaler: u16,
-    period: u16,
-    auto_reload: Option<u16>,
-    clock_div: ClockDiv,
+    // period: u16,
+    // auto_reload: u16,
+    // repetition: Option<u16>, // clock_div: ClockDiv,
 }
 
 impl Default for BaseConfig {
@@ -104,9 +107,10 @@ impl Default for BaseConfig {
             count_direction: CountDirection::Up,
             center_aligned_mode: CenterAlignedMode::EdgeAligned,
             prescaler: u16::MAX,
-            period: u16::MAX,
-            auto_reload: None,
-            clock_div: ClockDiv::DIV1,
+            // period: u16::MAX,
+            // auto_reload: u16::MAX,
+            // repetition: None,
+            // clock_div: ClockDiv::DIV1,
         }
     }
 }
@@ -130,33 +134,33 @@ impl BaseConfig {
         Self { prescaler, ..self }
     }
 
-    pub fn auto_reload(self, auto_reload: Option<u16>) -> Self {
-        Self {
-            auto_reload,
-            ..self
-        }
-    }
+    // pub fn auto_reload(self, auto_reload: Option<u16>) -> Self {
+    //     Self {
+    //         auto_reload,
+    //         ..self
+    //     }
+    // }
 
-    pub fn period(self, period: u16) -> Self {
-        Self { period, ..self }
-    }
+    // pub fn period(self, period: u16) -> Self {
+    //     Self { period, ..self }
+    // }
 
-    pub fn clock_div(self, clock_div: ClockDiv) -> Self {
-        Self { clock_div, ..self }
-    }
+    // pub fn clock_div(self, clock_div: ClockDiv) -> Self {
+    //     Self { clock_div, ..self }
+    // }
 }
 
 impl BaseConfig {
-    fn set_period_reload(self, period: u16, reload: u16) -> Self {
-        let config = Self::default();
-        config.period(period).auto_reload(Some(reload))
-    }
-}
+    // pub fn set_period_reload(self, period: u16, reload: u16) -> Self {
+    //     let config = Self::default();
+    //     config.period(period).auto_reload(Some(reload))
+    // }
 
-/// 计数器
-pub struct Counter<'d, T: Instance, M: Mode> {
-    _t: PhantomData<&'d T>,
-    _m: PhantomData<M>,
+    // pub fn set_delay(&mut self, us: u32) -> Result<(), Error> {
+    //     //timer_cnt_freq = Hplk/div;
+
+    //     todo!()
+    // }
 }
 
 pub struct Capture;
@@ -164,30 +168,77 @@ pub struct Pwm;
 pub struct Hall;
 pub struct Motor;
 
+macro_rules! impl_sealed_timer {
+    (
+        $peripheral: ident, $timer_id: ident
+    ) => {
+        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
+            fn id() -> AdvancedTimer {
+                AdvancedTimer::$timer_id
+            }
+        }
+        impl Instance for crate::mcu::peripherals::$peripheral {}
+    };
+}
+
 pub struct AnyTimer<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,
     _m: PhantomData<M>,
 }
 
-impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
-    /// 新建一个 timer
-    pub fn new(_timer: impl Peripheral<P = T>) -> Self {
-        into_ref!(_timer);
+impl_sealed_timer!(TIM1, TIM1);
 
+impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
+    pub fn new_inner(config: BaseConfig) -> Result<(), Error> {
         // 开启外设时钟
         T::id().enable(true);
 
-        Self {
+        T::base_config(config)
+    }
+
+    /// 新建一个 timer
+    pub fn new(_timer: impl Peripheral<P = T>) -> Result<Self, Error> {
+        into_ref!(_timer);
+
+        // Self::new_inner(config)?;
+        Ok(Self {
             _t: PhantomData,
             _m: PhantomData,
-        }
+        })
+    }
+
+    /// 返回定时器外设的时钟
+    pub fn get_timer_clock() -> u32 {
+        T::get_time_pclk()
+    }
+
+    // 基本的配置
+    pub fn base_config(&self, config: BaseConfig) -> Result<(), Error> {
+        T::base_config(config)
+    }
+
+    pub fn set_prescaler(&self, prescaler: u16) {
+        T::set_prescaler(prescaler)
+    }
+
+    pub fn set_period(&self, period: u16) {
+        T::set_period_cnt(period)
+    }
+
+    pub fn set_reload(&self, reload: u16, buff: bool) {
+        T::set_auto_reload(reload);
+        T::enable_auto_reload_buff(buff);
     }
 
     /// 转换成计数模式
     pub fn as_counter(self) -> Counter<'d, T, M> {
-        Counter {
-            _t: PhantomData,
-            _m: PhantomData,
-        }
+        let prescaler = (Self::get_timer_clock() / 1_000_000 - 1) as u16;
+        // 设置默认clk时钟为1M，即1us
+        assert!(prescaler < u16::MAX);
+
+        let config = BaseConfig::default().prescaler(prescaler);
+        let _ = Self::new_inner(config);
+
+        Counter::new()
     }
 }

@@ -87,13 +87,21 @@ pub(crate) mod sealed {
             Self::block().arr.write(|w| unsafe { w.arr().bits(load) })
         }
 
+        /// 单脉冲模式
+        /// 0：在发生更新事件时，计数器不停止
+        /// 1：在发生下一次更新事件(清除 CEN 位)时，计数器停止。
+        #[inline]
+        fn enable_single_mode(en: bool) {
+            Self::block().cr1.modify(|_, w| w.opm().bit(en))
+        }
+
         /// 使能自动重载
         #[inline]
-        fn enable_auto_reload(en: bool) {
-            // 单脉冲模式
-            // 0：在发生更新事件时，计数器不停止
-            // 1：在发生下一次更新事件(清除 CEN 位)时，计数器停止
-            Self::block().cr1.modify(|_, w| w.opm().bit(!en));
+        fn enable_auto_reload_buff(en: bool) {
+            // 自动重装载预装载允许位
+            // 0： TIM1_ARR 寄存器没有缓冲
+            // 1： TIM1_ARR 寄存器被装入缓冲器
+            Self::block().cr1.modify(|_, w| w.arpe().bit(en))
         }
 
         /// 返回计数频率
@@ -101,6 +109,12 @@ pub(crate) mod sealed {
             let psc: u32 = Self::block().psc.read().bits();
             // 计数器的时钟频率（CK_CNT）等于 fCK_PSC/( PSC[15:0]+1)。
             timer_pclk() / (psc + 1)
+        }
+
+        fn set_repetition(repetition: u16) {
+            Self::block()
+                .rcr
+                .write(|w| unsafe { w.bits(repetition as u32) })
         }
 
         /// 基本配置
@@ -115,19 +129,36 @@ pub(crate) mod sealed {
             // 设置计数值
             // Self::set_cnt(config.period);
             // 设置周期值
-            Self::set_period_cnt(config.period);
+            // Self::set_period_cnt(config.period);
 
-            // 设置重载模式
-            if let Some(cnt) = config.auto_reload {
-                Self::set_auto_reload(cnt);
-                Self::enable_auto_reload(true);
-                // 默认值设置为重载值
-                Self::set_cnt(config.period);
-            } else {
-                Self::enable_auto_reload(false);
-            }
+            // // 设置重载模式
+            // Self::set_auto_reload(config.auto_reload);
+            // Self::enable_auto_reload_buff(true);
 
-            todo!()
+            // 默认值设置为重载值
+            // Self::set_cnt(0);
+
+            // 设置重复模式
+
+            Ok(())
+        }
+
+        /// 返回更新事件的标志
+        #[inline]
+        fn update_flag() -> bool {
+            Self::block().sr.read().uif().bit()
+        }
+
+        /// 清除更新事件标志
+        #[inline]
+        fn update_flag_clear() {
+            Self::block().sr.modify(|_, w| w.uif().clear_bit())
+        }
+
+        /// 产生更新事件。该位由软件置 1，硬件自动清 0。
+        /// 0：无动作； 1：重新初始化计数器，并产生一个更新事件。注意：预分频器的计数器也被清 0(但是预分频系数不变)。若在中心对称模式下或 DIR=0(向上计数)则计数器被清 0，若 DIR=1(向下计数)则计数器装载 TIM1_ARR的值。
+        fn triggle_update() {
+            unsafe { Self::block().egr.write_with_zero(|w| w.ug().set_bit()) }
         }
     }
 }
