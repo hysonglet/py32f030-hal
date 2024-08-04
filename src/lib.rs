@@ -9,6 +9,7 @@ use config::SysClockSource;
 use mcu::Peripherals;
 pub use PY32f030xx_pac as pac;
 
+pub mod adc;
 pub mod clock;
 pub(crate) mod common;
 pub mod delay;
