@@ -46,6 +46,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
 
 impl<'d, T: Instance> Counter<'d, T, Blocking> {
     /// 阻塞等待直到更新事件发生
+    #[inline]
     pub fn delay_us_blocking(&mut self, us: u32) {
         T::stop();
         T::update_flag_clear();
@@ -56,10 +57,12 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
             T::set_repetition(0);
             T::enable_single_mode(true);
             T::start();
+            defmt::info!("{}", us);
             while T::update_flag() == false {}
         } else {
             let repeatition = us / u16::MAX as u32;
             let remain = us % u16::MAX as u32;
+            defmt::info!("{} {}", repeatition, remain);
             T::set_auto_reload(u16::MAX);
             T::set_repetition(repeatition as u16);
             T::enable_single_mode(false);

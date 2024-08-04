@@ -105,12 +105,15 @@ pub(crate) mod sealed {
         }
 
         /// 返回计数频率
+        #[inline]
         fn counter_frequency() -> u32 {
             let psc: u32 = Self::block().psc.read().bits();
             // 计数器的时钟频率（CK_CNT）等于 fCK_PSC/( PSC[15:0]+1)。
             timer_pclk() / (psc + 1)
         }
 
+        /// 设置重复值
+        #[inline]
         fn set_repetition(repetition: u16) {
             Self::block()
                 .rcr
@@ -118,6 +121,7 @@ pub(crate) mod sealed {
         }
 
         /// 基本配置
+        #[inline]
         fn base_config(config: BaseConfig) -> Result<(), Error> {
             // 设置计数对齐模式
             Self::set_cms(config.center_aligned_mode);
@@ -157,6 +161,7 @@ pub(crate) mod sealed {
 
         /// 产生更新事件。该位由软件置 1，硬件自动清 0。
         /// 0：无动作； 1：重新初始化计数器，并产生一个更新事件。注意：预分频器的计数器也被清 0(但是预分频系数不变)。若在中心对称模式下或 DIR=0(向上计数)则计数器被清 0，若 DIR=1(向下计数)则计数器装载 TIM1_ARR的值。
+        #[inline]
         fn triggle_update() {
             unsafe { Self::block().egr.write_with_zero(|w| w.ug().set_bit()) }
         }

@@ -88,4 +88,4 @@ lto = true
 debug = false
 link-dead-code = false
 overflow-checks = false
-strip = true
+# strip = true   # 开启后release模式的日志不会显示

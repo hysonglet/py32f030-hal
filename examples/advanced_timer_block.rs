@@ -11,6 +11,7 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
+    defmt::info!("timer counter examples start...");
     let p = hal::init(Default::default());
 
     let gpioa = p.GPIOA.split();
@@ -24,6 +25,7 @@ fn main() -> ! {
 
     loop {
         let _ = led.toggle();
+        // 延时 1s
         counter.delay_us_blocking(1000_000);
         defmt::info!("{}", cnt);
         cnt += 1;
