@@ -192,7 +192,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     pub fn new_inner(config: BaseConfig) -> Result<(), Error> {
         // 开启外设时钟
         T::id().enable(true);
-
+        // 将配置写到外设
         T::base_config(config)
     }
 
@@ -217,6 +217,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
         T::base_config(config)
     }
 
+    /// 设置预分配，分频值： (prescaler + 1)
     pub fn set_prescaler(&self, prescaler: u16) {
         T::set_prescaler(prescaler)
     }

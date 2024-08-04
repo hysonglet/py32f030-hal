@@ -14,10 +14,12 @@ pub(crate) mod sealed {
             assert!(port < 3);
             port.into()
         }
+
         #[inline]
         fn pin(&self) -> usize {
             (self.port_pin() & 0x0f) as usize
         }
+
         #[inline]
         fn block(&self) -> &'static pac::gpioa::RegisterBlock {
             match self.port() {

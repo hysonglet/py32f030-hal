@@ -18,11 +18,11 @@ mod embassy;
 pub mod exti;
 pub mod gpio;
 pub mod i2c;
+mod macro_def;
 pub mod mcu;
+pub mod spi;
 pub mod timer;
 pub mod usart;
-
-mod macro_def;
 
 pub mod config {
 
