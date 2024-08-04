@@ -38,6 +38,21 @@ cargo install cargo-get
 brew install llvm
 ```
 
+## 外设驱动
+
+- [x] gpio
+- [x] exit
+- [x] timer
+- [x] i2c
+- [x] clock
+- [x] embassy
+- [x] dma
+- [x] usart
+- [ ] adc
+- [ ] flash
+- [ ] spi
+
+
 ## examples
 
 ### 执行
@@ -47,6 +62,7 @@ cargo run --example blinky
 # build
 cargo build --release --example blinky 
 ```
+
 
 ### Example list
 ```bash
