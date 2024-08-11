@@ -1,6 +1,6 @@
 
 ## 简介
-该库提供 py32f030 用
+该库提供 py32f030 芯片使用，目前适配了一些基本的外设驱动
 
 ## 安装环境
 ### [安装 Rust](https://www.rust-lang.org/tools/install)
@@ -62,7 +62,6 @@ cargo run --example blinky
 # build
 cargo build --release --example blinky 
 ```
-
 
 ### Example list
 ```bash

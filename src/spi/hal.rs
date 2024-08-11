@@ -1,7 +1,7 @@
 pub(super) mod sealed {
     use crate::pac;
     use crate::spi::*;
-    pub(crate) trait Instance {
+    pub trait Instance {
         fn id() -> Id;
 
         #[inline]
@@ -64,10 +64,10 @@ pub(super) mod sealed {
 
         /// Set Frame format
         #[inline]
-        fn set_frame_format(format: FrameFormat) {
+        fn set_frame_format(format: BitOrder) {
             Self::block()
                 .cr1
-                .modify(|_, w| w.lsbfirst().bit(format == FrameFormat::LSB));
+                .modify(|_, w| w.lsbfirst().bit(format == BitOrder::LSB));
         }
 
         /// SPI enable
@@ -147,6 +147,13 @@ pub(super) mod sealed {
             Self::block().cr2.modify(|_, w| w.errie().bit(en))
         }
 
+        #[inline]
+        fn set_baud_rate_div(div: BaudRateDiv) {
+            Self::block()
+                .cr1
+                .modify(|_, w| unsafe { w.br().bits(div as u8) });
+        }
+
         /// SS output enable
         #[inline]
         fn enable_ss_output(en: bool) {
@@ -212,6 +219,14 @@ pub(super) mod sealed {
             // When in receive mode, DR [15:8] is set to 0 by hardware.
             // For 16-bit data frame, the data register is 16-bit, and the entire DR [15:0] is used for transmit and receive.
             Self::block().dr.read().dr().bits()
+        }
+
+        /// 返回 master 模式下spi的总线频率
+        #[inline]
+        fn get_baud_rate() -> u32 {
+            let div: BaudRateDiv = Self::block().cr1.read().br().bits().into();
+
+            div.baud_rate()
         }
     }
 }

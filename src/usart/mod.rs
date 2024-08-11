@@ -200,8 +200,6 @@ pub struct FlexUsart<'d, T: Instance, M: Mode> {
     pub tx: UsartTx<'d, T, M>,
 }
 
-// use crate::gpio::sealed::Pin;
-
 impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
     pub fn split(self) -> (UsartRx<'d, T, M>, UsartTx<'d, T, M>) {
         (self.rx, self.tx)
