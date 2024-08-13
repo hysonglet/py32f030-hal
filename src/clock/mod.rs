@@ -343,7 +343,7 @@ impl PllClock {
     }
 }
 
-// PLL 可以用来对 HSI 或者 HSE 进行倍频。在使能 PLL 之前，必须对 PLL 进行配置。一旦 PLL 被使能，这 些被配置的寄存器不能被改变。
+/// PLL 可以用来对 HSI 或者 HSE 进行倍频。在使能 PLL 之前，必须对 PLL 进行配置。一旦 PLL 被使能，这 些被配置的寄存器不能被改变。
 pub trait PllSelect: Clock {
     fn config() -> Result<(), Error>;
 }

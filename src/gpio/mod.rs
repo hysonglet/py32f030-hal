@@ -16,7 +16,7 @@ pub enum GpioPort {
 }
 
 impl PeripheralEnable for GpioPort {
-    fn enable(&self, en: bool) {
+    fn clock(&self, en: bool) {
         match *self {
             GpioPort::GPIOA => GpioClock::GPIOA.enable(en),
             GpioPort::GPIOB => GpioClock::GPIOB.enable(en),
@@ -206,6 +206,9 @@ impl Pin for AnyPin {
 }
 
 /// Flex 接口的 pin
+/// 该结构体不对 api 调用做任何保护，例如引脚调用输出配置后，再读取，也许硬件不支持这种使用，但
+/// 这个对象依旧不阻止调用，如果希望更强的保护，推荐使用 `Input,Output,Analog` 等对象，保证
+/// 接口不被乱用
 pub struct Flex<'d> {
     pub(crate) pin: PeripheralRef<'d, AnyPin>,
 }
@@ -237,6 +240,7 @@ impl<'d> Flex<'d> {
         self.pin.pin()
     }
 
+    /// 重新设置引脚为输入模式
     pub fn set_as_input(&self, pull: PinPullUpDown, speed: PinSpeed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Input);
@@ -245,6 +249,7 @@ impl<'d> Flex<'d> {
         });
     }
 
+    /// 重新设置引脚为输出模式
     pub fn set_as_output(&self, io_type: PinIoType, speed: PinSpeed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Output);
@@ -253,12 +258,14 @@ impl<'d> Flex<'d> {
         });
     }
 
+    /// 设置引脚为模拟引脚
     pub fn set_as_analog(&self) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Analog);
         });
     }
 
+    /// 设置引脚为外设功能模式
     pub fn set_as_af(&self, af: PinAF, speed: PinSpeed, io_type: PinIoType) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Af);
@@ -268,22 +275,27 @@ impl<'d> Flex<'d> {
         });
     }
 
+    /// 设置引脚上下拉配置
     pub fn set_push_pull(&self, push_pull: PinPullUpDown) {
         self.pin.set_push_pull(push_pull);
     }
 
+    /// 设置引脚的输出开漏配置
     pub fn set_open_drain(&self, open_drain: PinOutputType) {
         self.pin.set_output_type(open_drain);
     }
 
+    /// 设置引脚的输入输出配置
     pub fn set_io_type(&self, io_type: PinIoType) {
         self.pin.set_io_type(io_type)
     }
 
+    /// 引脚状态读取
     pub fn read(&self) -> PinLevel {
         self.pin.read()
     }
 
+    /// 引脚状态写
     pub fn write(&self, level: PinLevel) {
         self.pin.write(level)
     }
@@ -513,7 +525,7 @@ macro_rules! gpio_pin_def {
 
             impl peripherals::$gpio_port {
                 pub fn split(self) -> Pins {
-                    self.enable(true);
+                    self.enable();
                     Pins {
                         $(
                             $port_pin_name: $port_pin_name,
@@ -521,8 +533,8 @@ macro_rules! gpio_pin_def {
                     }
                 }
 
-                pub fn enable(&self, en: bool) {
-                    GpioPort::$gpio_port.enable(en);
+                pub fn enable(&self) {
+                    GpioPort::$gpio_port.open();
                 }
 
                 pub fn reset(&self) {

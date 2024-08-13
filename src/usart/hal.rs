@@ -8,19 +8,19 @@ pub mod sealed {
     use crate::pac;
 
     pub trait Instance {
-        fn id() -> Usart;
+        fn id() -> Id;
 
         #[inline]
         fn block() -> &'static pac::usart1::RegisterBlock {
             match Self::id() {
-                Usart::USART1 => unsafe { pac::USART1::PTR.as_ref().unwrap() },
-                Usart::USART2 => unsafe { pac::USART2::PTR.as_ref().unwrap() },
+                Id::USART1 => unsafe { pac::USART1::PTR.as_ref().unwrap() },
+                Id::USART2 => unsafe { pac::USART2::PTR.as_ref().unwrap() },
             }
         }
 
         #[inline]
-        fn enable(en: bool) {
-            Self::id().enable(en)
+        fn enable() {
+            Self::id().open()
         }
 
         #[inline]

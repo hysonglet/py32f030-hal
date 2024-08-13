@@ -9,7 +9,8 @@ pub struct Slave<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> Slave<'d, T, M> {
     pub(super) fn new() -> Self {
-        Self { _t: PhantomData }
+        todo!();
+        // Self { _t: PhantomData }
     }
 }
 

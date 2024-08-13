@@ -1,7 +1,7 @@
 pub(super) mod sealed {
     use crate::clock::sys_pclk;
     use crate::delay::wait_for_true_timeout;
-    use crate::i2c::I2c;
+    use crate::i2c::Id;
     use crate::i2c::*;
     use crate::pac;
 
@@ -9,12 +9,12 @@ pub(super) mod sealed {
     const WAIT_FLAG_TIMEOUT_US: usize = 100_000;
     pub trait Instance {
         // 考虑以后其他单片机可能有多个IIC
-        fn i2c() -> I2c;
+        fn i2c() -> Id;
 
         #[inline]
         fn block() -> &'static pac::i2c::RegisterBlock {
             match Self::i2c() {
-                I2c::I2c1 => unsafe { pac::I2C::PTR.as_ref().unwrap() },
+                Id::I2c1 => unsafe { pac::I2C::PTR.as_ref().unwrap() },
             }
         }
 
@@ -26,7 +26,7 @@ pub(super) mod sealed {
         /// 外设时钟使能
         #[inline]
         fn enable(en: bool) {
-            Self::i2c().enable(en)
+            Self::i2c().open()
         }
 
         /// 重启 I2c外设

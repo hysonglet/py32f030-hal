@@ -1,6 +1,7 @@
 #![macro_use]
 
 pub(crate) use super::impl_pin_af;
+pub(crate) use super::impl_pin_analog;
 pub(crate) use super::pin_af_for_instance_def;
 
 #[macro_export]
@@ -33,6 +34,19 @@ macro_rules! impl_pin_af {
         impl $function_trait<peripherals::$instance> for $pin_port::$gpio_pin_name {
             fn af(&self) -> gpio::PinAF {
                 gpio::PinAF::$af
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_pin_analog {
+    (
+        $pin_port: ident, $gpio_pin_name: ident, $instance: ident, $function_trait: ident
+    ) => {
+        impl $function_trait<peripherals::$instance> for $pin_port::$gpio_pin_name {
+            fn analog_channel(&self) {
+                todo!()
             }
         }
     };

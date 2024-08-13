@@ -6,7 +6,7 @@ pub use counter::Counter;
 use embassy_hal_internal::{into_ref, Peripheral};
 
 use crate::{
-    clock::peripheral::{PeripheralClock, PeripheralEnable},
+    clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
     mode::Mode,
 };
 
@@ -19,15 +19,15 @@ pub enum AdvancedTimer {
 }
 
 impl PeripheralEnable for AdvancedTimer {
-    fn enable(&self, en: bool) {
+    fn clock(&self, en: bool) {
         match *self {
-            Self::TIM1 => PeripheralClock::TIM1.enable(en),
+            Self::TIM1 => PeripheralClockIndex::TIM1.enable(en),
         }
     }
 
     fn reset(&self) {
         match *self {
-            Self::TIM1 => PeripheralClock::TIM1.reset(),
+            Self::TIM1 => PeripheralClockIndex::TIM1.reset(),
         }
     }
 }
@@ -191,7 +191,7 @@ impl_sealed_timer!(TIM1, TIM1);
 impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     pub fn new_inner(config: BaseConfig) -> Result<(), Error> {
         // 开启外设时钟
-        T::id().enable(true);
+        T::id().open();
         // 将配置写到外设
         T::base_config(config)
     }

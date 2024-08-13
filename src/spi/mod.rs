@@ -1,5 +1,5 @@
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClock, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
 use crate::gpio::AnyPin;
 use crate::gpio::{PinIoType, PinSpeed};
 use crate::mode::Mode;
@@ -13,23 +13,24 @@ mod pins;
 
 pub use master::Master;
 
+/// spi 的 索引
 #[derive(PartialEq)]
-pub(crate) enum Id {
+pub enum Id {
     SPI1,
     SPI2,
 }
 
 impl PeripheralEnable for Id {
-    fn enable(&self, en: bool) {
+    fn clock(&self, en: bool) {
         match *self {
-            Self::SPI1 => PeripheralClock::SPI1.enable(en),
-            Self::SPI2 => PeripheralClock::SPI2.enable(en),
+            Self::SPI1 => PeripheralClockIndex::SPI1.enable(en),
+            Self::SPI2 => PeripheralClockIndex::SPI2.enable(en),
         }
     }
     fn reset(&self) {
         match *self {
-            Self::SPI1 => PeripheralClock::SPI1.reset(),
-            Self::SPI2 => PeripheralClock::SPI2.reset(),
+            Self::SPI1 => PeripheralClockIndex::SPI1.reset(),
+            Self::SPI2 => PeripheralClockIndex::SPI2.reset(),
         }
     }
 }
@@ -179,6 +180,7 @@ pub enum Error {
     Read,
     Write,
     Timeout,
+    Busy,
 }
 
 impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
@@ -268,7 +270,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         );
 
         // 使能外设时钟
-        T::id().enable(true);
+        T::id().open();
 
         into_ref!(spi);
 

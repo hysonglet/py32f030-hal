@@ -28,7 +28,7 @@ impl GpioClock {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-pub enum PeripheralClock {
+pub enum PeripheralClockIndex {
     DMA = 0,
     FLASH = 8,
     SRAM = 9,
@@ -57,7 +57,7 @@ pub enum PeripheralClock {
     LED = 23 + 64,
 }
 
-impl PeripheralClock {
+impl PeripheralClockIndex {
     pub(crate) fn enable(&self, en: bool) {
         if (*self as u32) < 32 {
             Rcc::peripheral().ahbenr.modify(|r, w| unsafe {
@@ -115,7 +115,20 @@ impl PeripheralClock {
 /// 外设使能和重启
 pub trait PeripheralEnable {
     /// 使能和去能外设时钟
-    fn enable(&self, en: bool);
+    fn clock(&self, en: bool);
+
+    /// 关闭外设时钟
+    #[inline]
+    fn close(&self) {
+        self.clock(false);
+    }
+
+    /// 开启外设时钟
+    #[inline]
+    fn open(&self) {
+        self.clock(true);
+    }
+
     /// 复位外设
     fn reset(&self);
 }

@@ -5,7 +5,7 @@ pub mod slave;
 
 use core::marker::PhantomData;
 
-use crate::clock::peripheral::{PeripheralClock, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::Mode;
@@ -17,20 +17,20 @@ pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Sen
 
 ///  mcu i2c 的索引
 #[derive(PartialEq)]
-pub enum I2c {
+pub enum Id {
     I2c1,
 }
 
-impl PeripheralEnable for I2c {
-    fn enable(&self, en: bool) {
+impl PeripheralEnable for Id {
+    fn clock(&self, en: bool) {
         match *self {
-            Self::I2c1 => PeripheralClock::I2C.enable(en),
+            Self::I2c1 => PeripheralClockIndex::I2C.enable(en),
         }
     }
 
     fn reset(&self) {
         match *self {
-            Self::I2c1 => PeripheralClock::I2C.reset(),
+            Self::I2c1 => PeripheralClockIndex::I2C.reset(),
         }
     }
 }
@@ -68,8 +68,8 @@ macro_rules! impl_sealed_i2c {
         $peripheral: ident, $i2c_id: ident
     ) => {
         impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
-            fn i2c() -> I2c {
-                I2c::$i2c_id
+            fn i2c() -> Id {
+                Id::$i2c_id
             }
         }
         impl Instance for crate::mcu::peripherals::$peripheral {}
@@ -87,7 +87,7 @@ pub struct AnyI2c<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
     fn new_inner(config: Config) -> Result<(), Error> {
-        T::i2c().enable(true);
+        T::i2c().open();
         T::config(config)?;
         Ok(())
     }

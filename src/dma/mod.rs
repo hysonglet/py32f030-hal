@@ -1,8 +1,9 @@
 use core::marker::PhantomData;
 
-use crate::clock::peripheral::PeripheralClock;
 use critical_section::CriticalSection;
 use embassy_hal_internal::{into_ref, Peripheral};
+
+use crate::clock::peripheral::PeripheralClockIndex;
 
 mod hal;
 
@@ -225,12 +226,12 @@ struct Dma;
 impl Dma {
     #[inline]
     fn enable(en: bool) {
-        PeripheralClock::DMA.enable(en);
+        PeripheralClockIndex::DMA.enable(en);
     }
 
     #[inline]
     fn reset() {
-        PeripheralClock::DMA.reset();
+        PeripheralClockIndex::DMA.reset();
     }
 
     #[inline]

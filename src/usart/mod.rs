@@ -3,7 +3,7 @@ mod pins;
 use core::marker::PhantomData;
 
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClock, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
@@ -25,8 +25,8 @@ macro_rules! impl_sealed_usart {
         impl Instance for crate::mcu::peripherals::$peripheral {}
 
         impl sealed::Instance for crate::mcu::peripherals::$peripheral {
-            fn id() -> Usart {
-                Usart::$usart_id
+            fn id() -> Id {
+                Id::$usart_id
             }
         }
     };
@@ -156,25 +156,25 @@ use embassy_hal_internal::PeripheralRef;
 
 /// 串口号定义
 #[derive(Clone, Copy, PartialEq)]
-pub enum Usart {
+pub enum Id {
     USART1,
     USART2,
 }
 
-impl PeripheralEnable for Usart {
+impl PeripheralEnable for Id {
     /// 使能串口外设时钟
-    fn enable(&self, en: bool) {
+    fn clock(&self, en: bool) {
         match *self {
-            Self::USART1 => PeripheralClock::USART1.enable(en),
-            Self::USART2 => PeripheralClock::UART2.enable(en),
+            Self::USART1 => PeripheralClockIndex::USART1.enable(en),
+            Self::USART2 => PeripheralClockIndex::UART2.enable(en),
         }
     }
 
     /// 复位串口外设
     fn reset(&self) {
         match *self {
-            Self::USART1 => PeripheralClock::USART1.reset(),
-            Self::USART2 => PeripheralClock::UART2.reset(),
+            Self::USART1 => PeripheralClockIndex::USART1.reset(),
+            Self::USART2 => PeripheralClockIndex::UART2.reset(),
         }
     }
 }
@@ -246,7 +246,7 @@ impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
         config: Config,
     ) -> Self {
         // let block = T::block();
-        T::enable(true);
+        T::enable();
         T::config(config);
 
         Self {
@@ -370,9 +370,4 @@ impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     fn flush(&mut self) -> Result<(), Self::Error> {
         todo!()
     }
-}
-
-#[cfg(test)]
-fn test() {
-    // let uart = FlexUsart::new(USART1);
 }
