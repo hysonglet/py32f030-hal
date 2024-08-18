@@ -23,8 +23,14 @@ pub enum Id {
 impl PeripheralEnable for Id {
     fn clock(&self, en: bool) {
         match *self {
-            Self::SPI1 => PeripheralClockIndex::SPI1.enable(en),
-            Self::SPI2 => PeripheralClockIndex::SPI2.enable(en),
+            Self::SPI1 => PeripheralClockIndex::SPI1.clock(en),
+            Self::SPI2 => PeripheralClockIndex::SPI2.clock(en),
+        }
+    }
+    fn is_open(&self) -> bool {
+        match *self {
+            Self::SPI1 => PeripheralClockIndex::SPI1.is_open(),
+            Self::SPI2 => PeripheralClockIndex::SPI2.is_open(),
         }
     }
     fn reset(&self) {
@@ -147,21 +153,8 @@ pub enum DataLength {
 
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
-macro_rules! impl_sealed_instance {
-    (
-        $peripheral: ident, $id: ident
-    ) => {
-        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
-            fn id() -> Id {
-                Id::$id
-            }
-        }
-        impl Instance for crate::mcu::peripherals::$peripheral {}
-    };
-}
-
-impl_sealed_instance!(SPI1, SPI1);
-impl_sealed_instance!(SPI2, SPI2);
+impl_sealed_peripheral_id!(SPI1, SPI1);
+impl_sealed_peripheral_id!(SPI2, SPI2);
 
 pub struct AnySpi<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,

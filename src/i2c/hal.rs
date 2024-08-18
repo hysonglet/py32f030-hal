@@ -9,11 +9,11 @@ pub(super) mod sealed {
     const WAIT_FLAG_TIMEOUT_US: usize = 100_000;
     pub trait Instance {
         // 考虑以后其他单片机可能有多个IIC
-        fn i2c() -> Id;
+        fn id() -> Id;
 
         #[inline]
         fn block() -> &'static pac::i2c::RegisterBlock {
-            match Self::i2c() {
+            match Self::id() {
                 Id::I2c1 => unsafe { pac::I2C::PTR.as_ref().unwrap() },
             }
         }
@@ -26,13 +26,13 @@ pub(super) mod sealed {
         /// 外设时钟使能
         #[inline]
         fn enable(en: bool) {
-            Self::i2c().open()
+            Self::id().open()
         }
 
         /// 重启 I2c外设
         #[inline]
         fn reset() {
-            Self::i2c().reset()
+            Self::id().reset()
         }
 
         /// 查看总线是否释放

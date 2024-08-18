@@ -226,7 +226,7 @@ struct Dma;
 impl Dma {
     #[inline]
     fn enable(en: bool) {
-        PeripheralClockIndex::DMA.enable(en);
+        PeripheralClockIndex::DMA.clock(en);
     }
 
     #[inline]

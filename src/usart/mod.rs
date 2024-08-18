@@ -17,25 +17,6 @@ pin_af_for_instance_def!(RxPin, Instance);
 pin_af_for_instance_def!(RtsPin, Instance);
 pin_af_for_instance_def!(CtsPin, Instance);
 
-// sealed usart impl
-macro_rules! impl_sealed_usart {
-    (
-        $peripheral: ident, $usart_id: ident
-    ) => {
-        impl Instance for crate::mcu::peripherals::$peripheral {}
-
-        impl sealed::Instance for crate::mcu::peripherals::$peripheral {
-            fn id() -> Id {
-                Id::$usart_id
-            }
-        }
-    };
-}
-
-// 为 usart1/2 实现 Instance 和 sealed::Instance trait
-impl_sealed_usart!(USART1, USART1);
-impl_sealed_usart!(USART2, USART2);
-
 #[derive(Debug)]
 pub enum Error {
     StartTimeout,
@@ -161,12 +142,23 @@ pub enum Id {
     USART2,
 }
 
+// 为 usart1/2 实现 Instance 和 sealed::Instance trait
+impl_sealed_peripheral_id!(USART1, USART1);
+impl_sealed_peripheral_id!(USART2, USART2);
+
 impl PeripheralEnable for Id {
     /// 使能串口外设时钟
     fn clock(&self, en: bool) {
         match *self {
-            Self::USART1 => PeripheralClockIndex::USART1.enable(en),
-            Self::USART2 => PeripheralClockIndex::UART2.enable(en),
+            Self::USART1 => PeripheralClockIndex::USART1.clock(en),
+            Self::USART2 => PeripheralClockIndex::UART2.clock(en),
+        }
+    }
+
+    fn is_open(&self) -> bool {
+        match *self {
+            Self::USART1 => PeripheralClockIndex::USART1.is_open(),
+            Self::USART2 => PeripheralClockIndex::UART2.is_open(),
         }
     }
 
@@ -245,7 +237,6 @@ impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
         rts: Option<PeripheralRef<'d, AnyPin>>,
         config: Config,
     ) -> Self {
-        // let block = T::block();
         T::enable();
         T::config(config);
 

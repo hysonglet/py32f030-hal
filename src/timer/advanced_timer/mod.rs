@@ -21,7 +21,13 @@ pub enum AdvancedTimer {
 impl PeripheralEnable for AdvancedTimer {
     fn clock(&self, en: bool) {
         match *self {
-            Self::TIM1 => PeripheralClockIndex::TIM1.enable(en),
+            Self::TIM1 => PeripheralClockIndex::TIM1.clock(en),
+        }
+    }
+
+    fn is_open(&self) -> bool {
+        match *self {
+            Self::TIM1 => PeripheralClockIndex::TIM1.is_open(),
         }
     }
 

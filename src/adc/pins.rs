@@ -1,18 +1,42 @@
-// use super::{
-//     ADC_IN0, ADC_IN1, ADC_IN2, ADC_IN3, ADC_IN4, ADC_IN5, ADC_IN6, ADC_IN7, ADC_IN8, ADC_IN9,
-// };
-// use crate::gpio::{gpioa, gpiob};
-// use crate::macro_def::impl_pin_analog;
-// use crate::mcu::Peripherals;
+use embassy_sync::pipe::TryReadError;
 
-// impl_pin_analog!(gpioa, PA0, ADC, ADC_IN0);
-// impl_pin_analog!(gpioa, PA1, ADC, ADC_IN1);
-// impl_pin_analog!(gpioa, PA2, ADC, ADC_IN2);
-// impl_pin_analog!(gpioa, PA3, ADC, ADC_IN3);
-// impl_pin_analog!(gpioa, PA4, ADC, ADC_IN4);
-// impl_pin_analog!(gpioa, PA5, ADC, ADC_IN5);
-// impl_pin_analog!(gpioa, PA6, ADC, ADC_IN6);
-// impl_pin_analog!(gpioa, PA7, ADC, ADC_IN7);
+use super::{AdcChannel, AnalogPin};
+use crate::gpio::{self, gpioa, gpiob};
+use crate::mcu::peripherals;
 
-// impl_pin_analog!(gpiob, PB0, ADC, ADC_IN8);
-// impl_pin_analog!(gpiob, PB1, ADC, ADC_IN9);
+macro_rules! impl_pin_analog {
+    (
+        $pin_port: ident, $gpio_pin_name: ident, $instance: ident, $function_trait: ident, $channel: ident
+    ) => {
+        impl $function_trait<peripherals::$instance> for $pin_port::$gpio_pin_name {
+            fn channel(&self) -> AdcChannel {
+                AdcChannel::$channel
+            }
+        }
+    };
+}
+
+impl_pin_analog!(gpioa, PA0, ADC, AnalogPin, Channel0);
+impl_pin_analog!(gpioa, PA1, ADC, AnalogPin, Channel1);
+impl_pin_analog!(gpioa, PA2, ADC, AnalogPin, Channel2);
+impl_pin_analog!(gpioa, PA3, ADC, AnalogPin, Channel3);
+impl_pin_analog!(gpioa, PA4, ADC, AnalogPin, Channel4);
+impl_pin_analog!(gpioa, PA5, ADC, AnalogPin, Channel5);
+impl_pin_analog!(gpioa, PA6, ADC, AnalogPin, Channel6);
+impl_pin_analog!(gpioa, PA7, ADC, AnalogPin, Channel7);
+
+impl_pin_analog!(gpiob, PB0, ADC, AnalogPin, Channel8);
+impl_pin_analog!(gpiob, PB1, ADC, AnalogPin, Channel9);
+
+pub struct TemperatureInternal;
+pub struct VREFInternal;
+
+// impl AnalogPin<peripherals::ADC> for TemperatureInternal {
+//     fn channel(&self) -> AdcChannel {
+//         AdcChannel::Channel11
+//     }
+// }
+
+// impl gpio::Pin for TemperatureInternal {
+//     fn degrade(self) -> gpio::AnyPin {}
+// }

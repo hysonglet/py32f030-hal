@@ -1,7 +1,7 @@
 #![macro_use]
 
 pub(crate) use super::impl_pin_af;
-pub(crate) use super::impl_pin_analog;
+pub(crate) use super::impl_sealed_peripheral_id;
 pub(crate) use super::pin_af_for_instance_def;
 
 #[macro_export]
@@ -39,14 +39,17 @@ macro_rules! impl_pin_af {
     };
 }
 
+// sealed peripheral id impl
 #[macro_export]
-macro_rules! impl_pin_analog {
+macro_rules! impl_sealed_peripheral_id {
     (
-        $pin_port: ident, $gpio_pin_name: ident, $instance: ident, $function_trait: ident
+        $peripheral: ident, $id: ident
     ) => {
-        impl $function_trait<peripherals::$instance> for $pin_port::$gpio_pin_name {
-            fn analog_channel(&self) {
-                todo!()
+        impl Instance for crate::mcu::peripherals::$peripheral {}
+
+        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
+            fn id() -> Id {
+                Id::$id
             }
         }
     };

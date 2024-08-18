@@ -24,6 +24,14 @@ impl PeripheralEnable for GpioPort {
         }
     }
 
+    fn is_open(&self) -> bool {
+        match *self {
+            GpioPort::GPIOA => GpioClock::GPIOA.is_open(),
+            GpioPort::GPIOB => GpioClock::GPIOB.is_open(),
+            GpioPort::GPIOF => GpioClock::GPIOF.is_open(),
+        }
+    }
+
     fn reset(&self) {
         match *self {
             GpioPort::GPIOA => GpioClock::GPIOA.reset(),

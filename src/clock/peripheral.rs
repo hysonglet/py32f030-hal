@@ -19,6 +19,11 @@ impl GpioClock {
             ))
         })
     }
+
+    pub(crate) fn is_open(&self) -> bool {
+        BitOption::bit_mask_idx_get::<1>(*self as usize, Rcc::peripheral().iopenr.read().bits())
+            != 0
+    }
     #[inline]
     pub fn reset(&self) {
         Rcc::peripheral().ioprstr.modify(|r, w| unsafe {
@@ -58,7 +63,20 @@ pub enum PeripheralClockIndex {
 }
 
 impl PeripheralClockIndex {
-    pub(crate) fn enable(&self, en: bool) {
+    /// 返回时钟开启状态
+    pub(crate) fn is_open(&self) -> bool {
+        let idx = *self as usize;
+        if idx < 32 {
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().ahbenr.read().bits()) != 0
+        } else if idx < 64 {
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().apbenr1.read().bits()) != 0
+        } else {
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().apbenr2.read().bits()) != 0
+        }
+    }
+
+    /// 设置时钟开启或关闭
+    pub(crate) fn clock(&self, en: bool) {
         if (*self as u32) < 32 {
             Rcc::peripheral().ahbenr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
@@ -86,6 +104,7 @@ impl PeripheralClockIndex {
         }
     }
 
+    /// 复位外设
     pub(crate) fn reset(&self) {
         if (*self as u32) < 32 {
             if *self == Self::FLASH || *self == Self::SRAM {
@@ -116,6 +135,9 @@ impl PeripheralClockIndex {
 pub trait PeripheralEnable {
     /// 使能和去能外设时钟
     fn clock(&self, en: bool);
+
+    /// 返回外设时钟状态
+    fn is_open(&self) -> bool;
 
     /// 关闭外设时钟
     #[inline]

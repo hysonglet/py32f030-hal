@@ -7,7 +7,7 @@ use core::marker::PhantomData;
 
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
 use crate::gpio::{self, AnyPin};
-use crate::macro_def::pin_af_for_instance_def;
+use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 pub use master::Master;
@@ -24,7 +24,13 @@ pub enum Id {
 impl PeripheralEnable for Id {
     fn clock(&self, en: bool) {
         match *self {
-            Self::I2c1 => PeripheralClockIndex::I2C.enable(en),
+            Self::I2c1 => PeripheralClockIndex::I2C.clock(en),
+        }
+    }
+
+    fn is_open(&self) -> bool {
+        match *self {
+            Self::I2c1 => PeripheralClockIndex::I2C.is_open(),
         }
     }
 
@@ -63,20 +69,7 @@ pub enum Error {
 pin_af_for_instance_def!(SdaPin, Instance);
 pin_af_for_instance_def!(SclPin, Instance);
 
-macro_rules! impl_sealed_i2c {
-    (
-        $peripheral: ident, $i2c_id: ident
-    ) => {
-        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
-            fn i2c() -> Id {
-                Id::$i2c_id
-            }
-        }
-        impl Instance for crate::mcu::peripherals::$peripheral {}
-    };
-}
-
-impl_sealed_i2c!(I2C, I2c1);
+impl_sealed_peripheral_id!(I2C, I2c1);
 
 pub struct AnyI2c<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,
@@ -87,7 +80,7 @@ pub struct AnyI2c<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
     fn new_inner(config: Config) -> Result<(), Error> {
-        T::i2c().open();
+        T::id().open();
         T::config(config)?;
         Ok(())
     }
