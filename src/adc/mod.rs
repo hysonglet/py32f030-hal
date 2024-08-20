@@ -33,11 +33,9 @@ mod pins;
 
 use core::marker::PhantomData;
 
-use crate::{
-    macro_def::impl_sealed_peripheral_id,
-    mode::Blocking,
-};
+use crate::{macro_def::impl_sealed_peripheral_id, mode::Blocking};
 use embassy_hal_internal::Peripheral;
+pub use pins::{TemperatureChannel, VRrefChannel};
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
@@ -403,13 +401,10 @@ impl Default for ChannelConfig {
     }
 }
 
-pub trait AnalogPin<T: Instance>: crate::gpio::Pin {
+pub trait AnalogPin<T: Instance> {
     fn channel(&self) -> AdcChannel;
 
-    fn as_anlog(&self) {
-        self.set_mode(crate::gpio::PinMode::Analog);
-        self.set_io_type(crate::gpio::PinIoType::Floating);
-    }
+    fn as_anlog(&self);
 }
 
 pub fn temperature(dr: u16) -> f32 {

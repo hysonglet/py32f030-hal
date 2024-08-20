@@ -1,4 +1,4 @@
-mod hal;
+pub(crate) mod hal;
 
 use core::ops::Not;
 use hal::*;

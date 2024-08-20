@@ -1,10 +1,10 @@
 #![no_std]
 #![no_main]
 
-use defmt::Debug2Format;
-use hal::adc::{temperature, AdcChannel, AnyAdc, ChannelConfig, Config};
+use hal::adc::{
+    temperature, vrefence_internal, AdcChannel, AnyAdc, ChannelConfig, Config, ConversionMode,
+};
 use hal::delay;
-use py32f030_hal::adc::{vrefence_internal, ConversionMode};
 use py32f030_hal::{self as hal, mode::Blocking};
 
 // use panic_halt as _;

@@ -1,5 +1,6 @@
 
 use super::{AdcChannel, AnalogPin};
+use crate::gpio::hal::sealed::Pin;
 use crate::gpio::{gpioa, gpiob};
 use crate::mcu::peripherals;
 
@@ -10,6 +11,11 @@ macro_rules! impl_pin_analog {
         impl $function_trait<peripherals::$instance> for $pin_port::$gpio_pin_name {
             fn channel(&self) -> AdcChannel {
                 AdcChannel::$channel
+            }
+
+            fn as_anlog(&self) {
+                self.set_mode(crate::gpio::PinMode::Analog);
+                self.set_io_type(crate::gpio::PinIoType::Floating);
             }
         }
     };
@@ -30,12 +36,18 @@ impl_pin_analog!(gpiob, PB1, ADC, AnalogPin, Channel9);
 pub struct TemperatureChannel;
 pub struct VRrefChannel;
 
-// impl AnalogPin<peripherals::ADC> for TemperatureInternal {
-//     fn channel(&self) -> AdcChannel {
-//         AdcChannel::Channel11
-//     }
-// }
+impl AnalogPin<peripherals::ADC> for TemperatureChannel {
+    fn channel(&self) -> AdcChannel {
+        AdcChannel::Channel11
+    }
 
-// impl gpio::Pin for TemperatureInternal {
-//     fn degrade(self) -> gpio::AnyPin {}
-// }
+    fn as_anlog(&self) {}
+}
+
+impl AnalogPin<peripherals::ADC> for VRrefChannel {
+    fn channel(&self) -> AdcChannel {
+        AdcChannel::Channel12
+    }
+
+    fn as_anlog(&self) {}
+}
