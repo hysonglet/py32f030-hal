@@ -34,7 +34,6 @@ mod pins;
 use core::marker::PhantomData;
 
 use crate::{
-    gpio::{Analog, Flex},
     macro_def::impl_sealed_peripheral_id,
     mode::Blocking,
 };
@@ -50,7 +49,7 @@ use crate::{
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 #[derive(PartialEq)]
-enum Id {
+pub(crate) enum Id {
     ADC1,
 }
 
@@ -231,6 +230,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
         T::open();
+        T::reset();
 
         Self::new_inner(config, channel_config, channels)?;
 

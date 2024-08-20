@@ -25,7 +25,7 @@ pub(super) mod sealed {
 
         /// 外设时钟使能
         #[inline]
-        fn enable(en: bool) {
+        fn  open() {
             Self::id().open()
         }
 

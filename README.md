@@ -11,6 +11,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 #### [Windows](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
 
 ### 设置 Rust night 版本
+Rust 的嵌入式开发环境需要是 nightly 版本
 ```bash
 rustup default nightly
 ```
@@ -18,8 +19,24 @@ rustup default nightly
 ```bash
 rustup target add thumbv6m-none-eabi
 ```
+
+### 测试编译环境
+执行下面的命令，没有报错说明rust编译环境安装正常
+```
+cd py32f030-hal
+cargo build
+```
+
+### 查看本机Rust 版本
+```bash
+➜  py32f030-hal git:(main) ✗ rustup --version                    
+rustup 1.27.1 (54dd3d00f 2024-04-24)
+info: This is the version for the rustup toolchain manager, not the rustc compiler.
+info: The currently active `rustc` version is `rustc 1.82.0-nightly (6de928dce 2024-08-18)`
+```
+
 ### 安装 [Probe-rs](https://probe.rs/docs/getting-started/installation/#homebrew)
-Probe-rs 是一个优秀的固件下载和日志调试工具
+Probe-rs 是一个优秀的固件下载和日志调试工具, 详细安装和功能请点击[页面](https://probe.rs/docs/getting-started/installation/#using-install-scripts)查看。
 #### Mac/Linux
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
@@ -48,9 +65,9 @@ brew install llvm
 - [x] embassy
 - [x] dma
 - [x] usart
-- [ ] adc
+- [x] adc
 - [ ] flash
-- [ ] spi
+- [x] spi
 
 
 ## examples

@@ -1,7 +1,6 @@
-use embassy_sync::pipe::TryReadError;
 
 use super::{AdcChannel, AnalogPin};
-use crate::gpio::{self, gpioa, gpiob};
+use crate::gpio::{gpioa, gpiob};
 use crate::mcu::peripherals;
 
 macro_rules! impl_pin_analog {
@@ -28,8 +27,8 @@ impl_pin_analog!(gpioa, PA7, ADC, AnalogPin, Channel7);
 impl_pin_analog!(gpiob, PB0, ADC, AnalogPin, Channel8);
 impl_pin_analog!(gpiob, PB1, ADC, AnalogPin, Channel9);
 
-pub struct TemperatureInternal;
-pub struct VREFInternal;
+pub struct TemperatureChannel;
+pub struct VRrefChannel;
 
 // impl AnalogPin<peripherals::ADC> for TemperatureInternal {
 //     fn channel(&self) -> AdcChannel {
