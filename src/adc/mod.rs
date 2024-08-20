@@ -228,7 +228,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
         T::open();
-        T::reset();
+        // T::reset();
 
         Self::new_inner(config, channel_config, channels)?;
 
@@ -388,6 +388,22 @@ impl ChannelConfig {
 
     pub fn over_write(self, over_write: bool) -> Self {
         Self { over_write, ..self }
+    }
+
+    pub fn new_multiple_channel_perferred() -> Self {
+        Self {
+            mode: ConversionMode::Continuous,
+            scan_dir: ScanDir::Up,
+            over_write: false,
+        }
+    }
+
+    pub fn new_exclusive_perferred() -> Self {
+        Self {
+            mode: ConversionMode::Continuous,
+            scan_dir: ScanDir::Up,
+            over_write: true,
+        }
     }
 }
 
