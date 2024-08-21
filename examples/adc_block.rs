@@ -1,9 +1,7 @@
 #![no_std]
 #![no_main]
 
-use hal::adc::{
-    temperature, vrefence_internal, AdcChannel, AnyAdc, ChannelConfig, Config, ConversionMode,
-};
+use hal::adc::{temperature, vrefence_internal, AdcChannel, AnyAdc, ChannelConfig, Config};
 use hal::delay;
 use py32f030_hal::{self as hal, mode::Blocking};
 

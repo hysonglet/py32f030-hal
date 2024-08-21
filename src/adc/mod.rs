@@ -33,7 +33,10 @@ mod pins;
 
 use core::marker::PhantomData;
 
-use crate::{macro_def::impl_sealed_peripheral_id, mode::Blocking};
+use crate::{
+    macro_def::impl_sealed_peripheral_id,
+    mode::{Async, Blocking},
+};
 use embassy_hal_internal::Peripheral;
 pub use pins::{TemperatureChannel, VRrefChannel};
 
@@ -318,6 +321,12 @@ impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     pub fn read_block(&self, timeout: usize) -> Result<u16, Error> {
         wait_for_true_timeout(timeout, || T::is_eoc()).map_err(|_| Error::Timeout)?;
         Ok(T::data_read())
+    }
+}
+
+impl<'d, T: Instance> AnyAdc<'d, T, Async> {
+    pub async fn read(&self, timeout: usize) -> u16 {
+        todo!()
     }
 }
 
