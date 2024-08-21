@@ -13,17 +13,17 @@ pub mod sealed {
             }
         }
 
-        /// 开启外设
-        #[inline]
-        fn open() {
-            Self::id().open()
-        }
+        // /// 开启外设
+        // #[inline]
+        // fn open() {
+        //     Self::id().open()
+        // }
 
-        /// 复位外设
-        #[inline]
-        fn reset() {
-            Self::id().reset()
-        }
+        // /// 复位外设
+        // #[inline]
+        // fn reset() {
+        //     Self::id().reset()
+        // }
 
         /// 开始校准
         #[inline]

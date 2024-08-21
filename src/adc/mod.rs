@@ -230,7 +230,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channel_config: ChannelConfig,
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
-        T::open();
+        T::id().open();
         // T::reset();
 
         Self::new_inner(config, channel_config, channels)?;
@@ -325,6 +325,7 @@ impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
 }
 
 impl<'d, T: Instance> AnyAdc<'d, T, Async> {
+    
     pub async fn read(&self, timeout: usize) -> u16 {
         todo!()
     }
