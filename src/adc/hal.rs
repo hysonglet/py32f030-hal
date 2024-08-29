@@ -1,6 +1,6 @@
 pub mod sealed {
-    use crate::adc::*;
-    use crate::clock::peripheral::PeripheralEnable;
+    use super::super::*;
+    // use crate::clock::peripheral::PeripheralEnable;
     use crate::common::BitOption;
     use crate::pac;
     pub(crate) trait Instance {
@@ -111,6 +111,12 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.exten().bits(exten).extsel().bits(extsel) });
         }
 
+        /// 配置为软件触发
+        #[inline]
+        fn is_soft_trigle() -> bool {
+            Self::block().cfgr1.read().exten().bits() == 0
+        }
+
         /// 设置对齐格式
         #[inline]
         fn align(align: Align) {
@@ -182,6 +188,18 @@ pub mod sealed {
             }
         }
 
+        fn channel_enable_exclusive(channel: AdcChannel) {
+            // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
+            Self::block()
+                .chselr
+                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(channel as usize)) });
+            if channel == AdcChannel::Channel11 {
+                Self::block().ccr.modify(|_, w| w.tsen().bit(true))
+            } else if channel == AdcChannel::Channel12 {
+                Self::block().ccr.modify(|_, w| w.vrefen().bit(true))
+            }
+        }
+
         /// 返回转换的数据寄存器内容
         #[inline]
         fn data_read() -> u16 {
@@ -191,6 +209,11 @@ pub mod sealed {
         #[inline]
         fn is_eoc() -> bool {
             Self::block().isr.read().eoc().bit()
+        }
+
+        #[inline]
+        fn clear_eoc() {
+            Self::block().isr.modify(|_, w| w.eoc().set_bit())
         }
 
         /// 设置校准采样时间
@@ -207,6 +230,10 @@ pub mod sealed {
             Self::block()
                 .ccsr
                 .modify(|_, w| w.calsel().bit(select == CalibrationSelect::OffsetLinearity))
+        }
+
+        fn enable_eoc_interrupt(en: bool) {
+            Self::block().ier.modify(|_, w| w.eocie().bit(en))
         }
     }
 }

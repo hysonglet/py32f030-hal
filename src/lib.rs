@@ -11,7 +11,7 @@ pub use PY32f030xx_pac as pac;
 
 pub mod adc;
 pub mod clock;
-pub(crate) mod common;
+pub mod common;
 pub mod crc;
 pub mod delay;
 pub mod dma;
@@ -23,6 +23,8 @@ pub mod gpio;
 pub mod i2c;
 mod macro_def;
 pub mod mcu;
+pub(crate) mod pwr;
+pub mod rtc;
 pub mod spi;
 pub mod timer;
 pub mod usart;

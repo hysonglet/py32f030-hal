@@ -2,7 +2,7 @@
 #![no_main]
 
 use embedded_io::Write;
-use hal::usart::FlexUsart;
+use hal::usart::AnyUsart;
 use heapless::String;
 use py32f030_hal as hal;
 
@@ -19,7 +19,7 @@ async fn main(_spawner: Spawner) {
     let rx = gpioa.PA9;
     let tx = gpioa.PA10;
 
-    let usart = FlexUsart::new(p.USART1, Some(rx), Some(tx), Default::default());
+    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), Default::default());
 
     let (_, mut tx) = usart.split();
 

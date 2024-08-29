@@ -20,7 +20,6 @@ fn main() -> ! {
     )
     .unwrap();
 
-    adc.start();
     loop {
         // adc.start();
         let temp = adc.read_block(1000000).unwrap();

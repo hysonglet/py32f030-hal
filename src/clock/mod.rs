@@ -3,14 +3,16 @@
 
 pub mod peripheral;
 
+use PY32f030xx_pac::RCC;
+
 use crate::common::Peripheral;
+use crate::delay::wait_for_true_timeout_block;
 use crate::pac;
 use core::marker::PhantomData;
 
 static mut F_CPU: u32 = 8000000;
 
-const TIMEOUT: u32 = 10000;
-const DELAY_TICK_CNT: u32 = 100000;
+const TIMEOUT: usize = 10000;
 
 /// 返回系统时钟的频率，单位：Hz
 #[inline]
@@ -60,6 +62,7 @@ impl Peripheral for Rcc {
 
 #[derive(Debug)]
 pub enum Error {
+    LsiTimeout,
     HseTimeout,
     PllTimeout,
     SysTimeout,
@@ -184,8 +187,17 @@ where
 
 impl Clock for LSI {
     #[inline]
-    fn set(_en: bool) -> Result<(), Error> {
-        Ok(())
+    fn set(en: bool) -> Result<(), Error> {
+        // Rcc::peripheral()
+        //     .bdcr
+        //     .modify(|_, w| w.lscoen().bit(en).lscosel().bit(en));
+        // Rcc::peripheral()
+        //     .bdcr
+        //     .modify(|_, w| w.lscosel().clear_bit().lscoen().set_bit());
+        let block = Rcc::peripheral();
+        block.csr.modify(|_, w| w.lsion().bit(en));
+        wait_for_true_timeout_block(1000, || block.csr.read().lsirdy() == en)
+            .map_err(|_| Error::LsiTimeout)
     }
 }
 
@@ -194,7 +206,14 @@ impl Clock for LSE {
     fn set(en: bool) -> Result<(), Error> {
         let peripheral = Rcc::peripheral();
 
-        // 00：关闭 LSE； 01：弱驱动能力；（默认） 10：中驱动能力；（推荐） 11：强驱动能力；
+        peripheral
+            .bdcr
+            .modify(|_, w| w.lscosel().set_bit().lscoen().clear_bit());
+
+        // 00：关闭 LSE；
+        // 01：弱驱动能力；（默认）
+        // 10：中驱动能力；（推荐）
+        // 11：强驱动能力；
         let lse_driver = if en { 0b01 } else { 0 };
 
         peripheral
@@ -285,7 +304,7 @@ impl From<u32> for HsiDiv {
             32 => Self::DIV32,
             64 => Self::DIV64,
             128 => Self::DIV128,
-            _ => panic!("HSI DIV only allowd in [1, 2, 4, 8, 32, 64, 128]"),
+            _ => unreachable!(), // _ => panic!("HSI DIV only allowd in [1, 2, 4, 8, 32, 64, 128]"),
         }
     }
 }
@@ -331,14 +350,8 @@ impl PllClock {
 
         peripheral.cr.modify(|_, w| w.pllon().set_bit());
 
-        let mut cnt = TIMEOUT;
-        while peripheral.cr.read().pllrdy().bit_is_clear() {
-            cortex_m::asm::delay(DELAY_TICK_CNT);
-            cnt -= 1;
-            if cnt == 0 {
-                return Err(Error::PllTimeout);
-            }
-        }
+        wait_for_true_timeout_block(TIMEOUT, || peripheral.cr.read().pllrdy().bit())
+            .map_err(|_| Error::PllTimeout)?;
         Ok(())
     }
 }
@@ -382,14 +395,10 @@ impl SysClockSw {
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.sw().bits(*self as u8) });
-        let mut timeout = TIMEOUT;
-        while peripheral.cfgr.read().sws().bits() != peripheral.cfgr.read().sw().bits() {
-            cortex_m::asm::delay(DELAY_TICK_CNT);
-            timeout -= 1;
-            if timeout == 0 {
-                return Err(Error::SysTimeout);
-            }
-        }
+        wait_for_true_timeout_block(TIMEOUT, || {
+            peripheral.cfgr.read().sws().bits() == peripheral.cfgr.read().sw().bits()
+        })
+        .map_err(|_| Error::SysTimeout)?;
         Ok(())
     }
 }
@@ -572,7 +581,8 @@ impl From<u32> for McoDIV {
             32 => Self::DIV32,
             64 => Self::DIV64,
             128 => Self::DIV128,
-            _ => panic!("MCO DIV only allowd in [1, 2, 4, 8, 32, 64, 128]"),
+            _ => unreachable!(),
+            // _ => panic!("MCO DIV only allowd in [1, 2, 4, 8, 32, 64, 128]"),
         }
     }
 }
@@ -618,8 +628,64 @@ impl Mco {
 }
 
 /// RTC 时钟选择器
-pub trait RtcSelect: Clock {}
+pub trait RtcSelect: Clock + ClockFrequency {
+    fn config() -> Result<(), Error>;
+}
 
-impl RtcSelect for LSI {}
-impl RtcSelect for LSE {}
-impl RtcSelect for HSE {}
+impl RtcSelect for LSI {
+    fn config() -> Result<(), Error> {
+        Self::enable()?;
+        Rcc::peripheral()
+            .bdcr
+            .modify(|_, w| unsafe { w.rtcsel().bits(0b10).rtcen().set_bit().lscoen().set_bit() });
+        Ok(())
+    }
+}
+impl RtcSelect for LSE {
+    fn config() -> Result<(), Error> {
+        // 开启外部时钟，
+        // TODO！ 引脚初始化？
+        Self::enable()?;
+        Rcc::peripheral()
+            .bdcr
+            .modify(|_, w| unsafe { w.rtcsel().bits(0b10).rtcen().set_bit().lscoen().set_bit() });
+        Ok(())
+    }
+}
+impl<const HZ: u32> RtcSelect for HSE<HZ> {
+    fn config() -> Result<(), Error> {
+        Self::enable()?;
+        Rcc::peripheral()
+            .bdcr
+            .modify(|_, w| unsafe { w.rtcsel().bits(0b11).rtcen().set_bit().lscoen().set_bit() });
+        Ok(())
+    }
+}
+
+pub(crate) struct RtcClock<CLK: RtcSelect> {
+    _clk: PhantomData<CLK>,
+}
+
+impl<CLK: RtcSelect> RtcClock<CLK> {
+    pub(crate) fn config() -> Result<(), Error> {
+        CLK::config()
+    }
+}
+
+impl ClockFrequency for RtcClock<LSE> {
+    fn hz() -> u32 {
+        LSE::hz()
+    }
+}
+
+impl ClockFrequency for RtcClock<LSI> {
+    fn hz() -> u32 {
+        LSI::hz()
+    }
+}
+
+impl<const HZ: u32> ClockFrequency for RtcClock<HSE<HZ>> {
+    fn hz() -> u32 {
+        HSE::<HZ>::hz() / 128
+    }
+}

@@ -187,12 +187,12 @@ pub struct UsartTx<'d, T: Instance, M: Mode> {
 }
 
 /// 串口对象
-pub struct FlexUsart<'d, T: Instance, M: Mode> {
+pub struct AnyUsart<'d, T: Instance, M: Mode> {
     pub rx: UsartRx<'d, T, M>,
     pub tx: UsartTx<'d, T, M>,
 }
 
-impl<'d, T: Instance, M: Mode> FlexUsart<'d, T, M> {
+impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
     pub fn split(self) -> (UsartRx<'d, T, M>, UsartTx<'d, T, M>) {
         (self.rx, self.tx)
     }

@@ -1,5 +1,5 @@
 use super::{Error, Instance};
-use crate::delay::wait_for_true_timeout;
+use crate::delay::wait_for_true_timeout_block;
 use crate::gpio::AnyPin;
 use crate::mode::{Blocking, Mode};
 use core::marker::PhantomData;
@@ -43,7 +43,7 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
             return Err(Error::Write);
         }
         for v in buf.iter() {
-            if wait_for_true_timeout(TIMEOUT, || T::tx_empty()).is_err() {
+            if wait_for_true_timeout_block(TIMEOUT, || T::tx_empty()).is_err() {
                 return Err(Error::Timeout);
             }
             T::data_write(*v as u16)
@@ -60,7 +60,7 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
         }
         let mut cnt: usize = 0;
         for v in buf.iter_mut() {
-            if wait_for_true_timeout(TIMEOUT, || T::rx_not_empty()).is_err() {
+            if wait_for_true_timeout_block(TIMEOUT, || T::rx_not_empty()).is_err() {
                 return Err(Error::Timeout);
             }
             *v = T::data_read() as u8;

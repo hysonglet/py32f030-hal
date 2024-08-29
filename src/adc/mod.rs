@@ -31,27 +31,33 @@
 mod hal;
 mod pins;
 
-use core::marker::PhantomData;
+use core::{future::Future, marker::PhantomData, task::Poll};
 
 use crate::{
     macro_def::impl_sealed_peripheral_id,
+    mcu::peripherals::ADC,
     mode::{Async, Blocking},
 };
+
 use embassy_hal_internal::Peripheral;
 pub use pins::{TemperatureChannel, VRrefChannel};
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
-    delay::wait_for_true_timeout,
+    delay::wait_for_true_timeout_block,
     mode::Mode,
 };
+
+use embassy_sync::waitqueue::AtomicWaker;
+
+static ADC_INT_WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 
 #[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 #[derive(PartialEq)]
 pub(crate) enum Id {
-    ADC1,
+    ADC1 = 0,
 }
 
 impl_sealed_peripheral_id!(ADC, ADC1);
@@ -235,6 +241,8 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 
         Self::new_inner(config, channel_config, channels)?;
 
+        T::enable();
+
         Ok(Self {
             t: PhantomData,
             _m: PhantomData,
@@ -248,7 +256,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::calibration_start();
 
         let block = T::block();
-        wait_for_true_timeout(timeout, || {
+        wait_for_true_timeout_block(timeout, || {
             block.ccsr.read().calon().bit_is_clear() && block.ccsr.read().calfail().bit_is_clear()
         })
         .map_err(|_| Error::Calibrate)?;
@@ -283,7 +291,6 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
             Self::calibration(Default::default(), CALIBRATE_TIMEOUT)?
         }
         T::align(config.align);
-        T::trigle_signal(config.signal);
 
         Self::channel_config(channel_config);
 
@@ -291,8 +298,6 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         for channel in channels {
             T::channel_enable(*channel, true)
         }
-
-        T::enable();
         Ok(())
     }
 
@@ -310,24 +315,99 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
     }
 
     fn channel_config(config: ChannelConfig) {
-        T::disable();
         T::conversion_mode(config.mode);
         T::set_scan_dir(config.scan_dir);
         T::set_overwrite(config.over_write);
+        T::trigle_signal(config.signal);
+    }
+
+    fn is_eoc() -> bool {
+        T::is_eoc()
+    }
+
+    #[inline]
+    fn on_interrupt() {
+        // 关闭中断
+        ADC_INT_WAKER[T::id() as usize].wake()
+    }
+
+    pub fn enable_interrupt(en: bool) {
+        unsafe {
+            if en {
+                cortex_m::peripheral::NVIC::unmask(interrupt::ADC_COMP)
+            } else {
+                cortex_m::peripheral::NVIC::mask(interrupt::ADC_COMP)
+            }
+        }
     }
 }
 
+pub struct ChannelInputFuture<T: Instance> {
+    channel: AdcChannel,
+    _t: PhantomData<T>,
+}
+
+impl<T: Instance> ChannelInputFuture<T> {
+    /// 新建一个 eoc 中断
+    /// 记得提前打开 ADC 的总中断，改任务会暂停在 异步中
+    pub fn new(channel: AdcChannel) -> Self {
+        // 开启通道
+        T::channel_enable_exclusive(channel);
+        T::clear_eoc();
+        T::enable_eoc_interrupt(true);
+
+        // 软件触发，则先触发一次
+        if T::is_soft_trigle() {
+            T::start();
+        }
+
+        Self {
+            channel,
+            _t: PhantomData,
+        }
+    }
+}
+
+impl<T: Instance> Future for ChannelInputFuture<T> {
+    type Output = u16;
+    fn poll(
+        self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Self::Output> {
+        ADC_INT_WAKER[T::id() as usize].register(cx.waker());
+
+        if T::is_eoc() {
+            // 读取 dr 寄存器会自动清除 eoc 位
+            Poll::Ready(T::data_read())
+        } else {
+            Poll::Pending
+        }
+    }
+}
+
+impl<T: Instance> Drop for ChannelInputFuture<T> {
+    fn drop(&mut self) {
+        // 关闭中断
+        T::enable_eoc_interrupt(false);
+    }
+}
+
+// impl<T: Instance> Unpin for ChannelInput<T> {}
+
 impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     pub fn read_block(&self, timeout: usize) -> Result<u16, Error> {
-        wait_for_true_timeout(timeout, || T::is_eoc()).map_err(|_| Error::Timeout)?;
+        // 软件触发，则先触发一次
+        if T::is_soft_trigle() {
+            T::start();
+        }
+        wait_for_true_timeout_block(timeout, || T::is_eoc()).map_err(|_| Error::Timeout)?;
         Ok(T::data_read())
     }
 }
 
 impl<'d, T: Instance> AnyAdc<'d, T, Async> {
-    
-    pub async fn read(&self, timeout: usize) -> u16 {
-        todo!()
+    pub async fn read(&self, channel: impl AnalogPin<T>) -> u16 {
+        ChannelInputFuture::<T>::new(channel.channel()).await
     }
 }
 
@@ -363,8 +443,6 @@ pub struct Config {
     align: Align,
     ///  adc 时钟源
     clock: ClockMode,
-    /// 触发信号类型
-    signal: TrigleSignal,
 }
 
 impl Default for Config {
@@ -375,7 +453,6 @@ impl Default for Config {
             resolution: Resolution::Bit12,
             align: Align::Right,
             clock: ClockMode::PCLK,
-            signal: TrigleSignal::Soft,
         }
     }
 }
@@ -385,6 +462,8 @@ pub struct ChannelConfig {
     mode: ConversionMode,
     scan_dir: ScanDir,
     over_write: bool,
+    /// 触发信号类型
+    signal: TrigleSignal,
 }
 
 impl ChannelConfig {
@@ -399,20 +478,34 @@ impl ChannelConfig {
     pub fn over_write(self, over_write: bool) -> Self {
         Self { over_write, ..self }
     }
-
+    /// 多通道配置读取推荐配置
+    /// 连续转换/向上扫描/不过写/软件触发
     pub fn new_multiple_channel_perferred() -> Self {
         Self {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: false,
+            signal: TrigleSignal::Soft,
         }
     }
 
+    /// 单通道读取推荐配置
+    /// 连续转换/向上扫描/过写/软件触发
     pub fn new_exclusive_perferred() -> Self {
         Self {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: true,
+            signal: TrigleSignal::Soft,
+        }
+    }
+
+    pub fn new_exclusive_single() -> Self {
+        Self {
+            mode: ConversionMode::Single,
+            scan_dir: ScanDir::Up,
+            over_write: true,
+            signal: TrigleSignal::Soft,
         }
     }
 }
@@ -423,13 +516,13 @@ impl Default for ChannelConfig {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: true,
+            signal: TrigleSignal::Soft,
         }
     }
 }
 
 pub trait AnalogPin<T: Instance> {
     fn channel(&self) -> AdcChannel;
-
     fn as_anlog(&self);
 }
 
@@ -440,7 +533,6 @@ pub fn temperature(dr: u16) -> f32 {
     let ts_cal2 = unsafe { core::ptr::read(TS_CAL2_ADDR as *const u32) } as f32;
     let ts_cal1 = unsafe { core::ptr::read(TS_CAL1_ADDR as *const u32) } as f32;
 
-    defmt::info!("({} {})", ts_cal2, ts_cal1);
     // dr as f32 / 4095.0 * 3.3
     (((85.0 - 30.0) / (ts_cal2 - ts_cal1)) * (dr as f32 - ts_cal1)) + 30.0
 }
@@ -448,4 +540,15 @@ pub fn temperature(dr: u16) -> f32 {
 pub fn vrefence_internal(dr: u16) -> f32 {
     // dr as f32 / 4095.0 * 3.3
     4095.0 * 1.2 / dr as f32
+}
+
+use crate::pac::interrupt;
+#[interrupt]
+fn ADC_COMP() {
+    // ADC1 的中断 eoc
+    if AnyAdc::<ADC, Blocking>::is_eoc() {
+        AnyAdc::<ADC, Blocking>::on_interrupt()
+    }
+    // TODO!
+    // comp 的中断
 }

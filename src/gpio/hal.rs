@@ -1,9 +1,7 @@
-use super::*;
-use crate::pac;
-
 pub(crate) mod sealed {
-    use super::*;
+    use super::super::*;
     use crate::common::BitOption;
+    use crate::pac;
 
     pub trait Pin {
         fn port_pin(&self) -> u8;
@@ -43,7 +41,7 @@ pub(crate) mod sealed {
 
             block.moder.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
+                    self.pin() * 2,
                     r.bits(),
                     mode as u32,
                 ))
@@ -72,7 +70,7 @@ pub(crate) mod sealed {
         fn set_push_pull(&self, push_pull: PinPullUpDown) {
             self.block().pupdr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
+                    self.pin() * 2,
                     r.bits(),
                     push_pull as u32,
                 ))
@@ -108,7 +106,7 @@ pub(crate) mod sealed {
             if self.pin() < 8 {
                 block.afrl.modify(|r, w| unsafe {
                     w.bits(BitOption::bit_mask_idx_modify::<4>(
-                        self.pin(),
+                        self.pin() * 4,
                         r.bits(),
                         af as u32,
                     ))
@@ -116,7 +114,7 @@ pub(crate) mod sealed {
             } else {
                 block.afrh.modify(|r, w| unsafe {
                     w.bits(BitOption::bit_mask_idx_modify::<4>(
-                        self.pin() - 8,
+                        (self.pin() - 8) * 4,
                         r.bits(),
                         af as u32,
                     ))
@@ -149,7 +147,7 @@ pub(crate) mod sealed {
         fn set_speed(&self, speed: PinSpeed) {
             self.block().ospeedr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<2>(
-                    self.pin(),
+                    self.pin() * 2,
                     r.bits(),
                     speed as u32,
                 ))

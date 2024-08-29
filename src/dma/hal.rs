@@ -1,6 +1,5 @@
 pub(super) mod sealed {
-
-    use crate::dma::*;
+    use super::super::*;
     use crate::pac;
 
     pub trait Instance {

@@ -1,11 +1,8 @@
-use core::f32;
-use core::intrinsics::floorf32;
-
-use super::*;
-
 pub mod sealed {
-    use super::*;
+    use super::super::*;
     use crate::pac;
+    use core::f32;
+    use core::intrinsics::floorf32;
 
     pub trait Instance {
         fn id() -> Id;

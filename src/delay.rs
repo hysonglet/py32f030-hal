@@ -20,15 +20,15 @@ pub fn delay_s(s: usize) {
 }
 
 #[inline]
-pub fn wait_for_true_timeout<F>(timeout_us: usize, f: F) -> Result<(), ()>
+pub fn wait_for_true_timeout_block<F>(timeout_tick: usize, f: F) -> Result<(), ()>
 where
     F: Fn() -> bool,
 {
-    for _ in 0..timeout_us {
+    for _ in 0..timeout_tick {
         if f() {
             return Ok(());
         }
-        delay_us(1);
+        cortex_m::asm::delay(1);
     }
     Err(())
 }

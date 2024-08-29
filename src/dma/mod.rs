@@ -34,17 +34,6 @@ pub enum Channel {
     Channel3 = 3,
 }
 
-// impl From<usize> for Channel {
-//     fn from(value: usize) -> Channel {
-//         match value {
-//             1 => Self::Channel1,
-//             2 => Self::Channel2,
-//             3 => Self::Channel3,
-//             _ => unreachable!(),
-//         }
-//     }
-// }
-
 /// DMA模式，单次或循环
 #[derive(PartialEq)]
 pub enum Mode {

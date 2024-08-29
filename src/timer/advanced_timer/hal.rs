@@ -1,5 +1,4 @@
 pub(crate) mod sealed {
-
     use super::super::*;
     use crate::clock::timer_pclk;
     // use crate::common::Peripheral;
