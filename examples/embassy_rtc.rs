@@ -16,7 +16,7 @@ use {defmt_rtt as _, panic_probe as _};
 async fn run() {
     let mut cnt: u32 = 0;
     loop {
-        defmt::info!("task run {} ", cnt);
+        // defmt::info!("task run {} ", cnt);
         cnt += 2;
         Timer::after_secs(2).await;
     }
@@ -33,7 +33,9 @@ async fn main(_spawner: Spawner) {
     _spawner.spawn(run()).unwrap();
 
     loop {
-        rtc.wait_second(3).await;
+        {
+            rtc.wait_second(3).await;
+        }
         defmt::info!("rtc: {}", rtc.read());
     }
 }

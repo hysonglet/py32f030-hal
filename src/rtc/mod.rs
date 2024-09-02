@@ -137,10 +137,12 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
         Ok(())
     }
 
+    #[inline]
     pub fn read(&self) -> u32 {
         T::get_counter()
     }
 
+    #[inline]
     pub fn enable_interrupt(&self, en: bool) {
         unsafe {
             if en {
@@ -153,16 +155,17 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
 }
 
 impl<'d, T: Instance> AnyRtc<'d, T, Blocking> {
+    #[inline]
     pub fn wait_block(&self, second: u32) {
         let br = self.read() + second;
-
         while self.read() < br {}
     }
 }
 
 impl<'d, T: Instance> AnyRtc<'d, T, Async> {
+    #[inline]
     pub async fn wait_second(&self, s: u32) {
-        let br = self.read() + s;
+        let br = self.read() + s - 1;
         WakeFuture::<T>::new(EventKind::Alarm(br)).await
     }
 }
@@ -183,16 +186,24 @@ pub struct WakeFuture<T: Instance> {
 impl<T: Instance> WakeFuture<T> {
     pub fn new(event: EventKind) -> Self {
         pwr::rtc_unlock(true);
+
+        wait_for_true_timeout_block(1000, || T::configurable()).unwrap();
+        // 等待rtc 寄存器同步
+        wait_for_true_timeout_block(100000, || T::is_registers_synchronized())
+            .map_err(|_| Error::Timeout)
+            .unwrap();
+
         T::set_configurable(true);
         match event {
             EventKind::Alarm(v) => {
-                wait_for_true_timeout_block(1000, || T::configurable()).unwrap();
+                T::clear_alarm();
                 T::set_alarm(v);
-                defmt::info!("v: {}", v);
                 T::enable_alarm_interrupt(true);
             }
             EventKind::Second => T::enable_second_interrupt(true),
         }
+        T::set_configurable(false);
+        pwr::rtc_unlock(false);
         Self {
             _t: PhantomData,
             event,
@@ -200,6 +211,10 @@ impl<T: Instance> WakeFuture<T> {
     }
 
     fn on_interrupt() {
+        pwr::rtc_unlock(true);
+        T::enable_alarm_interrupt(false);
+        pwr::rtc_unlock(false);
+
         WAKER[T::id() as usize].wake()
     }
 }
@@ -234,6 +249,8 @@ impl<T: Instance> Future for WakeFuture<T> {
 
 impl<T: Instance> Drop for WakeFuture<T> {
     fn drop(&mut self) {
+        defmt::debug!("derop");
+        pwr::rtc_unlock(true);
         match self.event {
             EventKind::Alarm(_) => T::enable_alarm_interrupt(false),
             EventKind::Second => T::enable_second_interrupt(false),
@@ -245,6 +262,5 @@ impl<T: Instance> Drop for WakeFuture<T> {
 
 #[interrupt]
 fn RTC() {
-    defmt::info!("RRRRR");
-    WakeFuture::<RTC>::on_interrupt()
+    critical_section::with(|_cs| WakeFuture::<RTC>::on_interrupt())
 }

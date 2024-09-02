@@ -89,6 +89,7 @@ pub mod sealed {
                 block.cnth.read().bits(),
             )
         }
+
         #[inline]
         fn set_counter(val: u32) {
             let block = Self::block();
@@ -141,7 +142,7 @@ pub mod sealed {
         }
 
         fn enable_alarm_interrupt(en: bool) {
-            Self::block().crh.modify(|_, w| w.alrie().bit(en))
+            Self::block().crh.modify(|_, w| w.alrie().bit(en));
         }
     }
 }
