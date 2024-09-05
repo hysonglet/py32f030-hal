@@ -1,4 +1,6 @@
 pub mod sealed {
+    use cortex_m::register::apsr::read;
+
     use super::super::*;
     use crate::clock::{self, ClockFrequency};
     use crate::common::BitOption;
@@ -20,7 +22,29 @@ pub mod sealed {
 
         #[inline]
         fn set_configurable(en: bool) {
-            Self::block().crl.modify(|_, w| w.cnf().bit(en))
+            Self::block().crl.modify(|_, w| w.cnf().bit(en));
+        }
+
+        #[inline]
+        fn enable_config() -> Result<(), Error> {
+            pwr::rtc_unlock(true);
+            // 等待可配置
+            wait_for_true_timeout_block(100000, || Self::configurable())
+                .map_err(|_| Error::Timeout)?;
+
+            // 等待rtc 寄存器同步
+            wait_for_true_timeout_block(100000, || Self::is_registers_synchronized())
+                .map_err(|_| Error::Timeout)?;
+
+            Self::set_configurable(true);
+
+            Ok(())
+        }
+
+        #[inline]
+        fn disable_config() {
+            Self::set_configurable(false);
+            pwr::rtc_unlock(false);
         }
 
         #[inline]
@@ -31,31 +55,6 @@ pub mod sealed {
         #[inline]
         fn clear_sync_flag() {
             Self::block().crl.modify(|_, w| w.rsf().clear_bit())
-        }
-
-        #[inline]
-        fn is_overflow() -> bool {
-            Self::block().crl.read().owf().bit()
-        }
-
-        #[inline]
-        fn is_alarm() -> bool {
-            Self::block().crl.read().alrf().bit()
-        }
-
-        #[inline]
-        fn clear_alarm() {
-            Self::block().crl.modify(|_, w| w.alrf().clear_bit())
-        }
-
-        #[inline]
-        fn second_flag() -> bool {
-            Self::block().crl.read().secf().bit()
-        }
-
-        #[inline]
-        fn clear_second_flag() {
-            Self::block().crl.modify(|_, w| w.secf().clear_bit())
         }
 
         /// fTR_CLK = fRTCCLK/(PRL[19:0]+1)
@@ -137,12 +136,44 @@ pub mod sealed {
             Ok(())
         }
 
-        fn enable_second_interrupt(en: bool) {
-            Self::block().crh.modify(|_, w| w.secie().bit(en))
+        #[inline]
+        fn enable_interrupt(event: EventKind, en: bool) {
+            let block = Self::block();
+            match event {
+                EventKind::Alarm => block.crh.modify(|_, w| w.alrie().bit(en)),
+                EventKind::Second => block.crh.modify(|_, w| w.secie().bit(en)),
+                EventKind::OverFlow => block.crh.modify(|_, w| w.owie().bit(en)),
+            }
         }
 
-        fn enable_alarm_interrupt(en: bool) {
-            Self::block().crh.modify(|_, w| w.alrie().bit(en));
+        #[inline]
+        fn is_enable_interrupt(event: EventKind) -> bool {
+            let block = Self::block();
+            match event {
+                EventKind::Alarm => block.crh.read().alrie().bit(),
+                EventKind::Second => block.crh.read().secie().bit(),
+                EventKind::OverFlow => block.crh.read().owie().bit(),
+            }
+        }
+
+        #[inline]
+        fn is_interrupt(event: EventKind) -> bool {
+            let block = Self::block();
+            match event {
+                EventKind::Alarm => block.crl.read().alrf().bit(),
+                EventKind::Second => block.crl.read().secf().bit(),
+                EventKind::OverFlow => block.crl.read().owf().bit(),
+            }
+        }
+
+        #[inline]
+        fn clear_interrupt(event: EventKind) {
+            let block = Self::block();
+            match event {
+                EventKind::Alarm => block.crl.modify(|_, w| w.alrf().clear_bit()),
+                EventKind::Second => block.crl.modify(|_, w| w.secf().clear_bit()),
+                EventKind::OverFlow => block.crl.modify(|_, w| w.owf().clear_bit()),
+            }
         }
     }
 }

@@ -4,9 +4,10 @@ use core::{marker::PhantomData, u16};
 
 pub use counter::Counter;
 use embassy_hal_internal::{into_ref, Peripheral};
+use embedded_hal::can::Id;
 
 use crate::{
-    clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
+    clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
     mode::Mode,
 };
 
@@ -34,6 +35,14 @@ impl PeripheralEnable for AdvancedTimer {
     fn reset(&self) {
         match *self {
             Self::TIM1 => PeripheralClockIndex::TIM1.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for AdvancedTimer {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::TIM1 => crate::pac::interrupt::TIM1_BRK_UP_TRG_COM,
         }
     }
 }

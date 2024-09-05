@@ -3,7 +3,7 @@ pub(crate) mod hal;
 use core::ops::Not;
 use hal::*;
 
-use crate::clock::peripheral::{GpioClock, PeripheralEnable};
+use crate::clock::peripheral::{GpioClock, PeripheralEnable, PeripheralInterrupt};
 use embassy_hal_internal::{impl_peripheral, into_ref, Peripheral, PeripheralRef};
 
 /// GPIO Port Index

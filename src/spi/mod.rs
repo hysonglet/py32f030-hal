@@ -1,5 +1,5 @@
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::AnyPin;
 use crate::gpio::{PinIoType, PinSpeed};
 use crate::mode::Mode;
@@ -37,6 +37,15 @@ impl PeripheralEnable for Id {
         match *self {
             Self::SPI1 => PeripheralClockIndex::SPI1.reset(),
             Self::SPI2 => PeripheralClockIndex::SPI2.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for Id {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::SPI1 => crate::pac::interrupt::SPI1,
+            Self::SPI2 => crate::pac::interrupt::SPI2,
         }
     }
 }

@@ -34,6 +34,7 @@ mod pins;
 use core::{future::Future, marker::PhantomData, task::Poll};
 
 use crate::{
+    clock::peripheral::PeripheralInterrupt,
     macro_def::impl_sealed_peripheral_id,
     mcu::peripherals::ADC,
     mode::{Async, Blocking},
@@ -78,6 +79,14 @@ impl PeripheralEnable for Id {
     fn reset(&self) {
         match *self {
             Self::ADC1 => PeripheralClockIndex::ADC.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for Id {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::ADC1 => crate::pac::interrupt::ADC_COMP,
         }
     }
 }

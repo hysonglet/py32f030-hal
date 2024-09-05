@@ -5,7 +5,7 @@ pub mod slave;
 
 use core::marker::PhantomData;
 
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
@@ -37,6 +37,14 @@ impl PeripheralEnable for Id {
     fn reset(&self) {
         match *self {
             Self::I2c1 => PeripheralClockIndex::I2C.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for Id {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::I2c1 => crate::pac::interrupt::I2C1,
         }
     }
 }

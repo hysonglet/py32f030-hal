@@ -3,7 +3,7 @@ mod pins;
 use core::marker::PhantomData;
 
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
@@ -167,6 +167,15 @@ impl PeripheralEnable for Id {
         match *self {
             Self::USART1 => PeripheralClockIndex::USART1.reset(),
             Self::USART2 => PeripheralClockIndex::UART2.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for Id {
+    fn interrupt(&self) -> PY32f030xx_pac::interrupt {
+        match *self {
+            Self::USART1 => PY32f030xx_pac::interrupt::USART1,
+            Self::USART2 => PY32f030xx_pac::interrupt::USART2,
         }
     }
 }

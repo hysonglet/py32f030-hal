@@ -3,6 +3,7 @@ mod hal;
 use core::{future::Future, marker::PhantomData, task::Poll};
 
 use crate::{
+    clock::peripheral::PeripheralInterrupt,
     macro_def::impl_sealed_peripheral_id,
     mcu::peripherals::RTC,
     mode::{Async, Blocking},
@@ -11,6 +12,7 @@ use crate::{
 };
 
 use embassy_hal_internal::Peripheral;
+use enumset::{EnumSet, EnumSetType};
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
@@ -53,6 +55,14 @@ impl PeripheralEnable for Id {
     fn reset(&self) {
         match *self {
             Self::Rtc1 => PeripheralClockIndex::RTCAPB.reset(),
+        }
+    }
+}
+
+impl PeripheralInterrupt for Id {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::Rtc1 => crate::pac::interrupt::RTC,
         }
     }
 }
@@ -117,22 +127,19 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
         pwr::rtc_unlock(true);
         T::set_clock(config.clock)?;
 
-        // 等待可配置
-        wait_for_true_timeout_block(100000, || T::configurable()).map_err(|_| Error::Timeout)?;
+        let _ = T::enable_config();
 
-        // 等待rtc 寄存器同步
-        wait_for_true_timeout_block(100000, || T::is_registers_synchronized())
-            .map_err(|_| Error::Timeout)?;
-
-        T::set_configurable(true);
+        // 关闭所有中断
+        EnumSet::all()
+            .iter()
+            .for_each(|event| T::enable_interrupt(event, false));
 
         // 重新写入计数值
         if let Some(load) = config.load {
             T::set_counter(load);
         }
 
-        T::set_configurable(false);
-        pwr::rtc_unlock(false);
+        T::disable_config();
 
         Ok(())
     }
@@ -140,17 +147,6 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
     #[inline]
     pub fn read(&self) -> u32 {
         T::get_counter()
-    }
-
-    #[inline]
-    pub fn enable_interrupt(&self, en: bool) {
-        unsafe {
-            if en {
-                cortex_m::peripheral::NVIC::unmask(interrupt::RTC)
-            } else {
-                cortex_m::peripheral::NVIC::mask(interrupt::RTC)
-            }
-        }
     }
 }
 
@@ -166,55 +162,49 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
     #[inline]
     pub async fn wait_second(&self, s: u32) {
         let br = self.read() + s - 1;
-        WakeFuture::<T>::new(EventKind::Alarm(br)).await
+        let _ = T::enable_config();
+        T::set_alarm(br);
+        // T::disable_config();
+        let event = EnumSet::empty() | EventKind::Alarm;
+        // 开启中断使能
+        event.iter().for_each(|event| {
+            T::clear_interrupt(event);
+            T::enable_interrupt(event, true);
+        });
+        T::id().enable_interrupt();
+        WakeFuture::<T>::new(event).await
     }
 }
 
-#[derive(PartialEq)]
+#[derive(EnumSetType, Debug)]
 pub enum EventKind {
-    Alarm(u32),
+    Alarm,
     Second,
+    OverFlow,
 }
 
 static WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 
 pub struct WakeFuture<T: Instance> {
     _t: PhantomData<T>,
-    event: EventKind,
+    event: EnumSet<EventKind>,
 }
 
 impl<T: Instance> WakeFuture<T> {
-    pub fn new(event: EventKind) -> Self {
-        pwr::rtc_unlock(true);
-
-        wait_for_true_timeout_block(1000, || T::configurable()).unwrap();
-        // 等待rtc 寄存器同步
-        wait_for_true_timeout_block(100000, || T::is_registers_synchronized())
-            .map_err(|_| Error::Timeout)
-            .unwrap();
-
-        T::set_configurable(true);
-        match event {
-            EventKind::Alarm(v) => {
-                T::clear_alarm();
-                T::set_alarm(v);
-                T::enable_alarm_interrupt(true);
-            }
-            EventKind::Second => T::enable_second_interrupt(true),
-        }
-        T::set_configurable(false);
-        pwr::rtc_unlock(false);
+    pub fn new(event: EnumSet<EventKind>) -> Self {
         Self {
             _t: PhantomData,
             event,
         }
     }
 
+    #[inline]
     fn on_interrupt() {
-        pwr::rtc_unlock(true);
-        T::enable_alarm_interrupt(false);
-        pwr::rtc_unlock(false);
-
+        EnumSet::all().iter().for_each(|event| {
+            if T::is_interrupt(event) && T::is_enable_interrupt(event) {
+                T::enable_interrupt(event, false);
+            }
+        });
         WAKER[T::id() as usize].wake()
     }
 }
@@ -226,38 +216,27 @@ impl<T: Instance> Future for WakeFuture<T> {
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
         WAKER[T::id() as usize].register(cx.waker());
-        match self.event {
-            EventKind::Alarm(_v) => {
-                if T::is_alarm() {
-                    T::clear_alarm();
-                    Poll::Ready(())
-                } else {
-                    Poll::Pending
-                }
+
+        let mut interrupt = false;
+
+        self.event.iter().for_each(|event| {
+            if T::is_interrupt(event) {
+                interrupt = true;
+                T::clear_interrupt(event);
             }
-            EventKind::Second => {
-                if T::second_flag() {
-                    T::clear_second_flag();
-                    Poll::Ready(())
-                } else {
-                    Poll::Pending
-                }
-            }
+        });
+
+        if interrupt {
+            T::disable_config();
+            Poll::Ready(())
+        } else {
+            Poll::Pending
         }
     }
 }
 
 impl<T: Instance> Drop for WakeFuture<T> {
-    fn drop(&mut self) {
-        defmt::debug!("derop");
-        pwr::rtc_unlock(true);
-        match self.event {
-            EventKind::Alarm(_) => T::enable_alarm_interrupt(false),
-            EventKind::Second => T::enable_second_interrupt(false),
-        }
-        T::set_configurable(false);
-        pwr::rtc_unlock(false);
-    }
+    fn drop(&mut self) {}
 }
 
 #[interrupt]
