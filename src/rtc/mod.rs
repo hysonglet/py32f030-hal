@@ -160,12 +160,26 @@ impl<'d, T: Instance> AnyRtc<'d, T, Blocking> {
 
 impl<'d, T: Instance> AnyRtc<'d, T, Async> {
     #[inline]
-    pub async fn wait_second(&self, s: u32) {
-        let br = self.read() + s - 1;
+    pub async fn wait_alarm(&self, after: u32) {
+        let br = self.read() + after - 1;
         let _ = T::enable_config();
         T::set_alarm(br);
         // T::disable_config();
         let event = EnumSet::empty() | EventKind::Alarm;
+        // 开启中断使能
+        event.iter().for_each(|event| {
+            T::clear_interrupt(event);
+            T::enable_interrupt(event, true);
+        });
+        T::id().enable_interrupt();
+        WakeFuture::<T>::new(event).await
+    }
+
+    pub async fn wait_second(&self) {
+        let _ = T::enable_config();
+
+        // T::disable_config();
+        let event = EnumSet::empty() | EventKind::Second;
         // 开启中断使能
         event.iter().for_each(|event| {
             T::clear_interrupt(event);

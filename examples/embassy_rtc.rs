@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use embassy_futures::select;
 use py32f030_hal::mode::Async;
 use py32f030_hal::{self as hal};
 
@@ -31,8 +32,13 @@ async fn main(_spawner: Spawner) {
     _spawner.spawn(run()).unwrap();
 
     loop {
-        rtc.wait_second(3).await;
+        rtc.wait_alarm(3).await;
+        defmt::info!("rtc: {}", rtc.read());
 
+        rtc.wait_second().await;
+        defmt::info!("rtc: {}", rtc.read());
+
+        select::select(rtc.wait_alarm(3), rtc.wait_second()).await;
         defmt::info!("rtc: {}", rtc.read());
     }
 }
