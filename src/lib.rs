@@ -21,6 +21,7 @@ pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+pub mod iwdg;
 mod macro_def;
 pub mod mcu;
 pub(crate) mod pwr;

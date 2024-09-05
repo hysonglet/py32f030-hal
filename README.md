@@ -68,6 +68,8 @@ brew install llvm
 - [x] adc
 - [ ] flash
 - [x] spi
+- [x] crc
+- [x] rtc
 
 
 ## examples
