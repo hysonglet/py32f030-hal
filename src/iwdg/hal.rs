@@ -14,23 +14,32 @@ pub(super) mod sealed {
 
         #[inline]
         fn feed() {
+            // Self::block()
+            //     .kr
+            //     .write(|w| unsafe { w.key().bits(FEED_KEY) })
             Self::block()
                 .kr
-                .write(|w| unsafe { w.key().bits(FEED_KEY) })
+                .write(|w| unsafe { w.bits(FEED_KEY as u32) })
         }
 
         #[inline]
         fn start() {
+            // Self::block()
+            //     .kr
+            //     .write(|w| unsafe { w.key().bits(START_KEY) })
             Self::block()
                 .kr
-                .write(|w| unsafe { w.key().bits(START_KEY) })
+                .write(|w| unsafe { w.bits(START_KEY as u32) })
         }
 
         #[inline]
         fn enable_config() {
+            // Self::block()
+            //     .kr
+            //     .write(|w| unsafe { w.key().bits(ACCESS_KEY) })
             Self::block()
                 .kr
-                .write(|w| unsafe { w.key().bits(ACCESS_KEY) })
+                .write(|w| unsafe { w.bits(ACCESS_KEY as u32) })
         }
 
         #[inline]

@@ -16,12 +16,13 @@ async fn main(_spawner: Spawner) {
     let config: Config = Default::default();
     defmt::info!("iwdg timeout: {}", config.timeout_us());
     let iwdg = IWdg::new(p.IWdg, config);
-    // iwdg.start();
+    iwdg.start();
 
     let mut cnt: u32 = 0;
     loop {
         defmt::info!("time {} ", cnt);
+        iwdg.feed();
         cnt += 1;
-        Timer::after_secs(1).await;
+        Timer::after_millis(1000).await;
     }
 }

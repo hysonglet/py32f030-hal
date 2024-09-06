@@ -1,4 +1,4 @@
-use crate::{clock::peripheral::PeripheralClockIndex, delay::wait_for_true_timeout_block};
+use crate::{clock, delay::wait_for_true_timeout_block};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
 mod hal;
@@ -15,7 +15,7 @@ pub struct IWdg<'d, T: Instance> {
 /* 重载的最大值 */
 pub const RELOAD_MAX: u16 = 0xfff;
 /* 内部看门狗时钟频率 */
-const IWDG_CLOCK_HZ: u32 = 32000;
+const IWDG_CLOCK_HZ: u32 = 32768;
 
 #[derive(Clone, Copy)]
 pub enum Div {
@@ -37,8 +37,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            div: Div::Div256,
-            reload: RELOAD_MAX,
+            div: Div::Div32,
+            reload: 2048,
         }
     }
 }
@@ -54,19 +54,30 @@ impl<'d, T: Instance> IWdg<'d, T> {
     pub fn new(_iwdg: impl Peripheral<P = T>, config: Config) -> Self {
         into_ref!(_iwdg);
 
+        /* 需要开启LSI时钟 */
+        clock::lsi_enable().unwrap();
+
         T::start();
+
         // PeripheralClockIndex::.clock(true);
         T::enable_config();
-        T::set_div(config.div);
-        T::set_reload(config.reload);
+
         wait_for_true_timeout_block(100000, || T::is_div_updating() == false).unwrap();
         wait_for_true_timeout_block(100000, || T::is_reloading() == false).unwrap();
-        T::feed();
+        T::set_div(config.div);
+        T::set_reload(config.reload);
         Self { _t: PhantomData }
     }
 
+    #[inline]
     pub fn start(&self) {
+        T::feed();
         T::start();
+    }
+
+    #[inline]
+    pub fn feed(&self) {
+        T::feed();
     }
 }
 

@@ -3,8 +3,6 @@
 
 pub mod peripheral;
 
-use PY32f030xx_pac::RCC;
-
 use crate::common::Peripheral;
 use crate::delay::wait_for_true_timeout_block;
 use crate::pac;
@@ -688,4 +686,8 @@ impl<const HZ: u32> ClockFrequency for RtcClock<HSE<HZ>> {
     fn hz() -> u32 {
         HSE::<HZ>::hz() / 128
     }
+}
+
+pub(crate) fn lsi_enable() -> Result<(), Error> {
+    LSI::enable()
 }
