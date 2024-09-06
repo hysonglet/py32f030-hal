@@ -62,17 +62,17 @@ pub mod sealed {
             Self::block().cr.modify(|_, w| w.adstp().set_bit());
         }
 
-        #[inline]
-        fn analog_watch_dog_select(channel: AdcChannel) {
-            Self::block()
-                .cfgr1
-                .modify(|_, w| unsafe { w.awdch().bits(channel as u8) });
-        }
+        // #[inline]
+        // fn analog_watch_dog_select(channel: AdcChannel) {
+        //     Self::block()
+        //         .cfgr1
+        //         .modify(|_, w| unsafe { w.awdch().bits(channel as u8) });
+        // }
 
-        #[inline]
-        fn analog_watch_dog_enable(en: bool) {
-            Self::block().cfgr1.modify(|_, w| w.awden().bit(en));
-        }
+        // #[inline]
+        // fn analog_watch_dog_enable(en: bool) {
+        //     Self::block().cfgr1.modify(|_, w| w.awden().bit(en));
+        // }
 
         #[inline]
         fn conversion_mode(mode: ConversionMode) {
@@ -92,10 +92,10 @@ pub mod sealed {
             Self::block().cfgr1.modify(|_, w| w.ovrmod().bit(en));
         }
 
-        /// 设置等待模式
-        fn wait_mode(en: bool) {
-            Self::block().cfgr1.modify(|_, w| w.wait().bit(en));
-        }
+        // /// 设置等待模式
+        // fn wait_mode(en: bool) {
+        //     Self::block().cfgr1.modify(|_, w| w.wait().bit(en));
+        // }
 
         /// 触发信号的类型
         #[inline]
@@ -140,19 +140,19 @@ pub mod sealed {
                 .modify(|_, w| w.scandir().bit(dir == ScanDir::Down))
         }
 
-        /// 设置dma模式
-        #[inline]
-        fn set_dma_mode(mode: DmaMode) {
-            Self::block()
-                .cfgr1
-                .modify(|_, w| w.dmacfg().bit(mode == DmaMode::Cycle))
-        }
+        // /// 设置dma模式
+        // #[inline]
+        // fn set_dma_mode(mode: DmaMode) {
+        //     Self::block()
+        //         .cfgr1
+        //         .modify(|_, w| w.dmacfg().bit(mode == DmaMode::Cycle))
+        // }
 
-        /// dma 使能
-        #[inline]
-        fn dma_enable(en: bool) {
-            Self::block().cfgr1.modify(|_, w| w.dmaen().bit(en))
-        }
+        // /// dma 使能
+        // #[inline]
+        // fn dma_enable(en: bool) {
+        //     Self::block().cfgr1.modify(|_, w| w.dmaen().bit(en))
+        // }
 
         /// 设置转换的采样周期
         #[inline]

@@ -1,5 +1,3 @@
-use PY32f030xx_pac::Interrupt;
-
 use super::Rcc;
 use crate::common::{BitOption, Peripheral};
 

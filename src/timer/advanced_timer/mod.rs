@@ -4,7 +4,6 @@ use core::{marker::PhantomData, u16};
 
 pub use counter::Counter;
 use embassy_hal_internal::{into_ref, Peripheral};
-use embedded_hal::can::Id;
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},

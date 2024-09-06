@@ -23,12 +23,6 @@ pub(super) mod sealed {
             Self::block().cr1.modify(|_, w| w.pe().bit(en))
         }
 
-        /// 外设时钟使能
-        #[inline]
-        fn open() {
-            Self::id().open()
-        }
-
         /// 重启 I2c外设
         #[inline]
         fn reset() {

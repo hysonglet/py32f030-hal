@@ -1,6 +1,4 @@
 pub mod sealed {
-    use cortex_m::register::apsr::read;
-
     use super::super::*;
     use crate::clock::{self, ClockFrequency};
     use crate::common::BitOption;
@@ -52,10 +50,10 @@ pub mod sealed {
             Self::block().crl.read().rsf().bit()
         }
 
-        #[inline]
-        fn clear_sync_flag() {
-            Self::block().crl.modify(|_, w| w.rsf().clear_bit())
-        }
+        // #[inline]
+        // fn clear_sync_flag() {
+        //     Self::block().crl.modify(|_, w| w.rsf().clear_bit())
+        // }
 
         /// fTR_CLK = fRTCCLK/(PRL[19:0]+1)
         #[inline]
@@ -70,14 +68,14 @@ pub mod sealed {
             block.prll.write(|w| unsafe { w.prll().bits(low) });
         }
 
-        #[inline]
-        fn get_div(div: u32) -> u32 {
-            let block = Self::block();
-            let high = block.divh.read().bits();
-            let low = block.divl.read().bits();
+        // #[inline]
+        // fn get_div(div: u32) -> u32 {
+        //     let block = Self::block();
+        //     let high = block.divh.read().bits();
+        //     let low = block.divl.read().bits();
 
-            BitOption::bit_mask_idx_modify::<16>(16, low, high)
-        }
+        //     BitOption::bit_mask_idx_modify::<16>(16, low, high)
+        // }
 
         #[inline]
         fn get_counter() -> u32 {
@@ -106,14 +104,14 @@ pub mod sealed {
             block.alrh.write(|w| unsafe { w.bits(high) });
             block.alrl.write(|w| unsafe { w.bits(low) });
         }
-        #[inline]
-        fn set_calibration(val: u8) {
-            assert!(val < (1 << 7));
+        // #[inline]
+        // fn set_calibration(val: u8) {
+        //     assert!(val < (1 << 7));
 
-            Self::block()
-                .rtccr
-                .modify(|_, w| unsafe { w.cal().bits(val) });
-        }
+        //     Self::block()
+        //         .rtccr
+        //         .modify(|_, w| unsafe { w.cal().bits(val) });
+        // }
 
         #[inline]
         fn set_clock(clock: RtcClock) -> Result<(), Error> {

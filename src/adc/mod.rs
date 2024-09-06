@@ -352,7 +352,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 }
 
 pub struct ChannelInputFuture<T: Instance> {
-    channel: AdcChannel,
+    _channel: AdcChannel,
     _t: PhantomData<T>,
 }
 
@@ -371,7 +371,7 @@ impl<T: Instance> ChannelInputFuture<T> {
         }
 
         Self {
-            channel,
+            _channel: channel,
             _t: PhantomData,
         }
     }
