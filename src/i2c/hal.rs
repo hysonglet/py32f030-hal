@@ -6,7 +6,7 @@ pub(super) mod sealed {
     use crate::pac;
 
     // 总线标志等待超时， 100 ms
-    const WAIT_FLAG_TIMEOUT_US: usize = 100_000;
+    const WAIT_FLAG_TIMEOUT: usize = 100_000;
     pub trait Instance {
         // 考虑以后其他单片机可能有多个IIC
         fn id() -> Id;
@@ -42,6 +42,7 @@ pub(super) mod sealed {
         }
 
         /// 检查是否成功发出了开始信号
+        #[inline]
         fn start_flag() -> bool {
             Self::block().sr1.read().sb().bit()
         }
@@ -56,6 +57,7 @@ pub(super) mod sealed {
         /// - 地址已发送（Master）：0：地址发送没有结束；1：地址发送结束。
         ///   7 位地址时，当收到 ACK byte 后置位。
         ///   Note: 在收到 NACK 后，该寄存器不会被置位。
+        #[inline]
         fn address_flag() -> bool {
             Self::block().sr1.read().addr().bit()
         }
@@ -63,11 +65,13 @@ pub(super) mod sealed {
         /// 应答失败标志
         /// 应答失败标志。0：没有应答失败； 1：应答失败。
         /// 当没有返回应答时，硬件将置位该寄存器。该位由软件写 0 清除，或当 PE=0 时由硬件清除。
+        #[inline]
         fn answer_faild() -> bool {
             Self::block().sr1.read().af().bit()
         }
 
         /// 清除 af 标志
+        #[inline]
         fn clear_answer_faild() {
             Self::block().sr1.modify(|_, w| w.af().clear_bit())
         }
@@ -190,7 +194,7 @@ pub(super) mod sealed {
 
             Self::start();
             // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::start_flag()).map_err(
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::start_flag()).map_err(
                 |_| {
                     Self::clear_arlo();
                     Error::Start
@@ -200,7 +204,7 @@ pub(super) mod sealed {
             Self::transmit(address << 1);
 
             // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::address_flag()).map_err(
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::address_flag()).map_err(
                 |_| {
                     // Self::debug();
                     // 清除 af 置位
@@ -216,7 +220,7 @@ pub(super) mod sealed {
             let mut iter = buf.iter();
             if let Some(d) = iter.next() {
                 // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
-                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty())
+                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty())
                     .map_err(|_| Error::Tx)?;
                 Self::transmit(*d);
             }
@@ -224,7 +228,7 @@ pub(super) mod sealed {
             // 接着将后面的数据发送出去
             for t in iter {
                 // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
-                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty()).map_err(
+                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty()).map_err(
                     |_| {
                         Self::stop();
                         Error::Tx
@@ -234,14 +238,12 @@ pub(super) mod sealed {
             }
 
             // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::tx_empty()).map_err(
-                |_| {
-                    Self::stop();
-                    Error::Tx
-                },
-            )?;
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty()).map_err(|_| {
+                Self::stop();
+                Error::Tx
+            })?;
 
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::transmit_finish()).map_err(
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::transmit_finish()).map_err(
                 |_| {
                     Self::stop();
                     Error::Tx
@@ -259,13 +261,13 @@ pub(super) mod sealed {
 
             Self::start();
             // EV5：SB=1, 先读 SR1 寄存器，再写 DR 寄存器，清零该位
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::start_flag())
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::start_flag())
                 .map_err(|_| Error::Start)?;
 
             Self::transmit((address << 1) | 1);
 
             // EV6：ADDR，先读 SR1，再读 SR2，清零该位
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::address_flag())
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::address_flag())
                 .map_err(|_| Error::Address)?;
             Self::clear_address_flag();
 
@@ -277,7 +279,7 @@ pub(super) mod sealed {
                 if remain > 2 {
                     Self::ack(true);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
 
                     // 读取数据
@@ -292,7 +294,7 @@ pub(super) mod sealed {
                     Self::ack(false);
 
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
@@ -304,7 +306,7 @@ pub(super) mod sealed {
                 } else if remain == 1 {
                     Self::ack(false);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT_US, || Self::rx_not_empty())
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
                         .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
