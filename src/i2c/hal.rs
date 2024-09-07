@@ -1,4 +1,5 @@
 pub(super) mod sealed {
+    use future::Event;
     use super::super::*;
     use crate::clock::sys_pclk;
     use crate::delay::wait_for_true_timeout_block;
@@ -7,6 +8,7 @@ pub(super) mod sealed {
 
     // 总线标志等待超时， 100 ms
     const WAIT_FLAG_TIMEOUT: usize = 100_000;
+
     pub trait Instance {
         // 考虑以后其他单片机可能有多个IIC
         fn id() -> Id;
@@ -166,6 +168,108 @@ pub(super) mod sealed {
         fn busy() -> bool {
             Self::block().sr2.read().busy().bit()
         }
+
+        /// 开启或关闭中断事件
+        #[inline]
+        fn event_config(event:Event, en: bool) {
+            let cr2 = &Self::block().cr2;
+            match event {
+                Event::SB | Event::ADD | Event::STOPF | Event::BTF => {
+                    cr2.modify(|_, w| w.itevten().bit(en))
+                },
+                Event::RXNE | Event::TXE => {
+                    cr2.modify(|_, w| w.itbufen().bit(en))
+                }
+                Event::BERR | Event::ARLO | Event::AF | Event::OVR | Event::PECERR => {
+                    cr2.modify(|_, w|w.iterren().bit(en))
+                }
+            }
+        }
+
+        /// 返回是否匹配到中断事件了，
+        /// 如果开启了事件中断并且存在事件标志，则返回true
+        #[inline]
+        fn is_event_match(event: Event) -> bool {
+            let sr1 = Self::block().sr1.read();
+            let cr2 = Self::block().cr2.read();
+            match event {
+                Event::SB => {
+                    sr1.sb().bit() && cr2.itevten().bit()
+                }
+                Event::ADD => {
+                    sr1.addr().bit() && cr2.itevten().bit()
+                }
+                Event::STOPF => {
+                    sr1.stopf().bit() && cr2.itevten().bit()
+                }
+                Event::BTF => {
+                    sr1.btf().bit() && cr2.itevten().bit()
+                },
+                Event::RXNE => {
+                    sr1.rx_ne().bit() && cr2.itbufen().bit()
+                }
+                Event::TXE => {
+                    sr1.tx_e().bit()&& cr2.itbufen().bit()
+                }
+                Event::BERR => {
+                    sr1.berr().bit() && cr2.iterren().bit()
+                }
+                Event::ARLO => {
+                    sr1.arlo().bit() && cr2.iterren().bit()
+                }
+                Event::AF => {
+                    sr1.af().bit() && cr2.iterren().bit()
+                }
+                 Event::OVR => {
+                    sr1.ovr().bit() && cr2.iterren().bit()
+                }
+                 Event::PECERR => {
+                    sr1.pecerr().bit() && cr2.iterren().bit()
+                }
+            }
+        }
+
+        #[inline]
+        fn event_flag(event: Event) -> bool {
+            let sr1 = Self::block().sr1.read();
+            match event {
+                Event::SB => {
+                    sr1.sb().bit()
+                }
+                Event::ADD => {
+                    sr1.addr().bit()
+                }
+                Event::STOPF => {
+                    sr1.stopf().bit()
+                }
+                Event::BTF => {
+                    sr1.btf().bit()
+                },
+                Event::RXNE => {
+                    sr1.rx_ne().bit()
+                }
+                Event::TXE => {
+                    sr1.tx_e().bit()
+                }
+                Event::BERR => {
+                    sr1.berr().bit()
+                }
+                Event::ARLO => {
+                    sr1.arlo().bit()
+                }
+                Event::AF => {
+                    sr1.af().bit()
+                }
+                 Event::OVR => {
+                    sr1.ovr().bit()
+                }
+                 Event::PECERR => {
+                    sr1.pecerr().bit()
+                }
+            }
+        }
+
+
 
         // #[inline]
         // fn debug() {

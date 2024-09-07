@@ -2,6 +2,7 @@ mod hal;
 pub mod master;
 mod pins;
 pub mod slave;
+mod future;
 
 use core::marker::PhantomData;
 
