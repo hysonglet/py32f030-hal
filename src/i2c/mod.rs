@@ -1,16 +1,16 @@
+mod future;
 mod hal;
 pub mod master;
 mod pins;
 pub mod slave;
-mod future;
-
-use core::marker::PhantomData;
 
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
+use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use enumset::EnumSetType;
 pub use master::Master;
 pub use slave::Slave;
 
@@ -142,5 +142,39 @@ impl Default for Config {
 impl Config {
     pub fn speed(self, speed: usize) -> Self {
         Self { speed }
+    }
+}
+
+#[derive(EnumSetType)]
+pub enum Event {
+    /// 起始位已发送(Master)                        // 开启控制bit: ITEVTEN
+    SB,
+    /// 地址已发送(Master) 或 地址匹配(Slave)
+    ADD,
+    /// 已收到停止(Slave)
+    STOPF,
+    /// 数据字节传输完成
+    BTF,
+
+    /// 接收缓冲区非空                              // 开启控制 bit: ITEVTEN 和ITBUFEN
+    RXNE,
+    /// 发送缓冲区空
+    TXE,
+
+    /// 总线错误                                   // 开启控制 bit: ITERREN
+    BERR,
+    /// 仲裁丢失(Master)
+    ARLO,
+    /// 响应失败
+    AF,
+    /// 过载/欠载
+    OVR,
+    /// PEC错误
+    PECERR,
+}
+
+impl Event {
+    const fn count() -> usize {
+        11
     }
 }

@@ -32,3 +32,11 @@ where
     }
     Err(())
 }
+
+pub struct Delay;
+
+impl<usize> embedded_hal::blocking::delay::DelayMs<usize> for Delay {
+    fn delay_ms(&mut self, ms: usize) {
+        // delay(4000 * ms as u32);
+    }
+}

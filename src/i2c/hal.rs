@@ -1,5 +1,4 @@
 pub(super) mod sealed {
-    use future::Event;
     use super::super::*;
     use crate::clock::sys_pclk;
     use crate::delay::wait_for_true_timeout_block;
@@ -171,17 +170,16 @@ pub(super) mod sealed {
 
         /// 开启或关闭中断事件
         #[inline]
-        fn event_config(event:Event, en: bool) {
+        fn event_config(event: Event, en: bool) {
             let cr2 = &Self::block().cr2;
             match event {
                 Event::SB | Event::ADD | Event::STOPF | Event::BTF => {
                     cr2.modify(|_, w| w.itevten().bit(en))
-                },
-                Event::RXNE | Event::TXE => {
-                    cr2.modify(|_, w| w.itbufen().bit(en))
                 }
+                Event::RXNE => cr2.modify(|_, w| w.itbufen().bit(en)),
+                Event::TXE => cr2.modify(|_, w| w.itbufen().bit(en)),
                 Event::BERR | Event::ARLO | Event::AF | Event::OVR | Event::PECERR => {
-                    cr2.modify(|_, w|w.iterren().bit(en))
+                    cr2.modify(|_, w| w.iterren().bit(en))
                 }
             }
         }
@@ -193,39 +191,17 @@ pub(super) mod sealed {
             let sr1 = Self::block().sr1.read();
             let cr2 = Self::block().cr2.read();
             match event {
-                Event::SB => {
-                    sr1.sb().bit() && cr2.itevten().bit()
-                }
-                Event::ADD => {
-                    sr1.addr().bit() && cr2.itevten().bit()
-                }
-                Event::STOPF => {
-                    sr1.stopf().bit() && cr2.itevten().bit()
-                }
-                Event::BTF => {
-                    sr1.btf().bit() && cr2.itevten().bit()
-                },
-                Event::RXNE => {
-                    sr1.rx_ne().bit() && cr2.itbufen().bit()
-                }
-                Event::TXE => {
-                    sr1.tx_e().bit()&& cr2.itbufen().bit()
-                }
-                Event::BERR => {
-                    sr1.berr().bit() && cr2.iterren().bit()
-                }
-                Event::ARLO => {
-                    sr1.arlo().bit() && cr2.iterren().bit()
-                }
-                Event::AF => {
-                    sr1.af().bit() && cr2.iterren().bit()
-                }
-                 Event::OVR => {
-                    sr1.ovr().bit() && cr2.iterren().bit()
-                }
-                 Event::PECERR => {
-                    sr1.pecerr().bit() && cr2.iterren().bit()
-                }
+                Event::SB => sr1.sb().bit() && cr2.itevten().bit(),
+                Event::ADD => sr1.addr().bit() && cr2.itevten().bit(),
+                Event::STOPF => sr1.stopf().bit() && cr2.itevten().bit(),
+                Event::BTF => sr1.btf().bit() && cr2.itevten().bit(),
+                Event::RXNE => sr1.rx_ne().bit() && cr2.itbufen().bit(),
+                Event::TXE => sr1.tx_e().bit() && cr2.itbufen().bit(),
+                Event::BERR => sr1.berr().bit() && cr2.iterren().bit(),
+                Event::ARLO => sr1.arlo().bit() && cr2.iterren().bit(),
+                Event::AF => sr1.af().bit() && cr2.iterren().bit(),
+                Event::OVR => sr1.ovr().bit() && cr2.iterren().bit(),
+                Event::PECERR => sr1.pecerr().bit() && cr2.iterren().bit(),
             }
         }
 
@@ -233,43 +209,57 @@ pub(super) mod sealed {
         fn event_flag(event: Event) -> bool {
             let sr1 = Self::block().sr1.read();
             match event {
-                Event::SB => {
-                    sr1.sb().bit()
-                }
-                Event::ADD => {
-                    sr1.addr().bit()
-                }
-                Event::STOPF => {
-                    sr1.stopf().bit()
-                }
-                Event::BTF => {
-                    sr1.btf().bit()
-                },
-                Event::RXNE => {
-                    sr1.rx_ne().bit()
-                }
-                Event::TXE => {
-                    sr1.tx_e().bit()
-                }
-                Event::BERR => {
-                    sr1.berr().bit()
-                }
-                Event::ARLO => {
-                    sr1.arlo().bit()
-                }
-                Event::AF => {
-                    sr1.af().bit()
-                }
-                 Event::OVR => {
-                    sr1.ovr().bit()
-                }
-                 Event::PECERR => {
-                    sr1.pecerr().bit()
-                }
+                Event::SB => sr1.sb().bit(),
+                Event::ADD => sr1.addr().bit(),
+                Event::STOPF => sr1.stopf().bit(),
+                Event::BTF => sr1.btf().bit(),
+                Event::RXNE => sr1.rx_ne().bit(),
+                Event::TXE => sr1.tx_e().bit(),
+                Event::BERR => sr1.berr().bit(),
+                Event::ARLO => sr1.arlo().bit(),
+                Event::AF => sr1.af().bit(),
+                Event::OVR => sr1.ovr().bit(),
+                Event::PECERR => sr1.pecerr().bit(),
             }
         }
 
-
+        #[inline]
+        fn clear_event(event: Event) {
+            Self::block().sr1.modify(|_, w| match event {
+                Event::SB => {
+                    //软件读取 I2C_SR1 寄存器后，对数据寄存器的写操作将清除该位； 或当 PE=0 时，由硬件清除
+                    w
+                }
+                Event::ADD => {
+                    //软件读取 I2C_SR1 寄存器后，再读 I2C_SR2 寄存器将清除该位；当 PE=0 时，由硬件清除。
+                    w
+                }
+                Event::STOPF => {
+                    // 软件读取 I2C_SR1 寄存器后，对 I2C_CR1 寄存器的写操作将清除该位，或当 PE=0 时，硬件清除该位。
+                    w
+                }
+                Event::BTF => {
+                    // 软件读取 I2C_SR1 寄存器后，对数据寄存器的读或写操作将清除该位；或发送一个起始或停止条件后，或当 PE=0 时，由硬件清除。
+                    w
+                }
+                Event::RXNE => {
+                    // 在接收时，当数据寄存器不为空，置位该寄存器。在接收地址阶段，该寄存器不置位。软件对数据寄存器的读写操作会清除该寄存器，
+                    // 或当 PE=0 时由硬件清除。
+                    // 注：当设置了 BTF 时，读取数据不能清除 RxNE
+                    // 位，因为此时数据寄存器仍为满。
+                    w
+                }
+                Event::TXE => {
+                    //软件写数据到 DR 寄存器可清除该位，或在发生一个起始或停止条件后，或当 PE=0 时由硬件自动清除。
+                    w
+                }
+                Event::BERR => w.berr().clear_bit(),
+                Event::ARLO => w.arlo().clear_bit(),
+                Event::AF => w.af().clear_bit(),
+                Event::OVR => w.ovr().clear_bit(),
+                Event::PECERR => w.pecerr().clear_bit(),
+            });
+        }
 
         // #[inline]
         // fn debug() {
@@ -467,7 +457,6 @@ pub(super) mod sealed {
                         return Err(Error::PClock);
                     }
                 };
-                defmt::info!("ccr: {}", ccr);
 
                 // fs bit, false: 标准模式， true：快速模式
                 block.ccr.modify(|_, w| w.f_s().bit(true));

@@ -14,7 +14,9 @@ use {defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
+    defmt::info!("i2c start...");
     let p = hal::init(Default::default());
+
     let gpioa = p.GPIOA.split();
 
     let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, PinSpeed::Low);
@@ -24,17 +26,15 @@ fn main() -> ! {
 
     let sda = gpioa.PA2;
     let scl = gpioa.PA3;
-
     let config = Config::default().speed(200_000);
     // 配置 200K的速度
     let i2c1 = AnyI2c::<_, Blocking>::new(p.I2C, scl, sda, config).unwrap();
     let master = i2c1.as_master();
 
-    defmt::info!("i2c start...");
     let buf: [u8; 10] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
     let mut r_buf: [u8; 2] = [0; 2];
     let mut cnt = 0;
-    const SLAVE_DEVICE_ADDRESS: u8 = 0x78 >> 1;
+    const SLAVE_DEVICE_ADDRESS: u8 = 0x3c;
     loop {
         // write from i2c
         let rst = master.write_block(SLAVE_DEVICE_ADDRESS, &buf);

@@ -186,12 +186,6 @@ where
 impl Clock for LSI {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        // Rcc::peripheral()
-        //     .bdcr
-        //     .modify(|_, w| w.lscoen().bit(en).lscosel().bit(en));
-        // Rcc::peripheral()
-        //     .bdcr
-        //     .modify(|_, w| w.lscosel().clear_bit().lscoen().set_bit());
         let block = Rcc::peripheral();
         block.csr.modify(|_, w| w.lsion().bit(en));
         wait_for_true_timeout_block(1000, || block.csr.read().lsirdy() == en)
@@ -362,7 +356,6 @@ pub trait PllSelect: Clock {
 impl PllSelect for HSI {
     fn config() -> Result<(), Error> {
         Self::enable()?;
-
         PllClock::Hsi.config()
     }
 }
@@ -393,6 +386,7 @@ impl SysClockSw {
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.sw().bits(*self as u8) });
+
         wait_for_true_timeout_block(TIMEOUT, || {
             peripheral.cfgr.read().sws().bits() == peripheral.cfgr.read().sw().bits()
         })
@@ -451,7 +445,6 @@ where
 {
     fn config() -> Result<(), Error> {
         CLK::config()?;
-
         SysClockSw::PLL.config()?;
 
         // while true {}
