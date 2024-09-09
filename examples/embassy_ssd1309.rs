@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-use defmt::Debug2Format;
-use embassy_futures::select;
 use embedded_hal::digital::v2::OutputPin;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::mode::Blocking;

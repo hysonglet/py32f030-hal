@@ -148,7 +148,7 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         EventFuture::<T>::new(EnumSet::empty() | Event::ADD)
             .await
             .map_err(|e| {
-                T::clear_answer_faild();
+                T::clear_event(Event::AF);
                 T::stop();
                 e
             })?;

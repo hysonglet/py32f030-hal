@@ -42,41 +42,6 @@ pub(super) mod sealed {
             Self::block().cr1.modify(|_, w| w.start().set_bit())
         }
 
-        /// 检查是否成功发出了开始信号
-        #[inline]
-        fn start_flag() -> bool {
-            Self::block().sr1.read().sb().bit()
-        }
-
-        /// 地址已被发送（主模式）/地址匹配（从模式）。
-        /// 软件读取 I2C_SR1 寄存器后，再读 I2C_SR2 寄存器将清除该位；当 PE=0 时，由硬件清除。
-        ///
-        /// - 地址匹配（Slave）：0：地址不匹配或没有收到地址； 1：收到的地址匹配。
-        ///    当收到的从地址与 OAR 寄存器或 general call 地址匹配，硬件将置位该位。
-        ///    Note: 在 slave 模式下，推荐进行完整的清零
-        ///    sequece，即在 ADDR 被置位后，先读 SR1 寄存器，再读 SR2 寄存器。
-        /// - 地址已发送（Master）：0：地址发送没有结束；1：地址发送结束。
-        ///   7 位地址时，当收到 ACK byte 后置位。
-        ///   Note: 在收到 NACK 后，该寄存器不会被置位。
-        #[inline]
-        fn address_flag() -> bool {
-            Self::block().sr1.read().addr().bit()
-        }
-
-        /// 应答失败标志
-        /// 应答失败标志。0：没有应答失败； 1：应答失败。
-        /// 当没有返回应答时，硬件将置位该寄存器。该位由软件写 0 清除，或当 PE=0 时由硬件清除。
-        #[inline]
-        fn answer_faild() -> bool {
-            Self::block().sr1.read().af().bit()
-        }
-
-        /// 清除 af 标志
-        #[inline]
-        fn clear_answer_faild() {
-            Self::block().sr1.modify(|_, w| w.af().clear_bit())
-        }
-
         /// 生成停止信号
         #[inline]
         fn stop() {
@@ -112,54 +77,6 @@ pub(super) mod sealed {
             Self::block()
                 .oar1
                 .modify(|_, w| unsafe { w.add().bits(address) });
-        }
-
-        /// 清除 address 标志
-        #[inline]
-        fn clear_address_flag() {
-            let block = Self::block();
-            let _ = block.sr1.read();
-            let _ = block.sr2.read();
-        }
-
-        /// 清除仲裁丢失标志
-        #[inline]
-        fn clear_arlo() {
-            Self::block().sr1.modify(|_, w| w.arlo().clear_bit());
-        }
-
-        /// 发送寄存器内容为空
-        /// 在发送数据时，数据寄存器为空时该位被置 1，
-        /// 在发送地址阶段不设置该位。
-        /// 软件写数据到 DR 寄存器可清除该位，或在发生一个起始或停止条件后，或当 PE=0 时由硬件自动清除。如果收到一个 NACK，或下一个要发送的字节时PEC（PEC=1），该位不被置位。
-        /// 注：在写入第 1 个要发送的数据后，或设置了BTF 时写入数据，都不能清除 TxE 位，因为此时数据寄存器为空。
-        #[inline]
-        fn tx_empty() -> bool {
-            Self::block().sr1.read().tx_e().bit()
-        }
-
-        /// 数据寄存器非空（接收时）标志。
-        /// 0：数据寄存器为空；
-        /// 1：数据寄存器非空。
-        /// 在接收时，当数据寄存器不为空，置位该寄存
-        /// 器。在接收地址阶段，该寄存器不置位。
-        /// 软件对数据寄存器的读写操作会清除该寄存器，
-        /// 或当 PE=0 时由硬件清除。
-        /// 注：当设置了 BTF 时，读取数据不能清除 RxNE
-        /// 位，因为此时数据寄存器仍为满。
-        #[inline]
-        fn rx_not_empty() -> bool {
-            Self::block().sr1.read().rx_ne().bit()
-        }
-
-        /// 字节传输结束标志位。
-        /// 0：字节传输未完成   1：字节传输成功结束
-        /// 在下列情况下硬件将置位该寄存器（当 slave 模式，NOSTRETCH=0 时；master 模式，与NOSTRETCH 无关）：— 接收时，当收到一个新字节（包括 ACK 脉冲 ） 且 数 据 寄 存 器 还 未 被 读 取（RxNE=1）。
-        /// — 发送时，当一个新数据应该被发送，且数据寄存器还未被写入新的数据（TxE=1）。软件读取 I2C_SR1 寄存器后，对数据寄存器的读或写操作将清除该位；或发送一个起始或停止条件后，或当 PE=0 时，由硬件清除。
-        /// 注：在收到一个 NACK 后，BTF 位不会被置位。
-        #[inline]
-        fn transmit_finish() -> bool {
-            Self::block().sr1.read().btf().bit()
         }
 
         /// 总线忙
@@ -225,14 +142,16 @@ pub(super) mod sealed {
 
         #[inline]
         fn clear_event(event: Event) {
-            Self::block().sr1.modify(|_, w| match event {
+            Self::block().sr1.modify(|r, w| match event {
                 Event::SB => {
                     //软件读取 I2C_SR1 寄存器后，对数据寄存器的写操作将清除该位； 或当 PE=0 时，由硬件清除
                     w
                 }
                 Event::ADD => {
                     //软件读取 I2C_SR1 寄存器后，再读 I2C_SR2 寄存器将清除该位；当 PE=0 时，由硬件清除。
-                    w
+                    let r = r.bits();
+                    let _ = Self::block().sr2.read();
+                    unsafe { w.bits(r) }
                 }
                 Event::STOPF => {
                     // 软件读取 I2C_SR1 寄存器后，对 I2C_CR1 寄存器的写操作将清除该位，或当 PE=0 时，硬件清除该位。
@@ -261,14 +180,6 @@ pub(super) mod sealed {
             });
         }
 
-        // #[inline]
-        // fn debug() {
-        //     defmt::info!("cr1: {:x}", Self::block().cr1.read().bits());
-        //     defmt::info!("cr2: {:x}", Self::block().cr2.read().bits());
-        //     defmt::info!("sr1: {:x}", Self::block().sr1.read().bits());
-        //     defmt::info!("sr2: {:x}", Self::block().sr2.read().bits());
-        // }
-
         /// ACK/PEC 位置（用于数据接收），软件可置位/清零该寄存器，或 PE=0 时由硬件清零。
         ///
         /// - 0：ACK 位控制当前移位寄存器内正在接收的字节的(N)ACK。PEC 位表明当前移位寄存器内的字节是 PEC
@@ -288,33 +199,31 @@ pub(super) mod sealed {
 
             Self::start();
             // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::start_flag()).map_err(
-                |_| {
-                    Self::clear_arlo();
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::SB))
+                .map_err(|_| {
+                    Self::clear_event(Event::ARLO);
                     Error::Start
-                },
-            )?;
+                })?;
 
             Self::transmit(address << 1);
 
             // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::address_flag()).map_err(
-                |_| {
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::ADD))
+                .map_err(|_| {
                     // Self::debug();
                     // 清除 af 置位
-                    Self::clear_answer_faild();
+                    Self::clear_event(Event::AF);
                     Self::stop();
                     Error::Address
-                },
-            )?;
-            Self::clear_address_flag();
+                })?;
+            Self::clear_event(Event::ADD);
 
             // TRA 位指示主设备是在接收器模式还是发送器模式。
 
             let mut iter = buf.iter();
             if let Some(d) = iter.next() {
                 // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
-                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty())
+                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
                     .map_err(|_| Error::Tx)?;
                 Self::transmit(*d);
             }
@@ -322,27 +231,32 @@ pub(super) mod sealed {
             // 接着将后面的数据发送出去
             for t in iter {
                 // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
-                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty()).map_err(
-                    |_| {
+                wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
+                    .map_err(|_| {
                         Self::stop();
                         Error::Tx
-                    },
-                )?;
+                    })?;
                 Self::transmit(*t);
             }
 
             // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::tx_empty()).map_err(|_| {
-                Self::stop();
-                Error::Tx
-            })?;
-
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::transmit_finish()).map_err(
-                |_| {
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
+                .map_err(|_| {
                     Self::stop();
                     Error::Tx
-                },
-            )?;
+                })?;
+
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
+                .map_err(|_| {
+                    Self::stop();
+                    Error::Tx
+                })?;
+
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::BTF))
+                .map_err(|_| {
+                    Self::stop();
+                    Error::Tx
+                })?;
 
             Self::stop();
 
@@ -355,15 +269,15 @@ pub(super) mod sealed {
 
             Self::start();
             // EV5：SB=1, 先读 SR1 寄存器，再写 DR 寄存器，清零该位
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::start_flag())
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::SB))
                 .map_err(|_| Error::Start)?;
 
             Self::transmit((address << 1) | 1);
 
             // EV6：ADDR，先读 SR1，再读 SR2，清零该位
-            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::address_flag())
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::ADD))
                 .map_err(|_| Error::Address)?;
-            Self::clear_address_flag();
+            Self::clear_event(Event::ADD);
 
             let len = buf.len();
 
@@ -373,13 +287,15 @@ pub(super) mod sealed {
                 if remain > 2 {
                     Self::ack(true);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
-                        .map_err(|_| Error::RX)?;
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
+                        Self::event_flag(Event::RXNE)
+                    })
+                    .map_err(|_| Error::RX)?;
 
                     // 读取数据
                     *p = block.dr.read().dr().bits();
 
-                    if Self::transmit_finish() {
+                    if Self::event_flag(Event::BTF) {
                         Self::ack(true);
                         let (_, p) = enumerate.next().unwrap();
                         *p = block.dr.read().dr().bits();
@@ -388,11 +304,13 @@ pub(super) mod sealed {
                     Self::ack(false);
 
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
-                        .map_err(|_| Error::RX)?;
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
+                        Self::event_flag(Event::RXNE)
+                    })
+                    .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
-                    if Self::transmit_finish() {
+                    if Self::event_flag(Event::BTF) {
                         Self::ack(false);
                         let (_, p) = enumerate.next().unwrap();
                         *p = block.dr.read().dr().bits();
@@ -400,8 +318,10 @@ pub(super) mod sealed {
                 } else if remain == 1 {
                     Self::ack(false);
                     // EV7：RxNE=1, 读 DR 寄存器清零该位
-                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::rx_not_empty())
-                        .map_err(|_| Error::RX)?;
+                    wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
+                        Self::event_flag(Event::RXNE)
+                    })
+                    .map_err(|_| Error::RX)?;
                     // 读取数据
                     *p = block.dr.read().dr().bits();
                 }
@@ -429,15 +349,12 @@ pub(super) mod sealed {
                 .cr2
                 .modify(|_, w| unsafe { w.freq().bits(freq as u8) });
 
-            defmt::info!("plk: {}", plk);
-
             if config.speed > SPEED_HZ_FAST {
                 return Err(Error::SpeedMode);
             }
 
             let ccr = if config.speed <= SPEED_HZ_STAND {
                 let ccr = plk / 2 / config.speed as u32;
-                defmt::info!("ccr: {}", ccr);
                 if ccr <= 0x04 {
                     return Err(Error::PClock);
                 }
