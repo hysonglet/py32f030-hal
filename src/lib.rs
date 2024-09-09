@@ -15,6 +15,7 @@ pub mod common;
 pub mod crc;
 pub mod delay;
 pub mod dma;
+// pub mod dwt;
 #[cfg(feature = "embassy")]
 mod embassy;
 pub mod exti;
@@ -82,7 +83,9 @@ pub mod mode {
 
     /// 外设的工作模式
     #[allow(private_bounds)]
-    pub trait Mode: Sealed {}
+    pub trait Mode: Sealed {
+        fn is_async() -> bool;
+    }
 
     /// 阻塞模式对象
     pub struct Blocking;
@@ -90,8 +93,16 @@ pub mod mode {
     pub struct Async;
 
     impl Sealed for Blocking {}
-    impl Mode for Blocking {}
+    impl Mode for Blocking {
+        fn is_async() -> bool {
+            false
+        }
+    }
 
     impl Sealed for Async {}
-    impl Mode for Async {}
+    impl Mode for Async {
+        fn is_async() -> bool {
+            true
+        }
+    }
 }

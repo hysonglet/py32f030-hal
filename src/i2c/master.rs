@@ -14,7 +14,19 @@ pub struct Master<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
     pub(super) fn new() -> Self {
+        if M::is_async() {
+            T::id().enable_interrupt();
+        }
         Self { _t: PhantomData }
+    }
+}
+
+impl<'d, T: Instance, M: Mode> Drop for Master<'d, T, M> {
+    fn drop(&mut self) {
+        defmt::info!("drop");
+        if M::is_async() {
+            T::id().disable_interrupt();
+        }
     }
 }
 
@@ -125,8 +137,6 @@ impl<'d, T: Instance> Master<'d, T, Async> {
 
     pub async fn write(&self, address: u8, buf: &[u8]) -> Result<usize, Error> {
         // 如果总线处于busy状态，则退出
-
-        T::id().enable_interrupt();
         T::clear_pos();
         T::start();
         // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
@@ -190,7 +200,6 @@ impl<'d, T: Instance> Master<'d, T, Async> {
 
         T::stop();
 
-        T::id().disable_interrupt();
         Ok(buf.len())
     }
 }

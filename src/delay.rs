@@ -35,8 +35,14 @@ where
 
 pub struct Delay;
 
+impl Delay {
+    fn delay_ms(&self, ms: usize) {
+        delay(4000 * ms as u32)
+    }
+}
+
 impl<usize> embedded_hal::blocking::delay::DelayMs<usize> for Delay {
     fn delay_ms(&mut self, ms: usize) {
-        // delay(4000 * ms as u32);
+        delay(400)
     }
 }

@@ -42,12 +42,17 @@ embassy-time = { version = "0.3.0", features = [
     "generic-queue-16",
 ], optional = true }
 embassy-futures = { version = "0.1.0", features = ["defmt"] }
-ssd1309 = {version = "0.4.0", option = true}
-display-interface = "^ 0.4"
-embedded-graphics-core = { version = "^ 0.4", optional = true }
+# ssd1309 = {version = "0.4.0", option = true}
+# display-interface = "^ 0.4"
+# embedded-graphics-core = { version = "^ 0.4", optional = true }
 # embedded-graphics = {version ="0.8.1", option = true}
-# display-interface = {version = "0.4.1", option = true}
-oled_async = "0.1.0-alpha1"
+display-interface = {version = "0.4.1", option = true}
+# oled_async = "0.1.0-alpha1"
+embedded-graphics = "0.7.0"
+ssd1309 = "0.3.0"
+embedded-graphics-core = { version = "^ 0.3", optional = true }
+display-interface-i2c = "^ 0.4"
+
 [features]
 dma = []
 
