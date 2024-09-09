@@ -152,8 +152,7 @@ impl<'d, T: Instance> Master<'d, T, Async> {
                 T::stop();
                 e
             })?;
-
-        T::clear_address_flag();
+        T::clear_event(Event::ADD);
 
         // TRA 位指示主设备是在接收器模式还是发送器模式。
         let mut iter = buf.iter();
