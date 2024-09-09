@@ -62,7 +62,7 @@ pub enum Rule {
 }
 
 /// IIC 配置和运行的错误类型
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Error {
     Busy,
     // PClockToLow,

@@ -202,3 +202,42 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         Ok(buf.len())
     }
 }
+
+impl embedded_hal_async::i2c::Error for Error {
+    fn kind(&self) -> embedded_hal_async::i2c::ErrorKind {
+        match *self {
+            Self::Address => embedded_hal_async::i2c::ErrorKind::NoAcknowledge(
+                embedded_hal_async::i2c::NoAcknowledgeSource::Address,
+            ),
+            Self::Busy => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::PClock => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::RX => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::SpeedMode => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::Start => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::Stop => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::Tx => embedded_hal_async::i2c::ErrorKind::Other,
+        }
+    }
+}
+
+impl<'d, T: Instance> embedded_hal_async::i2c::ErrorType for Master<'d, T, Async> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_hal_async::i2c::I2c for Master<'d, T, Async> {
+    async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    async fn transaction(
+        &mut self,
+        address: u8,
+        operations: &mut [embedded_hal_async::i2c::Operation<'_>],
+    ) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+}
