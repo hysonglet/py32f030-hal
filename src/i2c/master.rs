@@ -135,7 +135,7 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         Ok(buf.len())
     }
 
-    pub async fn write(&self, address: u8, buf: &[u8]) -> Result<usize, Error> {
+    pub async fn write(&mut self, address: u8, buf: &[u8]) -> Result<usize, Error> {
         // 如果总线处于busy状态，则退出
         T::clear_pos();
         T::start();
@@ -238,6 +238,7 @@ impl<'d, T: Instance> embedded_hal_async::i2c::I2c for Master<'d, T, Async> {
     }
 
     async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+        // self.write(address, write).await.map_or_else((), |e| e)
         todo!()
     }
 }
