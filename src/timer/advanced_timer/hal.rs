@@ -1,7 +1,7 @@
 pub(crate) mod sealed {
+    use super::super::Event;
     use super::super::*;
     use crate::clock::timer_pclk;
-    // use crate::common::Peripheral;
     use crate::pac;
 
     pub trait Instance {
@@ -129,20 +129,6 @@ pub(crate) mod sealed {
             // 设置预分频
             Self::set_prescaler(config.prescaler);
 
-            // 设置计数值
-            // Self::set_cnt(config.period);
-            // 设置周期值
-            // Self::set_period_cnt(config.period);
-
-            // // 设置重载模式
-            // Self::set_auto_reload(config.auto_reload);
-            // Self::enable_auto_reload_buff(true);
-
-            // 默认值设置为重载值
-            // Self::set_cnt(0);
-
-            // 设置重复模式
-
             Ok(())
         }
 
@@ -159,10 +145,66 @@ pub(crate) mod sealed {
         }
 
         /// 产生更新事件。该位由软件置 1，硬件自动清 0。
-        /// 0：无动作； 1：重新初始化计数器，并产生一个更新事件。注意：预分频器的计数器也被清 0(但是预分频系数不变)。若在中心对称模式下或 DIR=0(向上计数)则计数器被清 0，若 DIR=1(向下计数)则计数器装载 TIM1_ARR的值。
+        /// 0：无动作； 1：重新初始化计数器，并产生一个更新事件。
+        /// 注意：预分频器的计数器也被清 0(但是预分频系数不变)。若在中心对称模式下或 DIR=0(向上计数)则计数器被清 0，
+        /// 若 DIR=1(向下计数)则计数器装载 TIM1_ARR的值。
         #[inline]
         fn triggle_update() {
             unsafe { Self::block().egr.write_with_zero(|w| w.ug().set_bit()) }
+        }
+
+        #[inline]
+        fn event_flag(event: Event) -> bool {
+            let sr = Self::block().sr.read();
+            match event {
+                Event::UIF => sr.uif().bit(),
+                Event::CC1IF => sr.cc1if().bit(),
+                Event::CC2IF => sr.cc2if().bit(),
+                Event::CC3IF => sr.cc3if().bit(),
+                Event::CC4IF => sr.cc4if().bit(),
+                Event::COMIF => sr.comif().bit(),
+                Event::TIF => sr.tif().bit(),
+                Event::BIF => sr.bif().bit(),
+                Event::CC1OF => sr.cc1of().bit(),
+                Event::CC2OF => sr.cc2of().bit(),
+                Event::CC3OF => sr.cc3of().bit(),
+                Event::CC4OF => sr.cc4of().bit(),
+            }
+        }
+
+        #[inline]
+        fn enable_event(event: Event, en: bool) {
+            Self::block().dier.modify(|_, w| match event {
+                Event::UIF => w.uie().bit(en),
+                Event::CC1IF => w.cc1ie().bit(en),
+                Event::CC2IF => w.cc2ie().bit(en),
+                Event::CC3IF => w.cc3ie().bit(en),
+                Event::CC4IF => w.cc4ie().bit(en),
+                Event::COMIF => w.comie().bit(en),
+                Event::TIF => w.tie().bit(en),
+                Event::BIF => w.bie().bit(en),
+                Event::CC1OF => w.cc1de().bit(en),
+                Event::CC2OF => w.cc2de().bit(en),
+                Event::CC3OF => w.cc3de().bit(en),
+                Event::CC4OF => w.cc4de().bit(en),
+            })
+        }
+        #[inline]
+        fn event_clear(event: Event) {
+            Self::block().sr.modify(|_, w| match event {
+                Event::UIF => w.uif().clear_bit(),
+                Event::CC1IF => w.cc1if().clear_bit(),
+                Event::CC2IF => w.cc2if().clear_bit(),
+                Event::CC3IF => w.cc3if().clear_bit(),
+                Event::CC4IF => w.cc4if().clear_bit(),
+                Event::COMIF => w.comif().clear_bit(),
+                Event::TIF => w.tif().clear_bit(),
+                Event::BIF => w.bif().clear_bit(),
+                Event::CC1OF => w.cc1of().clear_bit(),
+                Event::CC2OF => w.cc2of().clear_bit(),
+                Event::CC3OF => w.cc3of().clear_bit(),
+                Event::CC4OF => w.cc4of().clear_bit(),
+            });
         }
     }
 }

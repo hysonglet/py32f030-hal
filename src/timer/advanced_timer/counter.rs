@@ -76,9 +76,30 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-use embedded_hal::blocking::delay;
-impl<'d, T: Instance> delay::DelayUs<u32> for Counter<'d, T, Blocking> {
+impl<'d, T: Instance> embedded_hal::blocking::delay::DelayUs<u32> for Counter<'d, T, Blocking> {
     fn delay_us(&mut self, us: u32) {
         self.delay_us_blocking(us)
+    }
+}
+
+impl<'d, T: Instance> embedded_hal::blocking::delay::DelayMs<u32> for Counter<'d, T, Blocking> {
+    fn delay_ms(&mut self, ms: u32) {
+        self.delay_us_blocking(ms * 1000);
+    }
+}
+
+use fugit::HertzU32;
+
+impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking> {
+    type Time = HertzU32;
+    fn start<H>(&mut self, count: H)
+    where
+        H: Into<Self::Time>,
+    {
+        todo!()
+    }
+
+    fn wait(&mut self) -> nb::Result<(), void::Void> {
+        todo!()
     }
 }

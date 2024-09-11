@@ -53,7 +53,7 @@ embedded-graphics = "0.7.0"
 ssd1309 = "0.3.0"
 embedded-graphics-core = { version = "^ 0.3", optional = true }
 display-interface-i2c = "^ 0.4"
-
+fugit = { version = "0.3.6" }
 [features]
 dma = []
 
