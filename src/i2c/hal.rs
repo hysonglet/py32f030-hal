@@ -4,9 +4,9 @@ pub(super) mod sealed {
     use crate::delay::wait_for_true_timeout_block;
     use crate::i2c::Id;
     use crate::pac;
+    pub const WAIT_FLAG_TIMEOUT: usize = 100_000;
 
     // 总线标志等待超时， 100 ms
-    const WAIT_FLAG_TIMEOUT: usize = 100_000;
 
     pub trait Instance {
         // 考虑以后其他单片机可能有多个IIC

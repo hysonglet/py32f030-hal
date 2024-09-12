@@ -23,10 +23,7 @@ use ssd1309::{prelude::*, Builder};
 
 #[embassy_executor::task]
 async fn run() {
-    let mut cnt: u32 = 0;
     loop {
-        // defmt::info!("task run {} ", cnt);
-        cnt += 2;
         Timer::after_secs(2).await;
     }
 }

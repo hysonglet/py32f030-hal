@@ -1,6 +1,8 @@
 use enumset::EnumSet;
 
+use super::hal::sealed::WAIT_FLAG_TIMEOUT;
 use super::{future::EventFuture, Error, Event, Instance};
+use crate::delay::wait_for_true_timeout_block;
 use crate::{
     clock::peripheral::PeripheralInterrupt,
     mode::{Async, Blocking, Mode},
@@ -23,7 +25,6 @@ impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
 
 impl<'d, T: Instance, M: Mode> Drop for Master<'d, T, M> {
     fn drop(&mut self) {
-        defmt::info!("drop");
         if M::is_async() {
             T::id().disable_interrupt();
         }
@@ -32,7 +33,78 @@ impl<'d, T: Instance, M: Mode> Drop for Master<'d, T, M> {
 
 impl<'d, T: Instance> Master<'d, T, Blocking> {
     pub fn write_block(&self, address: u8, buf: &[u8]) -> Result<usize, Error> {
-        T::master_transmit_block(address, buf)
+        T::clear_pos();
+
+        T::start();
+        // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
+        wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::SB)).map_err(
+            |_| {
+                T::clear_event(Event::ARLO);
+                Error::Start
+            },
+        )?;
+
+        T::transmit(address << 1);
+
+        // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
+        wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::ADD)).map_err(
+            |_| {
+                // Self::debug();
+                // 清除 af 置位
+                T::clear_event(Event::AF);
+                T::stop();
+                Error::Address
+            },
+        )?;
+        T::clear_event(Event::ADD);
+
+        // TRA 位指示主设备是在接收器模式还是发送器模式。
+
+        let mut iter = buf.iter();
+        if let Some(d) = iter.next() {
+            // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE))
+                .map_err(|_| Error::Tx)?;
+            T::transmit(*d);
+        }
+
+        // 接着将后面的数据发送出去
+        for t in iter {
+            // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
+            wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE)).map_err(
+                |_| {
+                    T::stop();
+                    Error::Tx
+                },
+            )?;
+            T::transmit(*t);
+        }
+
+        // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
+        wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE)).map_err(
+            |_| {
+                T::stop();
+                Error::Tx
+            },
+        )?;
+
+        wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE)).map_err(
+            |_| {
+                T::stop();
+                Error::Tx
+            },
+        )?;
+
+        wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::BTF)).map_err(
+            |_| {
+                T::stop();
+                Error::Tx
+            },
+        )?;
+
+        T::stop();
+
+        Ok(buf.len())
     }
 
     pub fn clear_errors(&self) {
