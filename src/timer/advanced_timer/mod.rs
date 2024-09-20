@@ -10,7 +10,7 @@ use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
     mode::Mode,
 };
-
+use fugit::HertzU32;
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 /// 高级定时器

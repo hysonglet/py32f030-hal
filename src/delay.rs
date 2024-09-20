@@ -36,7 +36,7 @@ where
 pub struct Delay;
 
 impl Delay {
-    fn delay_ms(&self, ms: usize) {
+    pub fn delay_ms(&self, ms: usize) {
         delay(4000 * ms as u32)
     }
 }

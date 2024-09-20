@@ -1,4 +1,3 @@
-
 use super::{AdcChannel, AnalogPin};
 use crate::gpio::hal::sealed::Pin;
 use crate::gpio::{gpioa, gpiob};
