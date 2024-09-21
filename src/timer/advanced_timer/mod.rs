@@ -10,7 +10,6 @@ use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
     mode::Mode,
 };
-use fugit::HertzU32;
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 /// 高级定时器
@@ -205,8 +204,6 @@ impl_sealed_timer!(TIM1, TIM1);
 
 impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     pub fn new_inner(config: BaseConfig) -> Result<(), Error> {
-        // 开启外设时钟
-        T::id().open();
         // 将配置写到外设
         T::base_config(config)
     }
@@ -215,7 +212,11 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     pub fn new(_timer: impl Peripheral<P = T>) -> Result<Self, Error> {
         into_ref!(_timer);
 
+        // 开启外设时钟
+        // T::id().reset();
+        T::id().open();
         // Self::new_inner(config)?;
+
         Ok(Self {
             _t: PhantomData,
             _m: PhantomData,
@@ -248,12 +249,12 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
 
     /// 转换成计数模式
     pub fn as_counter(self) -> Counter<'d, T, M> {
-        let prescaler = (Self::get_timer_clock() / 1_000_000 - 1) as u16;
-        // 设置默认clk时钟为1M，即1us
-        assert!(prescaler < u16::MAX);
+        // let prescaler = (Self::get_timer_clock() / 1_000_000 - 1) as u16;
+        // // 设置默认clk时钟为1M，即1us
+        // assert!(prescaler < u16::MAX);
 
-        let config = BaseConfig::default().prescaler(prescaler);
-        let _ = Self::new_inner(config);
+        // let config = BaseConfig::default();
+        // let _ = Self::new_inner(config);
 
         Counter::new()
     }

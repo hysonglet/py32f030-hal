@@ -29,10 +29,12 @@ fn main() -> ! {
     loop {
         // 延时 1s
         // counter.delay_us_blocking(1000_000);
-        let _ = counter.start(2u64.millis());
-        let _ = counter.start(2u64.secs());
-        let _ = counter.start(2u64.minutes());
-        let _ = counter.start(2u64.hours());
-        loop {}
+        // let _ = counter.start(2u64.millis());
+        let _ = counter.start(5u64.secs());
+        // let _ = counter.start(2u64.minutes());
+        // let _ = counter.start(2u64.hours());
+        let _ = counter.wait();
+        defmt::info!("XXXXXXXXXX");
+        // loop {}
     }
 }

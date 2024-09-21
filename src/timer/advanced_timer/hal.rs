@@ -113,10 +113,10 @@ pub(crate) mod sealed {
 
         /// 设置重复值
         #[inline]
-        fn set_repetition(repetition: u16) {
+        fn set_repetition(repetition: u8) {
             Self::block()
                 .rcr
-                .write(|w| unsafe { w.bits(repetition as u32) })
+                .write(|w| unsafe { w.rep().bits(repetition) })
         }
 
         /// 基本配置
@@ -142,15 +142,6 @@ pub(crate) mod sealed {
         #[inline]
         fn update_flag_clear() {
             Self::block().sr.modify(|_, w| w.uif().clear_bit())
-        }
-
-        /// 产生更新事件。该位由软件置 1，硬件自动清 0。
-        /// 0：无动作； 1：重新初始化计数器，并产生一个更新事件。
-        /// 注意：预分频器的计数器也被清 0(但是预分频系数不变)。若在中心对称模式下或 DIR=0(向上计数)则计数器被清 0，
-        /// 若 DIR=1(向下计数)则计数器装载 TIM1_ARR的值。
-        #[inline]
-        fn triggle_update() {
-            unsafe { Self::block().egr.write_with_zero(|w| w.ug().set_bit()) }
         }
 
         #[inline]
@@ -205,6 +196,18 @@ pub(crate) mod sealed {
                 Event::CC3OF => w.cc3of().clear_bit(),
                 Event::CC4OF => w.cc4of().clear_bit(),
             });
+        }
+
+        fn micros_to_compute_with_rep(micros: u64) -> (u16, u8, u16) {
+            let ticks = micros * Self::get_time_pclk() as u64 / 1000_000;
+
+            let psc = ticks / (1u64 << 24);
+            let div = psc;
+            let count = ticks / (div + 1);
+
+            let rep = count / (1u64 << 16);
+            let arr = count / (psc + 1);
+            (div as u16, rep as u8, arr as u16)
         }
     }
 }
