@@ -124,6 +124,20 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
         // let period_micros: u64 = 1000_000 * 1000 / self.get_freq() as u64;
         // let ticks: u64 = micros / period_micros;
         // defmt::info!("ticks: {}, freq: {}", ticks, self.get_freq());
+        // let micros = time.into().to_micros();
+        let ticks = micros * freq as u64 /1000_000;
+
+        let psc = ticks/(1u64<<32);
+        let div = psc;
+        let count = ticks/(div + 1);
+        
+        let psc = count/(1u64<<16);
+        let arr = count/(psc + 1) -1 ;
+        let (div, y, x) =  (div, psc, arr);
+        
+        let c: u64 = (div + 1)*(y + 1)*(x + 1);
+        //println!("div: {} y: {} x: {} c: {} ticks: {} dif: {}", div, y, x, c, ticks, if c > ticks {c-ticks} else {ticks - c});
+
 
         let ticks = micros * T::get_time_pclk() as u64 / 1000_000;
         let psc = (ticks - 1) / (1 << 16);
