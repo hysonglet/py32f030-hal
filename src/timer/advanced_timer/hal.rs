@@ -144,6 +144,7 @@ pub(crate) mod sealed {
             Self::block().sr.modify(|_, w| w.uif().clear_bit())
         }
 
+        /// 返回事件标志
         #[inline]
         fn event_flag(event: Event) -> bool {
             let sr = Self::block().sr.read();
@@ -163,6 +164,7 @@ pub(crate) mod sealed {
             }
         }
 
+        /// 使能或屏蔽事件
         #[inline]
         fn enable_event(event: Event, en: bool) {
             Self::block().dier.modify(|_, w| match event {
@@ -180,6 +182,8 @@ pub(crate) mod sealed {
                 Event::CC4OF => w.cc4de().bit(en),
             })
         }
+
+        /// 事件清除
         #[inline]
         fn event_clear(event: Event) {
             Self::block().sr.modify(|_, w| match event {
@@ -198,16 +202,24 @@ pub(crate) mod sealed {
             });
         }
 
+        /// 根据需要定时的ticks数计算出分频、重复、计数寄存器的值
         fn micros_to_compute_with_rep(micros: u64) -> (u16, u8, u16) {
             let ticks = micros * Self::get_time_pclk() as u64 / 1000_000;
 
             let psc = ticks / (1u64 << 24);
-            let div = psc;
-            let count = ticks / (div + 1);
+            let count = ticks / (psc + 1);
 
             let rep = count / (1u64 << 16);
-            let arr = count / (psc + 1);
-            (div as u16, rep as u8, arr as u16)
+            let arr = count / (rep + 1);
+
+            // let c = (psc + 1) * (rep + 1) * (arr + 1);
+            // defmt::info!(
+            //     "ticks: {} c: {} diff: {}",
+            //     ticks,
+            //     c,
+            //     if ticks > c { ticks - c } else { c - ticks }
+            // );
+            (psc as u16, rep as u8, arr as u16)
         }
     }
 }

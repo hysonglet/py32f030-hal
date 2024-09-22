@@ -20,21 +20,12 @@ fn main() -> ! {
     let timer = AnyTimer::<_, Blocking>::new(p.TIM1).unwrap();
     let mut counter = timer.as_counter();
 
-    // // Efficient short-hands (`.millis()`, ...)
-    // let d = Duration::<u32, 1, 1_000>::from_ticks(2000);
-    // defmt::info!("{} {} {}", d.to_secs(), d.ticks(), d.to_nanos());
-    // let rate: HertzU32 = d.into_rate();
-    // defmt::info!("{:?}", rate.raw());
-
+    let mut cnt = 0;
     loop {
-        // 延时 1s
-        // counter.delay_us_blocking(1000_000);
-        // let _ = counter.start(2u64.millis());
-        let _ = counter.start(5u64.secs());
-        // let _ = counter.start(2u64.minutes());
-        // let _ = counter.start(2u64.hours());
+        // 延时 5s
+        defmt::info!("repeat...{} ", cnt);
+        let _ = counter.start(30u32.secs());
         let _ = counter.wait();
-        defmt::info!("XXXXXXXXXX");
-        // loop {}
+        cnt += 1;
     }
 }
