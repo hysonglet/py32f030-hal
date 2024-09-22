@@ -119,19 +119,6 @@ pub(crate) mod sealed {
                 .write(|w| unsafe { w.rep().bits(repetition) })
         }
 
-        /// 基本配置
-        #[inline]
-        fn base_config(config: BaseConfig) -> Result<(), Error> {
-            // 设置计数对齐模式
-            Self::set_cms(config.center_aligned_mode);
-            // 设置计数方向
-            Self::set_dir(config.count_direction);
-            // 设置预分频
-            Self::set_prescaler(config.prescaler);
-
-            Ok(())
-        }
-
         /// 返回更新事件的标志
         #[inline]
         fn update_flag() -> bool {

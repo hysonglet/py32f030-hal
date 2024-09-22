@@ -104,79 +104,6 @@ pub enum CenterAlignedMode {
     CenterAligned3 = 3,
 }
 
-/// 定时器基本配置
-#[derive(Clone, Copy)]
-pub struct BaseConfig {
-    count_direction: CountDirection,
-    center_aligned_mode: CenterAlignedMode,
-    prescaler: u16,
-    // period: u16,
-    // auto_reload: u16,
-    // repetition: Option<u16>, // clock_div: ClockDiv,
-}
-
-impl Default for BaseConfig {
-    fn default() -> Self {
-        Self {
-            count_direction: CountDirection::Up,
-            center_aligned_mode: CenterAlignedMode::EdgeAligned,
-            prescaler: u16::MAX,
-            // period: u16::MAX,
-            // auto_reload: u16::MAX,
-            // repetition: None,
-            // clock_div: ClockDiv::DIV1,
-        }
-    }
-}
-
-impl BaseConfig {
-    pub fn count_direction(self, direction: CountDirection) -> Self {
-        Self {
-            count_direction: direction,
-            ..self
-        }
-    }
-
-    pub fn center_aligned_mode(self, mode: CenterAlignedMode) -> Self {
-        Self {
-            center_aligned_mode: mode,
-            ..self
-        }
-    }
-
-    pub fn prescaler(self, prescaler: u16) -> Self {
-        Self { prescaler, ..self }
-    }
-
-    // pub fn auto_reload(self, auto_reload: Option<u16>) -> Self {
-    //     Self {
-    //         auto_reload,
-    //         ..self
-    //     }
-    // }
-
-    // pub fn period(self, period: u16) -> Self {
-    //     Self { period, ..self }
-    // }
-
-    // pub fn clock_div(self, clock_div: ClockDiv) -> Self {
-    //     Self { clock_div, ..self }
-    // }
-}
-
-impl BaseConfig {
-    // pub fn set_period_reload(self, period: u16, reload: u16) -> Self {
-    //     let config = Self::default();
-    //     config.period(period).auto_reload(Some(reload))
-    // }
-
-    // pub fn set_delay(&mut self, us: u32) -> Result<(), Error> {
-    //     //timer_cnt_freq = Hplk/div;
-
-    //     todo!()
-    // }
-}
-
 pub struct Capture;
 pub struct Pwm;
 pub struct Hall;
@@ -203,11 +130,6 @@ pub struct AnyTimer<'d, T: Instance, M: Mode> {
 impl_sealed_timer!(TIM1, TIM1);
 
 impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
-    pub fn new_inner(config: BaseConfig) -> Result<(), Error> {
-        // 将配置写到外设
-        T::base_config(config)
-    }
-
     /// 新建一个 timer
     pub fn new(_timer: impl Peripheral<P = T>) -> Result<Self, Error> {
         into_ref!(_timer);
@@ -215,7 +137,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
         // 开启外设时钟
         // T::id().reset();
         T::id().open();
-        // Self::new_inner(config)?;
 
         Ok(Self {
             _t: PhantomData,
@@ -226,11 +147,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     /// 返回定时器外设的时钟
     pub fn get_timer_clock() -> u32 {
         T::get_time_pclk()
-    }
-
-    // 基本的配置
-    pub fn base_config(&self, config: BaseConfig) -> Result<(), Error> {
-        T::base_config(config)
     }
 
     /// 设置预分配，分频值： (prescaler + 1)
@@ -249,13 +165,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
 
     /// 转换成计数模式
     pub fn as_counter(self) -> Counter<'d, T, M> {
-        // let prescaler = (Self::get_timer_clock() / 1_000_000 - 1) as u16;
-        // // 设置默认clk时钟为1M，即1us
-        // assert!(prescaler < u16::MAX);
-
-        // let config = BaseConfig::default();
-        // let _ = Self::new_inner(config);
-
         Counter::new()
     }
 }
