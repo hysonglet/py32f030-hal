@@ -1,5 +1,6 @@
 pub(crate) mod sealed {
-    use super::super::Event;
+    use PY32f030xx_pac::tim1::ccmr1_input;
+
     use super::super::*;
     use crate::clock::timer_pclk;
     use crate::pac;
@@ -119,17 +120,108 @@ pub(crate) mod sealed {
                 .write(|w| unsafe { w.rep().bits(repetition) })
         }
 
-        /// 返回更新事件的标志
-        #[inline]
-        fn update_flag() -> bool {
-            Self::block().sr.read().uif().bit()
+        /// 设置通道输入或输出类型
+        fn set_channel_type(channel: Channel, channel_type: ChannelType) {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block
+                    .ccmr1_output()
+                    .modify(|_, w| unsafe { w.cc1s().bits(channel_type as u8) }),
+                Channel::CH2 => block
+                    .ccmr1_output()
+                    .modify(|_, w| unsafe { w.cc2s().bits(channel_type as u8) }),
+                Channel::CH3 => block
+                    .ccmr2_output()
+                    .modify(|_, w| unsafe { w.cc3s().bits(channel_type as u8) }),
+                Channel::CH4 => block
+                    .ccmr2_output()
+                    .modify(|_, w| unsafe { w.cc4s().bits(channel_type as u8) }),
+            }
         }
 
-        /// 清除更新事件标志
-        #[inline]
-        fn update_flag_clear() {
-            Self::block().sr.modify(|_, w| w.uif().clear_bit())
+        /// 设置通道输出模式
+        fn set_channel_output_config(
+            channel: Channel,
+            mode: ChannelOutputMode,
+            clear: bool,
+            fast: bool,
+            preload: bool,
+        ) {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block.ccmr1_output().modify(|_, w| unsafe {
+                    w.oc1m()
+                        .bits(mode as u8)
+                        .oc1ce()
+                        .bit(clear)
+                        .oc1fe()
+                        .bit(fast)
+                        .oc1pe()
+                        .bit(preload)
+                }),
+                Channel::CH2 => block.ccmr1_output().modify(|_, w| {
+                    unsafe { w.oc2m().bits(mode as u8) }
+                        .oc2ce()
+                        .bit(clear)
+                        .oc2fe()
+                        .bit(fast)
+                        .oc2pe()
+                        .bit(preload)
+                }),
+                Channel::CH3 => block.ccmr2_output().modify(|_, w| unsafe {
+                    w.oc3m()
+                        .bits(mode as u8)
+                        .oc3ce()
+                        .bit(clear)
+                        .oc3fe()
+                        .bit(fast)
+                        .oc3pe()
+                        .bit(preload)
+                }),
+                Channel::CH4 => block.ccmr2_output().modify(|_, w| unsafe {
+                    w.oc4m()
+                        .bits(mode as u8)
+                        .oc4ce()
+                        .bit(clear)
+                        .oc4fe()
+                        .bit(fast)
+                        .oc4pe()
+                        .bit(preload)
+                }),
+            }
         }
+
+        /// 设置通道的捕获/比较值
+        fn set_channel_compare(channel: Channel, ccr: u16) {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) }),
+                Channel::CH2 => block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) }),
+                Channel::CH3 => block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) }),
+                Channel::CH4 => block.ccr4.modify(|_, w| unsafe { w.ccr4().bits(ccr) }),
+            }
+        }
+
+        /// 返回捕获的值
+        fn get_channel_capture(channel: Channel) -> u16 {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block.ccr1.read().ccr1().bits(),
+                Channel::CH2 => block.ccr2.read().ccr2().bits(),
+                Channel::CH3 => block.ccr3.read().ccr3().bits(),
+                Channel::CH4 => block.ccr4.read().ccr4().bits(),
+            }
+        }
+
+        // fn set_enable_channel(channel: Channel, en: bool) {
+        //     let block = Self::block();
+        //     match channel {
+        //         Channel::CH1 => block.ccer.modify(|_, w| unsafe { w.cc1e().bit(en) }),
+        //         Channel::CH2 => block.ccer.modify(|_, w| unsafe { w.cc2e().bit(en) }),
+        //         Channel::CH3 => block.ccer.modify(|_, w| unsafe { w.cc3e().bit(en) }),
+        //         Channel::CH4 => block.ccer.modify(|_, w| unsafe { w.cc4e().bit(en) }),
+        //     }
+        // }
 
         /// 返回事件标志
         #[inline]
