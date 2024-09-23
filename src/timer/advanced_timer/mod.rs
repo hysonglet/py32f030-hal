@@ -5,6 +5,7 @@ mod pins;
 mod pwm;
 
 use core::{marker::PhantomData, u16};
+use enumset::EnumSetType;
 
 pub use counter::Counter;
 pub use pwm::Pwm;
@@ -209,6 +210,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     }
 }
 
+#[derive(EnumSetType, Debug)]
 pub enum Event {
     /// 更新中断标记
     UIF,

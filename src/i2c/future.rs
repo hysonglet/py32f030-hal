@@ -29,7 +29,7 @@ impl<T: Instance> EventFuture<T> {
             /* 匹配到中断了 */
             if T::is_event_match(event) {
                 // 清除标志
-                T::clear_event(event);
+                T::event_clear(event);
                 // 关闭该中断
                 T::event_config(event, false);
             }
@@ -48,7 +48,7 @@ impl<T: Instance> Future for EventFuture<T> {
 
         for event in self.events {
             if T::event_flag(event) {
-                T::clear_event(event);
+                T::event_clear(event);
                 return Poll::Ready(Ok(()));
             }
         }

@@ -1,6 +1,4 @@
 pub(crate) mod sealed {
-    use PY32f030xx_pac::tim1::ccmr1_input;
-
     use super::super::*;
     use crate::clock::timer_pclk;
     use crate::pac;
@@ -245,7 +243,7 @@ pub(crate) mod sealed {
 
         /// 使能或屏蔽事件
         #[inline]
-        fn enable_event(event: Event, en: bool) {
+        fn event_config(event: Event, en: bool) {
             Self::block().dier.modify(|_, w| match event {
                 Event::UIF => w.uie().bit(en),
                 Event::CC1IF => w.cc1ie().bit(en),

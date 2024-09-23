@@ -173,8 +173,8 @@ pub enum Event {
     PECERR,
 }
 
-impl Event {
-    const fn count() -> usize {
-        11
-    }
-}
+// impl Event {
+//     const fn count() -> usize {
+//         11
+//     }
+// }

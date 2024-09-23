@@ -39,7 +39,7 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
         // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
         wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::SB)).map_err(
             |_| {
-                T::clear_event(Event::ARLO);
+                T::event_clear(Event::ARLO);
                 Error::Start
             },
         )?;
@@ -51,12 +51,12 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
             |_| {
                 // Self::debug();
                 // 清除 af 置位
-                T::clear_event(Event::AF);
+                T::event_clear(Event::AF);
                 T::stop();
                 Error::Address
             },
         )?;
-        T::clear_event(Event::ADD);
+        T::event_clear(Event::ADD);
 
         // TRA 位指示主设备是在接收器模式还是发送器模式。
 
@@ -220,11 +220,11 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         EventFuture::<T>::new(EnumSet::empty() | Event::ADD)
             .await
             .map_err(|e| {
-                T::clear_event(Event::AF);
+                T::event_clear(Event::AF);
                 T::stop();
                 e
             })?;
-        T::clear_event(Event::ADD);
+        T::event_clear(Event::ADD);
 
         // TRA 位指示主设备是在接收器模式还是发送器模式。
         let mut iter = buf.iter();

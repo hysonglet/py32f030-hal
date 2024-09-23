@@ -141,7 +141,7 @@ pub(super) mod sealed {
         }
 
         #[inline]
-        fn clear_event(event: Event) {
+        fn event_clear(event: Event) {
             Self::block().sr1.modify(|r, w| match event {
                 Event::SB => {
                     //软件读取 I2C_SR1 寄存器后，对数据寄存器的写操作将清除该位； 或当 PE=0 时，由硬件清除
@@ -201,7 +201,7 @@ pub(super) mod sealed {
             // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::SB))
                 .map_err(|_| {
-                    Self::clear_event(Event::ARLO);
+                    Self::event_clear(Event::ARLO);
                     Error::Start
                 })?;
 
@@ -212,11 +212,11 @@ pub(super) mod sealed {
                 .map_err(|_| {
                     // Self::debug();
                     // 清除 af 置位
-                    Self::clear_event(Event::AF);
+                    Self::event_clear(Event::AF);
                     Self::stop();
                     Error::Address
                 })?;
-            Self::clear_event(Event::ADD);
+            Self::event_clear(Event::ADD);
 
             // TRA 位指示主设备是在接收器模式还是发送器模式。
 
@@ -277,7 +277,7 @@ pub(super) mod sealed {
             // EV6：ADDR，先读 SR1，再读 SR2，清零该位
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::ADD))
                 .map_err(|_| Error::Address)?;
-            Self::clear_event(Event::ADD);
+            Self::event_clear(Event::ADD);
 
             let len = buf.len();
 
