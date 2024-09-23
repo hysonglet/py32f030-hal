@@ -1,0 +1,12 @@
+
+[default.general]
+chip = "PY32F030x8"
+
+[default.rtt]
+enabled = false
+
+[default.gdb]
+enabled = true
+
+[default.reset]
+halt_afterwards = true
