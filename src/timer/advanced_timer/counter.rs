@@ -1,9 +1,11 @@
-use super::{Event, Instance};
+use super::{future::EventFuture, Event, Instance};
 use crate::{
-    mode::{Blocking, Mode},
+    clock::peripheral::PeripheralInterrupt,
+    mode::{Async, Blocking, Mode},
     timer::advanced_timer::{CenterAlignedMode, CountDirection},
 };
 use core::marker::PhantomData;
+use enumset::EnumSet;
 use fugit::MicrosDurationU32;
 
 /// 计数器
@@ -21,6 +23,10 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::set_cms(CenterAlignedMode::EdgeAligned);
         T::set_dir(CountDirection::Down);
 
+        if M::is_async() {
+            T::id().enable_interrupt();
+        }
+
         Counter {
             _t: PhantomData,
             _m: PhantomData,
@@ -32,9 +38,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
     pub fn get_freq(&self) -> u32 {
         T::counter_frequency()
     }
-}
 
-impl<'d, T: Instance> Counter<'d, T, Blocking> {
     fn start_us(&mut self, us: u64) {
         let (div, rep, arr) = T::micros_to_compute_with_rep(us);
         T::stop();
@@ -45,6 +49,26 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
         T::start();
     }
 
+    fn start_ns(&mut self, nano: u64) {
+        let (div, rep, arr) = T::nanosecond_to_compute_with_rep(nano);
+        T::stop();
+        T::set_prescaler(div);
+        T::set_repetition(rep);
+        T::set_auto_reload(arr);
+        T::event_clear(Event::UIF);
+        T::start();
+    }
+}
+
+impl<'d, T: Instance, M: Mode> Drop for Counter<'d, T, M> {
+    fn drop(&mut self) {
+        if M::is_async() {
+            T::id().disable_interrupt();
+        }
+    }
+}
+
+impl<'d, T: Instance> Counter<'d, T, Blocking> {
     /// 阻塞等待直到更新事件发生
     #[inline]
     pub fn delay_us_blocking(&mut self, us: u32) {
@@ -81,5 +105,14 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
         while T::event_flag(Event::UIF) == false {}
         T::stop();
         Ok(())
+    }
+}
+
+/////////////////////// Async ///////////////////////
+
+impl<'d, T: Instance> embedded_hal_async::delay::DelayNs for Counter<'d, T, Async> {
+    async fn delay_ns(&mut self, ns: u32) {
+        self.start_ns(ns as u64);
+        let _ = EventFuture::<T>::new(EnumSet::empty() | Event::UIF).await;
     }
 }

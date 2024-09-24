@@ -298,5 +298,24 @@ pub(crate) mod sealed {
             // );
             (psc as u16, rep as u8, arr as u16)
         }
+
+        fn nanosecond_to_compute_with_rep(nano: u64) -> (u16, u8, u16) {
+            let ticks = nano * Self::get_time_pclk() as u64 / 1000_000_000;
+
+            let psc = ticks / (1u64 << 24);
+            let count = ticks / (psc + 1);
+
+            let rep = count / (1u64 << 16);
+            let arr = count / (rep + 1);
+
+            // let c = (psc + 1) * (rep + 1) * (arr + 1);
+            // defmt::info!(
+            //     "ticks: {} c: {} diff: {}",
+            //     ticks,
+            //     c,
+            //     if ticks > c { ticks - c } else { c - ticks }
+            // );
+            (psc as u16, rep as u8, arr as u16)
+        }
     }
 }

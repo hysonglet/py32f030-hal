@@ -2,7 +2,6 @@
 #![no_main]
 
 use defmt::Debug2Format;
-use embassy_futures::select;
 use embedded_hal::digital::v2::OutputPin;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::mode::Async;
@@ -43,7 +42,7 @@ async fn main(_spawner: Spawner) {
     let config = Config::default().speed(200_000);
     // 配置 200K的速度
     let i2c1 = AnyI2c::<_, Async>::new(p.I2C, scl, sda, config).unwrap();
-    let master = i2c1.as_master();
+    let mut master = i2c1.as_master();
 
     _spawner.spawn(run()).unwrap();
     let buf: [u8; 10] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
