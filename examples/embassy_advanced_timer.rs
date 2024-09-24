@@ -2,14 +2,13 @@
 #![no_main]
 
 use embedded_hal_async::delay::DelayNs;
-use py32f030_hal::mode::Async;
-use py32f030_hal::timer::advanced_timer::AnyTimer;
-use py32f030_hal::{self as hal};
+
+use hal::{mode::Async, timer::advanced_timer::AnyTimer};
+use py32f030_hal as hal;
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 
-// use panic_halt as _;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::task]
