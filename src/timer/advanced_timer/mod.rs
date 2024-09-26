@@ -56,8 +56,11 @@ impl PeripheralInterrupt for AdvancedTimer {
 #[derive(PartialEq)]
 pub enum Channel {
     CH1,
+    CH1_N,
     CH2,
+    CH2_N,
     CH3,
+    CH3_N,
     CH4,
 }
 
@@ -205,8 +208,25 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     }
 
     /// 转换成pwm模式
-    pub fn as_pwm(self) -> Pwm<'d, T, M> {
-        todo!()
+    pub fn as_pwm(
+        self,
+        channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
+        channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
+        channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
+        channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
+        channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
+        channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
+        channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
+    ) -> Pwm<'d, T> {
+        Pwm::new(
+            channel_1_pin,
+            channel_1_n_pin,
+            channel_2_pin,
+            channel_2_n_pin,
+            channel_3_pin,
+            channel_3_n_pin,
+            channel_4_pin,
+        )
     }
 }
 
@@ -247,6 +267,5 @@ pin_af_for_instance_def!(TimerChannel2NPin, Instance);
 pin_af_for_instance_def!(TimerChannel3Pin, Instance);
 pin_af_for_instance_def!(TimerChannel3NPin, Instance);
 pin_af_for_instance_def!(TimerChannel4Pin, Instance);
-// pin_af_for_instance_def!(TimerChannel4NPin, Instance);
 pin_af_for_instance_def!(TimerBkInPin, Instance);
 pin_af_for_instance_def!(TimerEtrPin, Instance);

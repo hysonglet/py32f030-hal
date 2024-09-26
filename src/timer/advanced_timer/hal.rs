@@ -85,6 +85,11 @@ pub(crate) mod sealed {
             Self::block().arr.write(|w| unsafe { w.arr().bits(load) })
         }
 
+        #[inline]
+        fn get_reload() -> u16 {
+            Self::block().arr.read().arr().bits()
+        }
+
         /// 单脉冲模式
         /// 0：在发生更新事件时，计数器不停止
         /// 1：在发生下一次更新事件(清除 CEN 位)时，计数器停止。
@@ -122,13 +127,13 @@ pub(crate) mod sealed {
         fn set_channel_type(channel: Channel, channel_type: ChannelType) {
             let block = Self::block();
             match channel {
-                Channel::CH1 => block
+                Channel::CH1 | Channel::CH1_N => block
                     .ccmr1_output()
                     .modify(|_, w| unsafe { w.cc1s().bits(channel_type as u8) }),
-                Channel::CH2 => block
+                Channel::CH2 | Channel::CH2_N => block
                     .ccmr1_output()
                     .modify(|_, w| unsafe { w.cc2s().bits(channel_type as u8) }),
-                Channel::CH3 => block
+                Channel::CH3 | Channel::CH3_N => block
                     .ccmr2_output()
                     .modify(|_, w| unsafe { w.cc3s().bits(channel_type as u8) }),
                 Channel::CH4 => block
@@ -147,7 +152,7 @@ pub(crate) mod sealed {
         ) {
             let block = Self::block();
             match channel {
-                Channel::CH1 => block.ccmr1_output().modify(|_, w| unsafe {
+                Channel::CH1 | Channel::CH1_N => block.ccmr1_output().modify(|_, w| unsafe {
                     w.oc1m()
                         .bits(mode as u8)
                         .oc1ce()
@@ -157,7 +162,7 @@ pub(crate) mod sealed {
                         .oc1pe()
                         .bit(preload)
                 }),
-                Channel::CH2 => block.ccmr1_output().modify(|_, w| {
+                Channel::CH2 | Channel::CH2_N => block.ccmr1_output().modify(|_, w| {
                     unsafe { w.oc2m().bits(mode as u8) }
                         .oc2ce()
                         .bit(clear)
@@ -166,7 +171,7 @@ pub(crate) mod sealed {
                         .oc2pe()
                         .bit(preload)
                 }),
-                Channel::CH3 => block.ccmr2_output().modify(|_, w| unsafe {
+                Channel::CH3 | Channel::CH3_N => block.ccmr2_output().modify(|_, w| unsafe {
                     w.oc3m()
                         .bits(mode as u8)
                         .oc3ce()
@@ -193,9 +198,15 @@ pub(crate) mod sealed {
         fn set_channel_compare(channel: Channel, ccr: u16) {
             let block = Self::block();
             match channel {
-                Channel::CH1 => block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) }),
-                Channel::CH2 => block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) }),
-                Channel::CH3 => block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) }),
+                Channel::CH1 | Channel::CH1_N => {
+                    block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) })
+                }
+                Channel::CH2 | Channel::CH2_N => {
+                    block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) })
+                }
+                Channel::CH3 | Channel::CH3_N => {
+                    block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) })
+                }
                 Channel::CH4 => block.ccr4.modify(|_, w| unsafe { w.ccr4().bits(ccr) }),
             }
         }
@@ -204,22 +215,40 @@ pub(crate) mod sealed {
         fn get_channel_capture(channel: Channel) -> u16 {
             let block = Self::block();
             match channel {
-                Channel::CH1 => block.ccr1.read().ccr1().bits(),
-                Channel::CH2 => block.ccr2.read().ccr2().bits(),
-                Channel::CH3 => block.ccr3.read().ccr3().bits(),
+                Channel::CH1 | Channel::CH1_N => block.ccr1.read().ccr1().bits(),
+                Channel::CH2 | Channel::CH2_N => block.ccr2.read().ccr2().bits(),
+                Channel::CH3 | Channel::CH3_N => block.ccr3.read().ccr3().bits(),
                 Channel::CH4 => block.ccr4.read().ccr4().bits(),
             }
         }
 
-        // fn set_enable_channel(channel: Channel, en: bool) {
-        //     let block = Self::block();
-        //     match channel {
-        //         Channel::CH1 => block.ccer.modify(|_, w| unsafe { w.cc1e().bit(en) }),
-        //         Channel::CH2 => block.ccer.modify(|_, w| unsafe { w.cc2e().bit(en) }),
-        //         Channel::CH3 => block.ccer.modify(|_, w| unsafe { w.cc3e().bit(en) }),
-        //         Channel::CH4 => block.ccer.modify(|_, w| unsafe { w.cc4e().bit(en) }),
-        //     }
-        // }
+        /// 设置输出通道的有效极性，true: 高电平   ，false：低电平
+        fn set_channel_output_effective_level(channel: Channel, level: bool) {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block.ccer.modify(|_, w| w.cc1p().bit(!level)),
+                Channel::CH2 => block.ccer.modify(|_, w| w.cc2p().bit(!level)),
+                Channel::CH3 => block.ccer.modify(|_, w| w.cc3p().bit(!level)),
+                Channel::CH4 => block.ccer.modify(|_, w| w.cc4p().bit(!level)),
+                Channel::CH1_N => block.ccer.modify(|_, w| w.cc1np().bit(!level)),
+                Channel::CH2_N => block.ccer.modify(|_, w| w.cc2np().bit(!level)),
+                Channel::CH3_N => block.ccer.modify(|_, w| w.cc3np().bit(!level)),
+            }
+        }
+
+        /// 使能 P 通道
+        fn set_enable_channel(channel: Channel, en: bool) {
+            let block = Self::block();
+            match channel {
+                Channel::CH1 => block.ccer.modify(|_, w| w.cc1e().bit(en)),
+                Channel::CH2 => block.ccer.modify(|_, w| w.cc2e().bit(en)),
+                Channel::CH3 => block.ccer.modify(|_, w| w.cc3e().bit(en)),
+                Channel::CH4 => block.ccer.modify(|_, w| w.cc4e().bit(en)),
+                Channel::CH1_N => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
+                Channel::CH2_N => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
+                Channel::CH3_N => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
+            }
+        }
 
         /// 返回事件标志
         #[inline]

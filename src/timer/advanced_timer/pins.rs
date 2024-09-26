@@ -3,7 +3,6 @@ use super::{
     TimerChannel3NPin, TimerChannel3Pin, TimerChannel4Pin, TimerEtrPin,
 };
 use crate::gpio::{self, gpioa, gpiob, gpiof};
-use crate::macro_def::impl_pin_af;
 use crate::mcu::peripherals;
 
 impl_pin_af!(gpioa, PA0, TIM1, TimerChannel3Pin, AF13);
