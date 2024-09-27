@@ -4,7 +4,6 @@
 use embassy_executor::Spawner;
 use py32f030_hal::crc::Crc;
 use py32f030_hal::{self as hal};
-use PY32f030xx_pac::adc::cr;
 
 // use panic_halt as _;
 use {defmt_rtt as _, panic_probe as _};

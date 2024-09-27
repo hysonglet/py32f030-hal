@@ -2,7 +2,6 @@ use super::*;
 use crate::gpio::{self, AnyPin};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
-use embassy_sync::channel;
 
 /// 计数器
 ///
@@ -27,73 +26,29 @@ pub struct PwmChannel<'d, T: Instance> {
 }
 
 impl<'d, T: Instance> Pwm<'d, T> {
-    pub fn new(
-        channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
-        channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
-        channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
-        channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
-        channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
-        channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
-        channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
+    pub fn new(// channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
+        // channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
+        // channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
+        // channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
+        // channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
+        // channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
+        // channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
     ) -> Self {
+        T::set_dir(CountDirection::Up);
+        T::set_enable_channel(Channel::CH1, false);
+        T::set_channel_output_config(Channel::CH1, ChannelOutputMode::PWM1, false, false, false);
+        T::set_channel_type(Channel::CH1, ChannelType::Pwm);
+        T::set_channel_output_effective_level(Channel::CH1, true);
+        T::enable_auto_reload_buff(true);
         Self {
             _t: PhantomData,
-            _channel_1_pin: channel_1_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_1_n_pin: channel_1_n_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_2_pin: channel_2_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_2_n_pin: channel_2_n_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_3_pin: channel_3_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_3_n_pin: channel_3_n_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
-            _channel_4_pin: channel_4_pin.map_or_else(
-                || None,
-                |pin| {
-                    into_ref!(pin);
-                    pin.set_instance_af(gpio::PinSpeed::Low, gpio::PinIoType::Floating);
-                    Some(pin.map_into())
-                },
-            ),
+            _channel_1_pin: None,
+            _channel_1_n_pin: None,
+            _channel_2_pin: None,
+            _channel_2_n_pin: None,
+            _channel_3_pin: None,
+            _channel_3_n_pin: None,
+            _channel_4_pin: None,
         }
     }
 }
@@ -123,7 +78,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         };
 
         let pre = T::get_time_pclk() / freq;
-
+        defmt::info!("psc: {}", pre - 1);
         T::set_prescaler(pre as u16 - 1);
     }
 
@@ -142,6 +97,19 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
     fn set_period<P>(&mut self, period: u16) {
         T::set_auto_reload(period)
+    }
+
+    pub fn start(&mut self) {
+        T::start();
+    }
+
+    pub fn stop(&mut self) {
+        T::stop()
+    }
+
+    pub fn debug(&self) {
+        defmt::info!("cnt: {}", T::get_cnt());
+        defmt::info!("reload: {}", T::get_reload());
     }
 }
 

@@ -95,10 +95,10 @@ pub enum ChannelOutputMode {
     /// 强制为无效电平。强制 OC1REF 为低。
     Mode4 = 4,
     /// 强制为有效电平。强制 OC1REF 为高。
-    Mode5 = 5,
+    PWM1 = 5,
     /// PWM 模式 1－在向上计数时，一旦TIM1_CNT<TIM1_CCR1 时通道 1 为有效电平，否则为无效电平；在向下计数时，
     /// 一旦TIM1_CNT>TIM1_CCR1 时通道1为无效电平(OC1REF=0)，否则为有效电平(OC1REF=1)。
-    Mode6 = 6,
+    PWM2 = 6,
     /// PWM 模式 2－ 在向上计数时，一旦TIM1_CNT<TIM1_CCR1 时通道 1 为无效电平，否则为有效电平；在向下计数时，
     /// 一旦 TIM1_CNT>TIM1_CCR1 时通道 1 为有效电平，否则为无效电平。
     Mode7 = 7,
@@ -208,26 +208,29 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     }
 
     /// 转换成pwm模式
-    pub fn as_pwm(
-        self,
-        channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
-        channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
-        channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
-        channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
-        channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
-        channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
-        channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
-    ) -> Pwm<'d, T> {
-        Pwm::new(
-            channel_1_pin,
-            channel_1_n_pin,
-            channel_2_pin,
-            channel_2_n_pin,
-            channel_3_pin,
-            channel_3_n_pin,
-            channel_4_pin,
-        )
+    pub fn as_pwm(self) -> Pwm<'d, T> {
+        Pwm::new()
     }
+    // pub fn as_pwm(
+    //     self,
+    //     channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
+    //     channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
+    //     channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
+    //     channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
+    //     channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
+    //     channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
+    //     channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
+    // ) -> Pwm<'d, T> {
+    //     Pwm::new(
+    //         channel_1_pin,
+    //         channel_1_n_pin,
+    //         channel_2_pin,
+    //         channel_2_n_pin,
+    //         channel_3_pin,
+    //         channel_3_n_pin,
+    //         channel_4_pin,
+    //     )
+    // }
 }
 
 #[derive(EnumSetType, Debug)]
