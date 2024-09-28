@@ -18,28 +18,23 @@ pub struct Pwm<'d, T: Instance> {
     _channel_4_pin: Option<PeripheralRef<'d, AnyPin>>,
 }
 
-pub struct PwmChannel<'d, T: Instance> {
-    _id: Channel,
-    _t: PhantomData<&'d T>,
+// pub struct PwmChannel<'d, T: Instance> {
+//     _id: Channel,
+//     _t: PhantomData<&'d T>,
 
-    ch_pin: Option<PeripheralRef<'d, AnyPin>>,
-}
+//     ch_pin: Option<PeripheralRef<'d, AnyPin>>,
+// }
 
 impl<'d, T: Instance> Pwm<'d, T> {
-    pub fn new(// channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
-        // channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
-        // channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
-        // channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
-        // channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
-        // channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
-        // channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
-    ) -> Self {
+    pub fn new() -> Self {
         T::set_dir(CountDirection::Up);
         T::set_enable_channel(Channel::CH1, false);
-        T::set_channel_output_config(Channel::CH1, ChannelOutputMode::PWM1, false, false, false);
+        T::set_channel_output_config(Channel::CH1, ChannelOutputMode::PWM1, false, false, true);
+        T::set_channel_output_effective_level(Channel::CH1, true, false);
         T::set_channel_type(Channel::CH1, ChannelType::Pwm);
-        T::set_channel_output_effective_level(Channel::CH1, true);
         T::enable_auto_reload_buff(true);
+        T::enable_channel_output(true);
+
         Self {
             _t: PhantomData,
             _channel_1_pin: None,
@@ -50,6 +45,114 @@ impl<'d, T: Instance> Pwm<'d, T> {
             _channel_3_n_pin: None,
             _channel_4_pin: None,
         }
+    }
+}
+
+impl<'d, T: Instance> Pwm<'d, T> {
+    pub fn set_channel_1_pin<OC_PIN, OC_N_PIN>(
+        &mut self,
+        oc_pin: Option<OC_PIN>,
+        oc_n_pin: Option<OC_N_PIN>,
+    ) where
+        OC_PIN: TimerChannel1Pin<T> + 'd,
+        OC_N_PIN: TimerChannel1NPin<T>,
+    {
+        let oc_pin = oc_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        let oc_n_pin = oc_n_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        self._channel_1_pin = oc_pin;
+        self._channel_1_n_pin = oc_n_pin;
+    }
+
+    pub fn set_channel_2_pin<OC_PIN, OC_N_PIN>(
+        &mut self,
+        oc_pin: Option<OC_PIN>,
+        oc_n_pin: Option<OC_N_PIN>,
+    ) where
+        OC_PIN: TimerChannel2Pin<T> + 'd,
+        OC_N_PIN: TimerChannel2NPin<T> + 'd,
+    {
+        let oc_pin = oc_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        let oc_n_pin = oc_n_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        self._channel_2_pin = oc_pin;
+        self._channel_2_n_pin = oc_n_pin;
+    }
+
+    pub fn set_channel_3_pin<OC_PIN, OC_N_PIN>(
+        &mut self,
+        oc_pin: Option<OC_PIN>,
+        oc_n_pin: Option<OC_N_PIN>,
+    ) where
+        OC_PIN: TimerChannel3Pin<T> + 'd,
+        OC_N_PIN: TimerChannel3NPin<T> + 'd,
+    {
+        let oc_pin = oc_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        let oc_n_pin = oc_n_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        self._channel_3_pin = oc_pin;
+        self._channel_3_n_pin = oc_n_pin;
+    }
+
+    pub fn set_channel_4_pin<OC_PIN, OC_N_PIN>(&mut self, oc_pin: Option<OC_PIN>)
+    where
+        OC_PIN: TimerChannel4Pin<T> + 'd,
+    {
+        let oc_pin = oc_pin.map_or_else(
+            || None,
+            |pin| {
+                into_ref!(pin);
+                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                Some(pin.map_into())
+            },
+        );
+
+        self._channel_4_pin = oc_pin;
     }
 }
 
@@ -70,6 +173,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::get_reload()
     }
 
+    /// 设置计数频率（该频率为计数器的频率，并非波形的频率）
     pub fn set_frequency(&mut self, freq: u32) {
         let freq = if T::get_time_pclk() <= freq {
             T::get_time_pclk()
@@ -100,16 +204,29 @@ impl<'d, T: Instance> Pwm<'d, T> {
     }
 
     pub fn start(&mut self) {
+        T::enable_channel_output(true);
         T::start();
     }
 
     pub fn stop(&mut self) {
+        T::enable_channel_output(false);
         T::stop()
     }
 
     pub fn debug(&self) {
-        defmt::info!("cnt: {}", T::get_cnt());
-        defmt::info!("reload: {}", T::get_reload());
+        // defmt::info!("reload: {}", T::get_reload());
+        // T::triggle(Triggle::CC1G);
+        // defmt::info!(
+        //     "cnt: {:04x} ccr1: {}  u: {} CC1IE: {}",
+        //     T::get_cnt(),
+        //     T::block().ccr1.read().bits(),
+        //     T::event_flag(Event::UIF),
+        //     T::event_flag(Event::CC1IF)
+        // );
+        // if T::event_flag(Event::CC1IF) {
+        //     // T::event_clear(Event::UIF);
+        //     T::event_clear(Event::CC1IF);
+        // }
     }
 }
 
@@ -152,25 +269,25 @@ impl<'d, T: Instance> embedded_hal::Pwm for Pwm<'d, T> {
     }
 }
 
-impl<'d, T: Instance> embedded_hal::PwmPin for PwmChannel<'d, T> {
-    type Duty = u16;
-    fn enable(&mut self) {
-        todo!()
-    }
+// impl<'d, T: Instance> embedded_hal::PwmPin for PwmChannel<'d, T> {
+//     type Duty = u16;
+//     fn enable(&mut self) {
+//         todo!()
+//     }
 
-    fn disable(&mut self) {
-        todo!()
-    }
+//     fn disable(&mut self) {
+//         todo!()
+//     }
 
-    fn get_duty(&self) -> Self::Duty {
-        todo!()
-    }
+//     fn get_duty(&self) -> Self::Duty {
+//         todo!()
+//     }
 
-    fn set_duty(&mut self, duty: Self::Duty) {
-        todo!()
-    }
+//     fn set_duty(&mut self, duty: Self::Duty) {
+//         todo!()
+//     }
 
-    fn get_max_duty(&self) -> Self::Duty {
-        todo!()
-    }
-}
+//     fn get_max_duty(&self) -> Self::Duty {
+//         todo!()
+//     }
+// }

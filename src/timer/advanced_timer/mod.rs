@@ -9,6 +9,7 @@ use enumset::EnumSetType;
 
 pub use counter::Counter;
 pub use pwm::Pwm;
+use PY32f030xx_pac::adc::tr;
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
@@ -95,13 +96,13 @@ pub enum ChannelOutputMode {
     /// 强制为无效电平。强制 OC1REF 为低。
     Mode4 = 4,
     /// 强制为有效电平。强制 OC1REF 为高。
-    PWM1 = 5,
+    Mode5 = 5,
     /// PWM 模式 1－在向上计数时，一旦TIM1_CNT<TIM1_CCR1 时通道 1 为有效电平，否则为无效电平；在向下计数时，
     /// 一旦TIM1_CNT>TIM1_CCR1 时通道1为无效电平(OC1REF=0)，否则为有效电平(OC1REF=1)。
-    PWM2 = 6,
+    PWM1 = 6,
     /// PWM 模式 2－ 在向上计数时，一旦TIM1_CNT<TIM1_CCR1 时通道 1 为无效电平，否则为有效电平；在向下计数时，
     /// 一旦 TIM1_CNT>TIM1_CCR1 时通道 1 为有效电平，否则为无效电平。
-    Mode7 = 7,
+    PWM2 = 7,
 }
 
 #[derive(Debug)]
@@ -123,8 +124,8 @@ pub enum CountDirection {
 impl From<CountDirection> for bool {
     fn from(value: CountDirection) -> Self {
         match value {
-            CountDirection::Down => false,
-            CountDirection::Up => true,
+            CountDirection::Down => true,
+            CountDirection::Up => false,
         }
     }
 }
@@ -260,6 +261,18 @@ pub enum Event {
     CC3OF,
     /// 捕获/比较 4 过捕获标记
     CC4OF,
+}
+
+#[derive(PartialEq)]
+pub enum Triggle {
+    UG = 0,
+    CC1G = 1,
+    CC2G = 2,
+    CC3G = 3,
+    CC4G = 4,
+    COMG = 5,
+    TG = 6,
+    BG = 7,
 }
 
 // 定义一个 定时器引脚 的trait

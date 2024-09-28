@@ -140,6 +140,8 @@ pub(crate) mod sealed {
                     .ccmr2_output()
                     .modify(|_, w| unsafe { w.cc4s().bits(channel_type as u8) }),
             }
+
+            // defmt::info!("{}")
         }
 
         /// 设置通道输出模式
@@ -194,11 +196,18 @@ pub(crate) mod sealed {
             }
         }
 
+        /// 使能输出
+        #[inline]
+        fn enable_channel_output(en: bool) {
+            Self::block().bdtr.write(|w| w.moe().bit(en));
+        }
+
         /// 设置通道的捕获/比较值
         fn set_channel_compare(channel: Channel, ccr: u16) {
             let block = Self::block();
             match channel {
                 Channel::CH1 | Channel::CH1_N => {
+                    // defmt::info!("compare: {}", ccr);
                     block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) })
                 }
                 Channel::CH2 | Channel::CH2_N => {
@@ -223,16 +232,37 @@ pub(crate) mod sealed {
         }
 
         /// 设置输出通道的有效极性，true: 高电平   ，false：低电平
-        fn set_channel_output_effective_level(channel: Channel, level: bool) {
+        fn set_channel_output_effective_level(channel: Channel, state: bool, idle: bool) {
             let block = Self::block();
             match channel {
-                Channel::CH1 => block.ccer.modify(|_, w| w.cc1p().bit(!level)),
-                Channel::CH2 => block.ccer.modify(|_, w| w.cc2p().bit(!level)),
-                Channel::CH3 => block.ccer.modify(|_, w| w.cc3p().bit(!level)),
-                Channel::CH4 => block.ccer.modify(|_, w| w.cc4p().bit(!level)),
-                Channel::CH1_N => block.ccer.modify(|_, w| w.cc1np().bit(!level)),
-                Channel::CH2_N => block.ccer.modify(|_, w| w.cc2np().bit(!level)),
-                Channel::CH3_N => block.ccer.modify(|_, w| w.cc3np().bit(!level)),
+                Channel::CH1 => {
+                    block.ccer.modify(|_, w| w.cc1p().bit(!state));
+                    block.cr2.modify(|_, w| w.ois1().bit(idle))
+                }
+                Channel::CH2 => {
+                    block.ccer.modify(|_, w| w.cc2p().bit(!state));
+                    block.cr2.modify(|_, w| w.ois1n().bit(idle))
+                }
+                Channel::CH3 => {
+                    block.ccer.modify(|_, w| w.cc3p().bit(!state));
+                    block.cr2.modify(|_, w| w.ois2().bit(idle))
+                }
+                Channel::CH4 => {
+                    block.ccer.modify(|_, w| w.cc4p().bit(!state));
+                    block.cr2.modify(|_, w| w.ois2n().bit(idle))
+                }
+                Channel::CH1_N => {
+                    block.ccer.modify(|_, w| w.cc1np().bit(!state));
+                    block.cr2.modify(|_, w| w.ois3().bit(idle))
+                }
+                Channel::CH2_N => {
+                    block.ccer.modify(|_, w| w.cc2np().bit(!state));
+                    block.cr2.modify(|_, w| w.ois3n().bit(idle))
+                }
+                Channel::CH3_N => {
+                    block.ccer.modify(|_, w| w.cc3np().bit(!state));
+                    block.cr2.modify(|_, w| w.ois4().bit(idle))
+                }
             }
         }
 
@@ -247,6 +277,21 @@ pub(crate) mod sealed {
                 Channel::CH1_N => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
                 Channel::CH2_N => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
                 Channel::CH3_N => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
+            }
+        }
+
+        #[inline]
+        fn triggle(signal: Triggle) {
+            let egr = &Self::block().egr;
+            match signal {
+                Triggle::UG => egr.write(|w| w.ug().set_bit()),
+                Triggle::CC1G => egr.write(|w| w.cc1g().set_bit()),
+                Triggle::CC2G => egr.write(|w| w.cc2g().set_bit()),
+                Triggle::CC3G => egr.write(|w| w.cc3g().set_bit()),
+                Triggle::CC4G => egr.write(|w| w.cc4g().set_bit()),
+                Triggle::COMG => egr.write(|w| w.comg().set_bit()),
+                Triggle::TG => egr.write(|w| w.tg().set_bit()),
+                Triggle::BG => egr.write(|w| w.bg().set_bit()),
             }
         }
 

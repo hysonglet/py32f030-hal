@@ -21,7 +21,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::enable_auto_reload_buff(false);
         T::enable_single_mode(false);
         T::set_cms(CenterAlignedMode::EdgeAligned);
-        T::set_dir(CountDirection::Down);
+        T::set_dir(CountDirection::Up);
 
         if M::is_async() {
             T::id().enable_interrupt();
@@ -102,7 +102,15 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
     }
 
     fn wait(&mut self) -> nb::Result<(), void::Void> {
-        while T::event_flag(Event::UIF) == false {}
+        while T::event_flag(Event::UIF) == false {
+            // defmt::info!(
+            //     "cnt: {} ccr1: {}  u: {} CC1IE: {}",
+            //     T::get_cnt(),
+            //     T::block().ccr1.read().bits(),
+            //     T::event_flag(Event::UIF),
+            //     T::event_flag(Event::CC1IF)
+            // );
+        }
         T::stop();
         Ok(())
     }
