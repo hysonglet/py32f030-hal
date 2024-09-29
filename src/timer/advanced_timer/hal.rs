@@ -145,7 +145,7 @@ pub(crate) mod sealed {
         /// 设置通道输出模式
         fn set_channel_output_config(
             channel: Channel,
-            mode: ChannelOutputMode,
+            mode: ChannelMode,
             clear: bool,
             fast: bool,
             preload: bool,

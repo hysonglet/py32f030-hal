@@ -3,7 +3,6 @@
 
 pub mod peripheral;
 
-// use crate::common::Peripheral;
 use crate::delay::wait_for_true_timeout_block;
 use crate::pac;
 use core::marker::PhantomData;

@@ -80,8 +80,65 @@ pub enum ChannelType {
     Capture3 = 3,
 }
 
+#[derive(Default)]
+pub struct ChannelOutputConfig {
+    pub state: bool,
+    pub polarity: bool,
+    pub idle_state: bool,
+}
+
+pub struct ChannelConfig {
+    pub mode: ChannelMode,
+    pub clear: bool,
+    pub fast: bool,
+    pub preload: bool,
+    /// Specifies the TIM Output Compare state.
+    pub compare: u16,
+
+    pub ch: Option<ChannelOutputConfig>,
+    pub n_ch: Option<ChannelOutputConfig>,
+}
+
+impl Default for ChannelConfig {
+    fn default() -> Self {
+        Self {
+            mode: ChannelMode::PWM1,
+            clear: false,
+            fast: false,
+            preload: false,
+            compare: 0,
+            ch: None,
+            n_ch: None,
+        }
+    }
+}
+
+impl ChannelConfig {
+    pub fn mode(self, mode: ChannelMode) -> Self {
+        Self { mode, ..self }
+    }
+
+    pub fn compare(self, compare: u16) -> Self {
+        Self { compare, ..self }
+    }
+
+    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
+        Self {
+            ch: Some(ch),
+            ..self
+        }
+    }
+
+    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
+        Self {
+            n_ch: Some(n_ch),
+            ..self
+        }
+    }
+}
+
 #[derive(Default, PartialEq, Eq)]
-pub enum ChannelOutputMode {
+pub enum ChannelMode {
     /// 输出比较 1 模式
     /// 该位定义了输出参考信号 OC1REF 的动作，而 OC1REF决定了 OC1、 OC1N 的值。 OC1REF 是高电平有效，
     /// 而OC1、 OC1N 的有效电平取决于 CC1P、 CC1NP 位。000：冻结。输出比较寄存器 TIM1_CCR1 与计数器

@@ -3,63 +3,6 @@ use crate::gpio::{self, AnyPin};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, PeripheralRef};
 
-#[derive(Default)]
-pub struct ChannelOutputConfig {
-    pub state: bool,
-    pub polarity: bool,
-    pub idle_state: bool,
-}
-
-pub struct ChannelConfig {
-    pub mode: ChannelOutputMode,
-    pub clear: bool,
-    pub fast: bool,
-    pub preload: bool,
-    /// Specifies the TIM Output Compare state.
-    pub compare: u16,
-
-    pub ch: Option<ChannelOutputConfig>,
-    pub n_ch: Option<ChannelOutputConfig>,
-}
-
-impl Default for ChannelConfig {
-    fn default() -> Self {
-        Self {
-            mode: ChannelOutputMode::PWM1,
-            clear: false,
-            fast: false,
-            preload: false,
-            compare: 0,
-            ch: None,
-            n_ch: None,
-        }
-    }
-}
-
-impl ChannelConfig {
-    pub fn mode(self, mode: ChannelOutputMode) -> Self {
-        Self { mode, ..self }
-    }
-
-    pub fn compare(self, compare: u16) -> Self {
-        Self { compare, ..self }
-    }
-
-    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
-        Self {
-            ch: Some(ch),
-            ..self
-        }
-    }
-
-    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
-        Self {
-            n_ch: Some(n_ch),
-            ..self
-        }
-    }
-}
-
 /// PWM
 ///
 pub struct Pwm<'d, T: Instance> {
@@ -98,6 +41,7 @@ impl<'d, T: Instance> Default for Pwm<'d, T> {
 
 impl<'d, T: Instance> Pwm<'d, T> {
     pub fn config(
+        &mut self,
         channel_1_config: Option<ChannelConfig>,
         channel_2_config: Option<ChannelConfig>,
         channel_3_config: Option<ChannelConfig>,
