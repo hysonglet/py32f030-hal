@@ -1,6 +1,6 @@
 pub(crate) mod sealed {
     use super::super::*;
-    use crate::common::BitOption;
+    use crate::bit::*;
     use crate::pac;
 
     pub trait Pin {
@@ -40,7 +40,7 @@ pub(crate) mod sealed {
             let block = self.block();
 
             block.moder.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
+                w.bits(bit_mask_idx_modify::<2>(
                     self.pin() * 2,
                     r.bits(),
                     mode as u32,
@@ -51,7 +51,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_output_type(&self, output_type: PinOutputType) {
             self.block().otyper.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<1>(
+                w.bits(bit_mask_idx_modify::<1>(
                     self.pin(),
                     r.bits(),
                     output_type as u32,
@@ -69,7 +69,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_push_pull(&self, push_pull: PinPullUpDown) {
             self.block().pupdr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
+                w.bits(bit_mask_idx_modify::<2>(
                     self.pin() * 2,
                     r.bits(),
                     push_pull as u32,
@@ -80,17 +80,13 @@ pub(crate) mod sealed {
         #[inline]
         fn read(&self) -> PinLevel {
             let r = self.block().idr.read().bits();
-            BitOption::bit_mask_idx_get::<1>(self.pin(), r).into()
+            bit_mask_idx_get::<1>(self.pin(), r).into()
         }
 
         #[inline]
         fn write(&self, level: PinLevel) {
             self.block().odr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<1>(
-                    self.pin(),
-                    r.bits(),
-                    level as u32,
-                ))
+                w.bits(bit_mask_idx_modify::<1>(self.pin(), r.bits(), level as u32))
             })
         }
 
@@ -105,7 +101,7 @@ pub(crate) mod sealed {
 
             if self.pin() < 8 {
                 block.afrl.modify(|r, w| unsafe {
-                    w.bits(BitOption::bit_mask_idx_modify::<4>(
+                    w.bits(bit_mask_idx_modify::<4>(
                         self.pin() * 4,
                         r.bits(),
                         af as u32,
@@ -113,7 +109,7 @@ pub(crate) mod sealed {
                 })
             } else {
                 block.afrh.modify(|r, w| unsafe {
-                    w.bits(BitOption::bit_mask_idx_modify::<4>(
+                    w.bits(bit_mask_idx_modify::<4>(
                         (self.pin() - 8) * 4,
                         r.bits(),
                         af as u32,
@@ -126,14 +122,14 @@ pub(crate) mod sealed {
         fn clear(&self) {
             self.block()
                 .bsrr
-                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(self.pin() + 16)) })
+                .write(|w| unsafe { w.bits(bit_mask_idx::<1>(self.pin() + 16)) })
         }
 
         #[inline]
         fn set(&self) {
             self.block()
                 .bsrr
-                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(self.pin())) })
+                .write(|w| unsafe { w.bits(bit_mask_idx::<1>(self.pin())) })
         }
 
         #[inline]
@@ -146,7 +142,7 @@ pub(crate) mod sealed {
         #[inline]
         fn set_speed(&self, speed: PinSpeed) {
             self.block().ospeedr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<2>(
+                w.bits(bit_mask_idx_modify::<2>(
                     self.pin() * 2,
                     r.bits(),
                     speed as u32,

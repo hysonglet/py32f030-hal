@@ -7,7 +7,7 @@ use core::{future::Future, marker::PhantomData, task::Poll};
 use crate::gpio::Pin;
 use crate::pac::interrupt;
 use crate::{
-    common::BitOption,
+    bit::*,
     gpio::{AnyPin, GpioPort, Input, PinLevel, PinPullUpDown, PinSpeed},
 };
 
@@ -180,7 +180,7 @@ impl Iterator for BitIter {
         match self.0.trailing_zeros() {
             32 => None,
             idx => {
-                self.0 = BitOption::bit_mask_idx_clear::<1>(idx as usize, self.0);
+                self.0 = bit_mask_idx_clear::<1>(idx as usize, self.0);
                 Some(idx)
             }
         }

@@ -1,7 +1,7 @@
 pub mod sealed {
     use super::super::*;
     // use crate::clock::peripheral::PeripheralEnable;
-    use crate::common::BitOption;
+    use crate::bit::*;
     use crate::pac;
     pub(crate) trait Instance {
         fn id() -> Id;
@@ -175,7 +175,7 @@ pub mod sealed {
         fn channel_enable(channel: AdcChannel, en: bool) {
             // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
             Self::block().chselr.modify(|r, w| unsafe {
-                w.bits(BitOption::bit_mask_idx_modify::<1>(
+                w.bits(bit_mask_idx_modify::<1>(
                     channel as usize,
                     r.bits(),
                     if en { 1 } else { 0 },
@@ -192,7 +192,7 @@ pub mod sealed {
             // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
             Self::block()
                 .chselr
-                .write(|w| unsafe { w.bits(BitOption::bit_mask_idx::<1>(channel as usize)) });
+                .write(|w| unsafe { w.bits(bit_mask_idx::<1>(channel as usize)) });
             if channel == AdcChannel::Channel11 {
                 Self::block().ccr.modify(|_, w| w.tsen().bit(true))
             } else if channel == AdcChannel::Channel12 {

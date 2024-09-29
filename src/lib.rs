@@ -10,8 +10,8 @@ use mcu::Peripherals;
 pub use PY32f030xx_pac as pac;
 
 pub mod adc;
+pub mod bit;
 pub mod clock;
-pub mod common;
 pub mod crc;
 pub mod delay;
 pub mod dma;

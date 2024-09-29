@@ -1,7 +1,7 @@
 pub mod sealed {
     use super::super::*;
+    use crate::bit::*;
     use crate::clock::{self, ClockFrequency};
-    use crate::common::BitOption;
     use crate::pac;
     pub(crate) trait Instance {
         fn id() -> Id;
@@ -62,8 +62,8 @@ pub mod sealed {
             let high: u8;
             let low: u16;
 
-            high = BitOption::bit_mask_idx_get::<4>(16, val) as u8;
-            low = BitOption::bit_mask_idx_get::<16>(0, val) as u16;
+            high = bit_mask_idx_get::<4>(16, val) as u8;
+            low = bit_mask_idx_get::<16>(0, val) as u16;
             block.prlh.write(|w| unsafe { w.prlh().bits(high) });
             block.prll.write(|w| unsafe { w.prll().bits(low) });
         }
@@ -74,24 +74,20 @@ pub mod sealed {
         //     let high = block.divh.read().bits();
         //     let low = block.divl.read().bits();
 
-        //     BitOption::bit_mask_idx_modify::<16>(16, low, high)
+        //     bit_mask_idx_modify::<16>(16, low, high)
         // }
 
         #[inline]
         fn get_counter() -> u32 {
             let block = Self::block();
-            BitOption::bit_mask_idx_modify::<16>(
-                16,
-                block.cntl.read().bits(),
-                block.cnth.read().bits(),
-            )
+            bit_mask_idx_modify::<16>(16, block.cntl.read().bits(), block.cnth.read().bits())
         }
 
         #[inline]
         fn set_counter(val: u32) {
             let block = Self::block();
-            let high = BitOption::bit_mask_idx_get::<16>(16, val);
-            let low = BitOption::bit_mask_idx_get::<16>(0, val);
+            let high = bit_mask_idx_get::<16>(16, val);
+            let low = bit_mask_idx_get::<16>(0, val);
             block.cnth.write(|w| unsafe { w.bits(high) });
             block.cntl.write(|w| unsafe { w.bits(low) });
         }
@@ -99,8 +95,8 @@ pub mod sealed {
         #[inline]
         fn set_alarm(val: u32) {
             let block = Self::block();
-            let high = BitOption::bit_mask_idx_get::<16>(16, val);
-            let low = BitOption::bit_mask_idx_get::<16>(0, val);
+            let high = bit_mask_idx_get::<16>(16, val);
+            let low = bit_mask_idx_get::<16>(0, val);
             block.alrh.write(|w| unsafe { w.bits(high) });
             block.alrl.write(|w| unsafe { w.bits(low) });
         }
