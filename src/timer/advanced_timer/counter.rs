@@ -102,15 +102,7 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
     }
 
     fn wait(&mut self) -> nb::Result<(), void::Void> {
-        while T::event_flag(Event::UIF) == false {
-            // defmt::info!(
-            //     "cnt: {} ccr1: {}  u: {} CC1IE: {}",
-            //     T::get_cnt(),
-            //     T::block().ccr1.read().bits(),
-            //     T::event_flag(Event::UIF),
-            //     T::event_flag(Event::CC1IF)
-            // );
-        }
+        while T::event_flag(Event::UIF) == false {}
         T::stop();
         Ok(())
     }

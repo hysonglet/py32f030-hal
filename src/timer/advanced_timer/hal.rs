@@ -204,10 +204,7 @@ pub(crate) mod sealed {
         fn set_channel_compare(channel: Channel, ccr: u16) {
             let block = Self::block();
             match channel {
-                Channel::CH1 => {
-                    // defmt::info!("compare: {}", ccr);
-                    block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) })
-                }
+                Channel::CH1 => block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) }),
                 Channel::CH2 => block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) }),
                 Channel::CH3 => block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) }),
                 Channel::CH4 => block.ccr4.modify(|_, w| unsafe { w.ccr4().bits(ccr) }),

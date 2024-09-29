@@ -86,7 +86,6 @@ pub(super) mod sealed {
                         Mode::OneTime(cnt) => {
                             block.ccr1.modify(|_, w| w.circ().bit(false));
                             block.cndtr1.modify(|_, w| unsafe { w.ndt().bits(cnt) });
-                            // defmt::info!("ontime: {}", cnt);
                         }
                         Mode::Repeat(cnt) => {
                             block.ccr1.modify(|_, w| w.circ().bit(true));

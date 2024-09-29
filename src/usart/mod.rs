@@ -130,7 +130,6 @@ pub struct Config {
     // pub mode: T,
 }
 
-// use defmt::Debug2Format;
 use embassy_hal_internal::into_ref;
 use embassy_hal_internal::Peripheral;
 use embassy_hal_internal::PeripheralRef;
@@ -218,7 +217,6 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             |rxd| {
                 into_ref!(rxd);
                 rxd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
-                // defmt::info!("rxd: {} ", Debug2Format(&(rxd.af())));
                 Some(rxd.map_into())
             },
         );
@@ -228,7 +226,6 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             |txd| {
                 into_ref!(txd);
                 txd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
-                // defmt::info!("txd: {} ", Debug2Format(&(txd.af())));
                 Some(txd.map_into())
             },
         );

@@ -18,7 +18,6 @@ macro_rules! pin_af_for_instance_def {
                 io_type: crate::gpio::PinIoType,
             ) {
                 self.set_mode(crate::gpio::PinMode::Af);
-                defmt::info!("{:?}", self.af() as u8);
                 self.set_af(self.af());
                 self.set_speed(speed);
                 self.set_io_type(io_type);

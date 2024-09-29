@@ -242,7 +242,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         };
 
         let pre = T::get_time_pclk() / freq;
-        defmt::info!("psc: {}", pre - 1);
         T::set_prescaler(pre as u16 - 1);
     }
 
