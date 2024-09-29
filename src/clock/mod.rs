@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 
 static mut F_CPU: u32 = 8000000;
 
-const TIMEOUT: usize = 10000;
+const TIMEOUT: usize = 1_000_000;
 
 /// 返回系统时钟的频率，单位：Hz
 #[inline]
@@ -105,7 +105,7 @@ pub struct PLL<CLK: PllSelect> {
 
 /// HSI 频率选择
 #[derive(PartialEq)]
-enum HsiHz {
+pub enum HsiHz {
     /// 000: 4MHz
     MHz4 = 0x00,
     /// 001: 8MHz
@@ -148,6 +148,14 @@ impl HsiHz {
 /// 高速内部时钟
 /// High-speed internal clock
 pub struct HSI;
+
+impl HSI {
+    pub fn set_hz(hsi_hz: HsiHz) {
+        Rcc::block()
+            .icscr
+            .modify(|_, w| unsafe { w.hsi_fs().bits(hsi_hz as u8) });
+    }
+}
 
 /// HSE 高速外部时钟 （4~32M）
 /// High-speed external clock
@@ -232,38 +240,30 @@ impl Clock for HSI {
 impl<const HZ: u32> Clock for HSE<HZ> {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        let peripheral = Rcc::block();
-
-        peripheral.cr.modify(|_, w| w.hseon().bit(en));
+        let block = Rcc::block();
+        cortex_m::asm::delay(10000);
+        block.ecscr.modify(|_, w| unsafe {
+            w.hse_freq().bits(if en == false {
+                0
+            } else if HZ < 8_000_000 {
+                1
+            } else if HZ < 16_000_000 {
+                2
+            } else {
+                3
+            })
+        });
+        cortex_m::asm::delay(100);
+        block.cr.modify(|_, w| w.hseon().bit(en)); //.hsebyp().bit(en)
 
         assert!(
-            HZ < 4000000 || HZ > 32000000,
+            (HZ >= 4_000_000) & (HZ <= 32_000_000),
             "HZ:{} only allow in [4~32M]",
             HZ
         );
-        // if HZ < 4000000 || HZ > 32000000 {
-        //     panic!("HZ only allow in [4~32M]");
-        // }
 
-        let v = if HZ < 8000000 {
-            1
-        } else if HZ < 16000000 {
-            2
-        } else {
-            3
-        };
-        peripheral
-            .ecscr
-            .modify(|_, w| unsafe { w.hse_freq().bits(v) });
-
-        let mut timeout = TIMEOUT;
-        while peripheral.cr.read().hserdy().bit_is_clear() {
-            cortex_m::asm::delay(1000);
-            timeout -= 1;
-            if timeout == 0 {
-                return Err(Error::HseTimeout);
-            }
-        }
+        wait_for_true_timeout_block(TIMEOUT, || block.cr.read().hserdy().bit())
+            .map_err(|_e| Error::HseTimeout)?;
 
         Ok(())
     }
@@ -449,6 +449,7 @@ where
 {
     fn config() -> Result<(), Error> {
         CLK::config()?;
+
         SysClockSw::PLL.config()?;
 
         // while true {}
@@ -490,7 +491,7 @@ impl From<u8> for PclkDiv {
             5 => Self::Div4,
             6 => Self::Div8,
             7 => Self::Div16,
-            _ => panic!("Error"),
+            _ => panic!(),
         }
     }
 }
@@ -507,7 +508,7 @@ impl From<u8> for HclkDiv {
             13 => Self::Div128,
             14 => Self::Div256,
             15 => Self::Div512,
-            _ => panic!("Error"),
+            _ => panic!(),
         }
     }
 }

@@ -36,9 +36,13 @@ pub mod config {
     /// 系统时钟选择
     #[derive(Default)]
     pub enum SysClockSource {
-        #[default]
+        /// 8M
         HSI,
+        /// 24M
         HSE,
+        /// 16M
+        #[default]
+        PLL_HSI,
     }
 
     /// 系统初始化配置
@@ -46,6 +50,12 @@ pub mod config {
     pub struct Config {
         /// 默认时钟配置
         pub sys_clk: SysClockSource,
+    }
+
+    impl Config {
+        pub fn sys_clk(self, sys_clk: SysClockSource) -> Self {
+            Self { sys_clk }
+        }
     }
 }
 
@@ -57,6 +67,10 @@ pub fn init(config: config::Config) -> Peripherals {
             clock::SysClock::<clock::HSE>::config().unwrap();
         }
         SysClockSource::HSI => {
+            clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
+        }
+        SysClockSource::PLL_HSI => {
+            // HSI::set_hz(clock::HsiHz::MHz8);
             clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
         }
     }
