@@ -3,7 +3,7 @@
 
 pub mod peripheral;
 
-use crate::common::Peripheral;
+// use crate::common::Peripheral;
 use crate::delay::wait_for_true_timeout_block;
 use crate::pac;
 use core::marker::PhantomData;
@@ -20,18 +20,18 @@ pub fn sys_core_clock() -> u32 {
 
 /// 返回 PCLK 时钟频率，单位： Hz
 pub fn sys_pclk() -> u32 {
-    let ppre: PclkDiv = Rcc::peripheral().cfgr.read().ppre().bits().into();
+    let ppre: PclkDiv = Rcc::block().cfgr.read().ppre().bits().into();
     sys_hclk() / ppre.div()
 }
 
 /// 返回 HCLK 时钟频率，单位：Hz
 pub fn sys_hclk() -> u32 {
-    let hpre: HclkDiv = Rcc::peripheral().cfgr.read().hpre().bits().into();
+    let hpre: HclkDiv = Rcc::block().cfgr.read().hpre().bits().into();
     sys_core_clock() / hpre.div()
 }
 
 pub fn timer_pclk() -> u32 {
-    let ppre: PclkDiv = Rcc::peripheral().cfgr.read().ppre().bits().into();
+    let ppre: PclkDiv = Rcc::block().cfgr.read().ppre().bits().into();
     let sys_pclk = sys_pclk();
 
     if ppre == PclkDiv::Div1 {
@@ -51,12 +51,18 @@ fn sys_core_clock_update(hz: u32) {
 /// Rcc 外设
 struct Rcc;
 
-impl Peripheral for Rcc {
-    type Target = &'static pac::rcc::RegisterBlock;
-    fn peripheral() -> Self::Target {
+impl Rcc {
+    pub fn block() -> &'static pac::rcc::RegisterBlock {
         unsafe { pac::RCC::PTR.as_ref().unwrap() }
     }
 }
+
+// impl Peripheral for Rcc {
+//     type Target = &'static pac::rcc::RegisterBlock;
+//     fn peripheral() -> Self::Target {
+//         unsafe { pac::RCC::PTR.as_ref().unwrap() }
+//     }
+// }
 
 #[derive(Debug)]
 pub enum Error {
@@ -162,8 +168,7 @@ impl ClockFrequency for LSE {
 
 impl ClockFrequency for HSI {
     fn hz() -> u32 {
-        let peripheral = Rcc::peripheral();
-        let hsi_fs: HsiHz = peripheral.icscr.read().hsi_fs().bits().into();
+        let hsi_fs: HsiHz = Rcc::block().icscr.read().hsi_fs().bits().into();
         hsi_fs.hz()
     }
 }
@@ -186,7 +191,7 @@ where
 impl Clock for LSI {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        let block = Rcc::peripheral();
+        let block = Rcc::block();
         block.csr.modify(|_, w| w.lsion().bit(en));
         wait_for_true_timeout_block(1000, || block.csr.read().lsirdy() == en)
             .map_err(|_| Error::LsiTimeout)
@@ -196,7 +201,7 @@ impl Clock for LSI {
 impl Clock for LSE {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         peripheral
             .bdcr
@@ -219,7 +224,7 @@ impl Clock for LSE {
 impl Clock for HSI {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
         peripheral.cr.modify(|_, w| w.hsion().bit(en));
         Ok(())
     }
@@ -228,7 +233,7 @@ impl Clock for HSI {
 impl<const HZ: u32> Clock for HSE<HZ> {
     #[inline]
     fn set(en: bool) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         peripheral.cr.modify(|_, w| w.hseon().bit(en));
 
@@ -314,7 +319,7 @@ impl<const DIV: u32> ClockFrequency for HSIDiv<DIV> {
 
 impl<const DIV: u32> Clock for HSIDiv<DIV> {
     fn set(en: bool) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         let hsi_div: HsiDiv = DIV.into();
         // 设置分频
@@ -334,7 +339,7 @@ enum PllClock {
 
 impl PllClock {
     fn config(&self) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         peripheral
             .pllcfgr
@@ -381,7 +386,7 @@ enum SysClockSw {
 
 impl SysClockSw {
     fn config(&self) -> Result<(), Error> {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         peripheral
             .cfgr
@@ -523,7 +528,7 @@ impl HclkDiv {
         }
     }
     pub fn config(&self) {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.hpre().bits(*self as u8) });
@@ -542,7 +547,7 @@ impl PclkDiv {
     }
 
     pub fn config(&self) {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
         peripheral
             .cfgr
             .modify(|_, w| unsafe { w.ppre().bits(*self as u8) });
@@ -610,7 +615,7 @@ pub enum McoSelect {
 
 impl Mco {
     pub fn select(source: McoSelect, div: McoDIV) {
-        let peripheral = Rcc::peripheral();
+        let peripheral = Rcc::block();
 
         peripheral
             .cfgr
@@ -626,7 +631,7 @@ pub trait RtcSelect: Clock + ClockFrequency {
 impl RtcSelect for LSI {
     fn config() -> Result<(), Error> {
         Self::enable()?;
-        Rcc::peripheral()
+        Rcc::block()
             .bdcr
             .modify(|_, w| unsafe { w.rtcsel().bits(0b10).rtcen().set_bit().lscoen().set_bit() });
         Ok(())
@@ -637,7 +642,7 @@ impl RtcSelect for LSE {
         // 开启外部时钟，
         // TODO！ 引脚初始化？
         Self::enable()?;
-        Rcc::peripheral()
+        Rcc::block()
             .bdcr
             .modify(|_, w| unsafe { w.rtcsel().bits(0b10).rtcen().set_bit().lscoen().set_bit() });
         Ok(())
@@ -646,7 +651,7 @@ impl RtcSelect for LSE {
 impl<const HZ: u32> RtcSelect for HSE<HZ> {
     fn config() -> Result<(), Error> {
         Self::enable()?;
-        Rcc::peripheral()
+        Rcc::block()
             .bdcr
             .modify(|_, w| unsafe { w.rtcsel().bits(0b11).rtcen().set_bit().lscoen().set_bit() });
         Ok(())

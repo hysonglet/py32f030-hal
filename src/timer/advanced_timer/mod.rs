@@ -9,7 +9,6 @@ use enumset::EnumSetType;
 
 pub use counter::Counter;
 pub use pwm::Pwm;
-use PY32f030xx_pac::adc::tr;
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
@@ -54,15 +53,18 @@ impl PeripheralInterrupt for AdvancedTimer {
 }
 
 /// 输入捕获和输出pwm通道
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Channel {
     CH1,
-    CH1_N,
     CH2,
-    CH2_N,
     CH3,
-    CH3_N,
     CH4,
+}
+
+#[derive(PartialEq)]
+pub enum ChannelOutput {
+    P,
+    N,
 }
 
 /// 通道类型
@@ -78,12 +80,13 @@ pub enum ChannelType {
     Capture3 = 3,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
 pub enum ChannelOutputMode {
     /// 输出比较 1 模式
     /// 该位定义了输出参考信号 OC1REF 的动作，而 OC1REF决定了 OC1、 OC1N 的值。 OC1REF 是高电平有效，
     /// 而OC1、 OC1N 的有效电平取决于 CC1P、 CC1NP 位。000：冻结。输出比较寄存器 TIM1_CCR1 与计数器
     /// TIM1_CNT 间的比较对 OC1REF 不起作用
+    #[default]
     Mode0 = 0,
     /// 匹配时设置通道1为有效电平。当计数器TIMx_CNT的值与捕获/比较寄存器1(TIMx_CCR1)相同时，
     /// 强制 OC1REF 为高。

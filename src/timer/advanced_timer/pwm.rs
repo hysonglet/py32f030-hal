@@ -1,11 +1,67 @@
 use super::*;
 use crate::gpio::{self, AnyPin};
 use core::marker::PhantomData;
-use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
+use embassy_hal_internal::{into_ref, PeripheralRef};
 
-/// 计数器
+#[derive(Default)]
+pub struct ChannelOutputConfig {
+    pub state: bool,
+    pub polarity: bool,
+    pub idle_state: bool,
+}
+
+pub struct ChannelConfig {
+    pub mode: ChannelOutputMode,
+    pub clear: bool,
+    pub fast: bool,
+    pub preload: bool,
+    /// Specifies the TIM Output Compare state.
+    pub compare: u16,
+
+    pub ch: Option<ChannelOutputConfig>,
+    pub n_ch: Option<ChannelOutputConfig>,
+}
+
+impl Default for ChannelConfig {
+    fn default() -> Self {
+        Self {
+            mode: ChannelOutputMode::PWM1,
+            clear: false,
+            fast: false,
+            preload: false,
+            compare: 0,
+            ch: None,
+            n_ch: None,
+        }
+    }
+}
+
+impl ChannelConfig {
+    pub fn mode(self, mode: ChannelOutputMode) -> Self {
+        Self { mode, ..self }
+    }
+
+    pub fn compare(self, compare: u16) -> Self {
+        Self { compare, ..self }
+    }
+
+    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
+        Self {
+            ch: Some(ch),
+            ..self
+        }
+    }
+
+    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
+        Self {
+            n_ch: Some(n_ch),
+            ..self
+        }
+    }
+}
+
+/// PWM
 ///
-/// 使用向上计数模式
 pub struct Pwm<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 
@@ -18,23 +74,8 @@ pub struct Pwm<'d, T: Instance> {
     _channel_4_pin: Option<PeripheralRef<'d, AnyPin>>,
 }
 
-// pub struct PwmChannel<'d, T: Instance> {
-//     _id: Channel,
-//     _t: PhantomData<&'d T>,
-
-//     ch_pin: Option<PeripheralRef<'d, AnyPin>>,
-// }
-
-impl<'d, T: Instance> Pwm<'d, T> {
-    pub fn new() -> Self {
-        T::set_dir(CountDirection::Up);
-        T::set_enable_channel(Channel::CH1, false);
-        T::set_channel_output_config(Channel::CH1, ChannelOutputMode::PWM1, false, false, true);
-        T::set_channel_output_effective_level(Channel::CH1, true, false);
-        T::set_channel_type(Channel::CH1, ChannelType::Pwm);
-        T::enable_auto_reload_buff(true);
-        T::enable_channel_output(true);
-
+impl<'d, T: Instance> Default for Pwm<'d, T> {
+    fn default() -> Self {
         Self {
             _t: PhantomData,
             _channel_1_pin: None,
@@ -45,6 +86,79 @@ impl<'d, T: Instance> Pwm<'d, T> {
             _channel_3_n_pin: None,
             _channel_4_pin: None,
         }
+    }
+}
+
+// pub struct PwmChannel<'d, T: Instance> {
+//     _id: Channel,
+//     _t: PhantomData<&'d T>,
+
+//     ch_pin: Option<PeripheralRef<'d, AnyPin>>,
+// }
+
+impl<'d, T: Instance> Pwm<'d, T> {
+    pub fn config(
+        channel_1_config: Option<ChannelConfig>,
+        channel_2_config: Option<ChannelConfig>,
+        channel_3_config: Option<ChannelConfig>,
+        channel_4_config: Option<ChannelConfig>,
+    ) -> Self {
+        if let Some(config) = channel_1_config {
+            Self::channel_config(Channel::CH1, config)
+        }
+
+        if let Some(config) = channel_2_config {
+            Self::channel_config(Channel::CH2, config)
+        }
+
+        if let Some(config) = channel_3_config {
+            Self::channel_config(Channel::CH3, config)
+        }
+
+        if let Some(config) = channel_4_config {
+            Self::channel_config(Channel::CH4, config)
+        }
+
+        T::enable_auto_reload_buff(true);
+
+        Default::default()
+    }
+
+    fn channel_config(channel: Channel, config: ChannelConfig) {
+        T::set_enable_channel(channel, ChannelOutput::P, false);
+        T::set_enable_channel(channel, ChannelOutput::N, false);
+        T::set_channel_output_config(
+            channel,
+            config.mode,
+            config.clear,
+            config.fast,
+            config.preload,
+        );
+        T::set_channel_type(channel, ChannelType::Pwm);
+
+        if let Some(ch) = config.ch {
+            T::set_channel_output_effective_level(
+                channel,
+                ChannelOutput::P,
+                ch.polarity,
+                ch.state,
+                ch.idle_state,
+            );
+        }
+
+        if let Some(ch) = config.n_ch {
+            T::set_channel_output_effective_level(
+                channel,
+                ChannelOutput::N,
+                ch.polarity,
+                ch.state,
+                ch.idle_state,
+            );
+        }
+    }
+
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
@@ -158,11 +272,13 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
 impl<'d, T: Instance> Pwm<'d, T> {
     pub fn enable(&mut self, channel: Channel) {
-        T::set_enable_channel(channel, true)
+        T::set_enable_channel(channel, ChannelOutput::P, true);
+        T::set_enable_channel(channel, ChannelOutput::N, true);
     }
 
     pub fn disable(&mut self, channel: Channel) {
-        T::set_enable_channel(channel, false)
+        T::set_enable_channel(channel, ChannelOutput::P, false);
+        T::set_enable_channel(channel, ChannelOutput::N, false);
     }
 
     pub fn get_duty(&self, channel: Channel) -> u16 {
@@ -211,22 +327,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
     pub fn stop(&mut self) {
         T::enable_channel_output(false);
         T::stop()
-    }
-
-    pub fn debug(&self) {
-        // defmt::info!("reload: {}", T::get_reload());
-        // T::triggle(Triggle::CC1G);
-        // defmt::info!(
-        //     "cnt: {:04x} ccr1: {}  u: {} CC1IE: {}",
-        //     T::get_cnt(),
-        //     T::block().ccr1.read().bits(),
-        //     T::event_flag(Event::UIF),
-        //     T::event_flag(Event::CC1IF)
-        // );
-        // if T::event_flag(Event::CC1IF) {
-        //     // T::event_clear(Event::UIF);
-        //     T::event_clear(Event::CC1IF);
-        // }
     }
 }
 

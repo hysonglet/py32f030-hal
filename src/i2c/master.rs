@@ -297,19 +297,19 @@ impl<'d, T: Instance> embedded_hal_async::i2c::ErrorType for Master<'d, T, Async
 }
 
 impl<'d, T: Instance> embedded_hal_async::i2c::I2c for Master<'d, T, Async> {
-    async fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+    async fn read(&mut self, _address: u8, _read: &mut [u8]) -> Result<(), Self::Error> {
         todo!()
     }
 
     async fn transaction(
         &mut self,
-        address: u8,
-        operations: &mut [embedded_hal_async::i2c::Operation<'_>],
+        _address: u8,
+        _operations: &mut [embedded_hal_async::i2c::Operation<'_>],
     ) -> Result<(), Self::Error> {
         todo!()
     }
 
-    async fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+    async fn write(&mut self, _address: u8, _write: &[u8]) -> Result<(), Self::Error> {
         // self.write(address, write).await.map_or_else((), |e| e)
         todo!()
     }

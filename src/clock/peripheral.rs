@@ -1,5 +1,5 @@
 use super::Rcc;
-use crate::common::{BitOption, Peripheral};
+use crate::common::BitOption;
 
 #[derive(Clone, Copy)]
 pub enum GpioClock {
@@ -11,7 +11,7 @@ pub enum GpioClock {
 impl GpioClock {
     #[inline]
     pub fn enable(&self, en: bool) {
-        Rcc::peripheral().iopenr.modify(|r, w| unsafe {
+        Rcc::block().iopenr.modify(|r, w| unsafe {
             w.bits(BitOption::bit_mask_idx_modify::<1>(
                 *self as usize,
                 r.bits(),
@@ -21,12 +21,11 @@ impl GpioClock {
     }
 
     pub(crate) fn is_open(&self) -> bool {
-        BitOption::bit_mask_idx_get::<1>(*self as usize, Rcc::peripheral().iopenr.read().bits())
-            != 0
+        BitOption::bit_mask_idx_get::<1>(*self as usize, Rcc::block().iopenr.read().bits()) != 0
     }
     #[inline]
     pub fn reset(&self) {
-        Rcc::peripheral().ioprstr.modify(|r, w| unsafe {
+        Rcc::block().ioprstr.modify(|r, w| unsafe {
             w.bits(BitOption::bit_mask_idx_set::<1>(*self as usize, r.bits()))
         })
     }
@@ -67,18 +66,18 @@ impl PeripheralClockIndex {
     pub(crate) fn is_open(&self) -> bool {
         let idx = *self as usize;
         if idx < 32 {
-            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().ahbenr.read().bits()) != 0
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::block().ahbenr.read().bits()) != 0
         } else if idx < 64 {
-            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().apbenr1.read().bits()) != 0
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::block().apbenr1.read().bits()) != 0
         } else {
-            BitOption::bit_mask_idx_get::<1>(idx, Rcc::peripheral().apbenr2.read().bits()) != 0
+            BitOption::bit_mask_idx_get::<1>(idx, Rcc::block().apbenr2.read().bits()) != 0
         }
     }
 
     /// 设置时钟开启或关闭
     pub(crate) fn clock(&self, en: bool) {
         if (*self as u32) < 32 {
-            Rcc::peripheral().ahbenr.modify(|r, w| unsafe {
+            Rcc::block().ahbenr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
                     *self as usize,
                     r.bits(),
@@ -86,7 +85,7 @@ impl PeripheralClockIndex {
                 ))
             })
         } else if (*self as u32) < 64 {
-            Rcc::peripheral().apbenr1.modify(|r, w| unsafe {
+            Rcc::block().apbenr1.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
                     (*self as usize) - 32,
                     r.bits(),
@@ -94,7 +93,7 @@ impl PeripheralClockIndex {
                 ))
             })
         } else {
-            Rcc::peripheral().apbenr2.modify(|r, w| unsafe {
+            Rcc::block().apbenr2.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_modify::<1>(
                     (*self as usize) - 64,
                     r.bits(),
@@ -110,18 +109,18 @@ impl PeripheralClockIndex {
             if *self == Self::FLASH || *self == Self::SRAM {
                 panic!()
             }
-            Rcc::peripheral().ahbrstr.modify(|r, w| unsafe {
+            Rcc::block().ahbrstr.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_set::<1>(*self as usize, r.bits()))
             })
         } else if (*self as u32) < 64 {
-            Rcc::peripheral().apbrstr1.modify(|r, w| unsafe {
+            Rcc::block().apbrstr1.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_set::<1>(
                     (*self as usize) - 32,
                     r.bits(),
                 ))
             })
         } else {
-            Rcc::peripheral().apbrstr2.modify(|r, w| unsafe {
+            Rcc::block().apbrstr2.modify(|r, w| unsafe {
                 w.bits(BitOption::bit_mask_idx_set::<1>(
                     (*self as usize) - 64,
                     r.bits(),

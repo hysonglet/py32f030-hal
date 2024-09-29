@@ -42,7 +42,7 @@ impl Delay {
 }
 
 impl<usize> embedded_hal::blocking::delay::DelayMs<usize> for Delay {
-    fn delay_ms(&mut self, ms: usize) {
+    fn delay_ms(&mut self, _ms: usize) {
         delay(400)
     }
 }

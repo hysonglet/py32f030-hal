@@ -4,7 +4,7 @@ pub(crate) mod sealed {
     use crate::pac;
 
     pub trait Instance {
-        // 考虑以后其他单片机可能有多个IIC
+        /// 考虑以后其他单片机可能有多个相同外设
         /// 高级定时器的索引
         fn id() -> AdvancedTimer;
 
@@ -85,6 +85,7 @@ pub(crate) mod sealed {
             Self::block().arr.write(|w| unsafe { w.arr().bits(load) })
         }
 
+        /// 获取重载值
         #[inline]
         fn get_reload() -> u16 {
             Self::block().arr.read().arr().bits()
@@ -98,12 +99,11 @@ pub(crate) mod sealed {
             Self::block().cr1.modify(|_, w| w.opm().bit(en))
         }
 
-        /// 使能自动重载
+        /// 自动重装载预装载允许位
+        /// 0： TIM1_ARR 寄存器没有缓冲
+        /// 1： TIM1_ARR 寄存器被装入缓冲器
         #[inline]
         fn enable_auto_reload_buff(en: bool) {
-            // 自动重装载预装载允许位
-            // 0： TIM1_ARR 寄存器没有缓冲
-            // 1： TIM1_ARR 寄存器被装入缓冲器
             Self::block().cr1.modify(|_, w| w.arpe().bit(en))
         }
 
@@ -127,21 +127,19 @@ pub(crate) mod sealed {
         fn set_channel_type(channel: Channel, channel_type: ChannelType) {
             let block = Self::block();
             match channel {
-                Channel::CH1 | Channel::CH1_N => block
+                Channel::CH1 => block
                     .ccmr1_output()
                     .modify(|_, w| unsafe { w.cc1s().bits(channel_type as u8) }),
-                Channel::CH2 | Channel::CH2_N => block
+                Channel::CH2 => block
                     .ccmr1_output()
                     .modify(|_, w| unsafe { w.cc2s().bits(channel_type as u8) }),
-                Channel::CH3 | Channel::CH3_N => block
+                Channel::CH3 => block
                     .ccmr2_output()
                     .modify(|_, w| unsafe { w.cc3s().bits(channel_type as u8) }),
                 Channel::CH4 => block
                     .ccmr2_output()
                     .modify(|_, w| unsafe { w.cc4s().bits(channel_type as u8) }),
             }
-
-            // defmt::info!("{}")
         }
 
         /// 设置通道输出模式
@@ -154,7 +152,7 @@ pub(crate) mod sealed {
         ) {
             let block = Self::block();
             match channel {
-                Channel::CH1 | Channel::CH1_N => block.ccmr1_output().modify(|_, w| unsafe {
+                Channel::CH1 => block.ccmr1_output().modify(|_, w| unsafe {
                     w.oc1m()
                         .bits(mode as u8)
                         .oc1ce()
@@ -164,7 +162,7 @@ pub(crate) mod sealed {
                         .oc1pe()
                         .bit(preload)
                 }),
-                Channel::CH2 | Channel::CH2_N => block.ccmr1_output().modify(|_, w| {
+                Channel::CH2 => block.ccmr1_output().modify(|_, w| {
                     unsafe { w.oc2m().bits(mode as u8) }
                         .oc2ce()
                         .bit(clear)
@@ -173,7 +171,7 @@ pub(crate) mod sealed {
                         .oc2pe()
                         .bit(preload)
                 }),
-                Channel::CH3 | Channel::CH3_N => block.ccmr2_output().modify(|_, w| unsafe {
+                Channel::CH3 => block.ccmr2_output().modify(|_, w| unsafe {
                     w.oc3m()
                         .bits(mode as u8)
                         .oc3ce()
@@ -196,7 +194,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// 使能输出
+        /// 使能通道连接到引脚
         #[inline]
         fn enable_channel_output(en: bool) {
             Self::block().bdtr.write(|w| w.moe().bit(en));
@@ -206,16 +204,12 @@ pub(crate) mod sealed {
         fn set_channel_compare(channel: Channel, ccr: u16) {
             let block = Self::block();
             match channel {
-                Channel::CH1 | Channel::CH1_N => {
+                Channel::CH1 => {
                     // defmt::info!("compare: {}", ccr);
                     block.ccr1.write(|w| unsafe { w.ccr1().bits(ccr) })
                 }
-                Channel::CH2 | Channel::CH2_N => {
-                    block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) })
-                }
-                Channel::CH3 | Channel::CH3_N => {
-                    block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) })
-                }
+                Channel::CH2 => block.ccr2.modify(|_, w| unsafe { w.ccr2().bits(ccr) }),
+                Channel::CH3 => block.ccr3.modify(|_, w| unsafe { w.ccr3().bits(ccr) }),
                 Channel::CH4 => block.ccr4.modify(|_, w| unsafe { w.ccr4().bits(ccr) }),
             }
         }
@@ -224,62 +218,85 @@ pub(crate) mod sealed {
         fn get_channel_capture(channel: Channel) -> u16 {
             let block = Self::block();
             match channel {
-                Channel::CH1 | Channel::CH1_N => block.ccr1.read().ccr1().bits(),
-                Channel::CH2 | Channel::CH2_N => block.ccr2.read().ccr2().bits(),
-                Channel::CH3 | Channel::CH3_N => block.ccr3.read().ccr3().bits(),
+                Channel::CH1 => block.ccr1.read().ccr1().bits(),
+                Channel::CH2 => block.ccr2.read().ccr2().bits(),
+                Channel::CH3 => block.ccr3.read().ccr3().bits(),
                 Channel::CH4 => block.ccr4.read().ccr4().bits(),
             }
         }
 
         /// 设置输出通道的有效极性，true: 高电平   ，false：低电平
-        fn set_channel_output_effective_level(channel: Channel, state: bool, idle: bool) {
+        fn set_channel_output_effective_level(
+            channel: Channel,
+            channel_output: ChannelOutput,
+            polarity: bool,
+            state: bool,
+            idle: bool,
+        ) {
             let block = Self::block();
-            match channel {
-                Channel::CH1 => {
-                    block.ccer.modify(|_, w| w.cc1p().bit(!state));
+            match (channel, channel_output) {
+                (Channel::CH1, ChannelOutput::P) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc1p().bit(!polarity).cc1e().bit(state));
                     block.cr2.modify(|_, w| w.ois1().bit(idle))
                 }
-                Channel::CH2 => {
-                    block.ccer.modify(|_, w| w.cc2p().bit(!state));
+                (Channel::CH2, ChannelOutput::P) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc2p().bit(!polarity).cc2e().bit(state));
                     block.cr2.modify(|_, w| w.ois1n().bit(idle))
                 }
-                Channel::CH3 => {
-                    block.ccer.modify(|_, w| w.cc3p().bit(!state));
+                (Channel::CH3, ChannelOutput::P) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc3p().bit(!polarity).cc3e().bit(state));
                     block.cr2.modify(|_, w| w.ois2().bit(idle))
                 }
-                Channel::CH4 => {
-                    block.ccer.modify(|_, w| w.cc4p().bit(!state));
+                (Channel::CH4, ChannelOutput::P) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc4p().bit(!polarity).cc4e().bit(state));
                     block.cr2.modify(|_, w| w.ois2n().bit(idle))
                 }
-                Channel::CH1_N => {
-                    block.ccer.modify(|_, w| w.cc1np().bit(!state));
+                (Channel::CH1, ChannelOutput::N) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc1np().bit(!polarity).cc1ne().bit(state));
                     block.cr2.modify(|_, w| w.ois3().bit(idle))
                 }
-                Channel::CH2_N => {
-                    block.ccer.modify(|_, w| w.cc2np().bit(!state));
+                (Channel::CH2, ChannelOutput::N) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc2np().bit(!polarity).cc2ne().bit(state));
                     block.cr2.modify(|_, w| w.ois3n().bit(idle))
                 }
-                Channel::CH3_N => {
-                    block.ccer.modify(|_, w| w.cc3np().bit(!state));
+                (Channel::CH3, ChannelOutput::N) => {
+                    block
+                        .ccer
+                        .modify(|_, w| w.cc3np().bit(!polarity).cc3ne().bit(state));
                     block.cr2.modify(|_, w| w.ois4().bit(idle))
                 }
+                (Channel::CH4, ChannelOutput::N) => {}
             }
         }
 
         /// 使能 P 通道
-        fn set_enable_channel(channel: Channel, en: bool) {
+        fn set_enable_channel(channel: Channel, channel_output: ChannelOutput, en: bool) {
             let block = Self::block();
-            match channel {
-                Channel::CH1 => block.ccer.modify(|_, w| w.cc1e().bit(en)),
-                Channel::CH2 => block.ccer.modify(|_, w| w.cc2e().bit(en)),
-                Channel::CH3 => block.ccer.modify(|_, w| w.cc3e().bit(en)),
-                Channel::CH4 => block.ccer.modify(|_, w| w.cc4e().bit(en)),
-                Channel::CH1_N => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
-                Channel::CH2_N => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
-                Channel::CH3_N => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
+            match (channel, channel_output) {
+                (Channel::CH1, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc1e().bit(en)),
+                (Channel::CH2, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc2e().bit(en)),
+                (Channel::CH3, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc3e().bit(en)),
+                (Channel::CH4, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc4e().bit(en)),
+                (Channel::CH1, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
+                (Channel::CH2, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
+                (Channel::CH3, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
+                (Channel::CH4, ChannelOutput::N) => {}
             }
         }
 
+        /// 软件方式触发信号
         #[inline]
         fn triggle(signal: Triggle) {
             let egr = &Self::block().egr;
@@ -363,16 +380,10 @@ pub(crate) mod sealed {
             let rep = count / (1u64 << 16);
             let arr = count / (rep + 1);
 
-            // let c = (psc + 1) * (rep + 1) * (arr + 1);
-            // defmt::info!(
-            //     "ticks: {} c: {} diff: {}",
-            //     ticks,
-            //     c,
-            //     if ticks > c { ticks - c } else { c - ticks }
-            // );
             (psc as u16, rep as u8, arr as u16)
         }
 
+        /// 根据给定的纳秒计算分频和重复、计数寄存器的值
         fn nanosecond_to_compute_with_rep(nano: u64) -> (u16, u8, u16) {
             let ticks = nano * Self::get_time_pclk() as u64 / 1000_000_000;
 
@@ -382,13 +393,6 @@ pub(crate) mod sealed {
             let rep = count / (1u64 << 16);
             let arr = count / (rep + 1);
 
-            // let c = (psc + 1) * (rep + 1) * (arr + 1);
-            // defmt::info!(
-            //     "ticks: {} c: {} diff: {}",
-            //     ticks,
-            //     c,
-            //     if ticks > c { ticks - c } else { c - ticks }
-            // );
             (psc as u16, rep as u8, arr as u16)
         }
     }

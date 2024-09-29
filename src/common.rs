@@ -3,12 +3,6 @@
 //     Timeout,
 // }
 
-// 即将废弃
-pub(crate) trait Peripheral {
-    type Target;
-    fn peripheral() -> Self::Target;
-}
-
 pub struct BitOption;
 impl BitOption {
     #[inline]
