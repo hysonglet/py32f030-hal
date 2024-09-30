@@ -30,11 +30,7 @@ pub mod sealed {
         #[inline]
         fn line_ring_edge(line: Line, en: bool) {
             Self::block().rtsr.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_modify::<1>(
-                    line as usize * 1,
-                    r.bits(),
-                    en as u32,
-                ))
+                w.bits(bit_mask_idx_modify::<1>(line as usize, r.bits(), en as u32))
             })
         }
 

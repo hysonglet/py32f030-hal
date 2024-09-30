@@ -167,7 +167,7 @@ pub mod sealed {
         fn set_watch_dog_threshold(high: u16, low: u16) {
             Self::block()
                 .tr
-                .modify(|_, w| unsafe { w.ht().bits(high as u16).lt().bits(low as u16) })
+                .modify(|_, w| unsafe { w.ht().bits(high).lt().bits(low) })
         }
 
         /// 通道使能或关闭

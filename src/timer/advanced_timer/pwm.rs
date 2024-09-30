@@ -258,7 +258,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_channel_compare(channel, duty);
     }
 
-    fn set_period<P>(&mut self, period: u16) {
+    fn set_period(&mut self, period: u16) {
         T::set_auto_reload(period)
     }
 
@@ -308,7 +308,7 @@ impl<'d, T: Instance> embedded_hal::Pwm for Pwm<'d, T> {
     where
         P: Into<Self::Time>,
     {
-        self.set_period::<u16>(period.into())
+        self.set_period(period.into())
     }
 }
 

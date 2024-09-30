@@ -4,8 +4,7 @@ use core::{future::Future, marker::PhantomData, task::Poll};
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-const ATOMICWAKE: AtomicWaker = AtomicWaker::new();
-static WAKER: [AtomicWaker; 1] = [ATOMICWAKE; 1];
+static WAKER: [AtomicWaker; 1] = [AtomicWaker::new(); 1];
 
 pub struct EventFuture<T: Instance> {
     _t: PhantomData<T>,

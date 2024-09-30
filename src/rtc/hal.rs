@@ -59,11 +59,9 @@ pub mod sealed {
         #[inline]
         fn set_reload(val: u32) {
             let block = Self::block();
-            let high: u8;
-            let low: u16;
 
-            high = bit_mask_idx_get::<4>(16, val) as u8;
-            low = bit_mask_idx_get::<16>(0, val) as u16;
+            let high = bit_mask_idx_get::<4>(16, val) as u8;
+            let low = bit_mask_idx_get::<16>(0, val) as u16;
             block.prlh.write(|w| unsafe { w.prlh().bits(high) });
             block.prll.write(|w| unsafe { w.prll().bits(low) });
         }

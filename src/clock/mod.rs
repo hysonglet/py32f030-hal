@@ -56,13 +56,6 @@ impl Rcc {
     }
 }
 
-// impl Peripheral for Rcc {
-//     type Target = &'static pac::rcc::RegisterBlock;
-//     fn peripheral() -> Self::Target {
-//         unsafe { pac::RCC::PTR.as_ref().unwrap() }
-//     }
-// }
-
 #[derive(Debug)]
 pub enum Error {
     LsiTimeout,
@@ -243,7 +236,7 @@ impl<const HZ: u32> Clock for HSE<HZ> {
         let block = Rcc::block();
         cortex_m::asm::delay(10000);
         block.ecscr.modify(|_, w| unsafe {
-            w.hse_freq().bits(if en == false {
+            w.hse_freq().bits(if !en {
                 0
             } else if HZ < 8_000_000 {
                 1

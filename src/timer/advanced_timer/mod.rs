@@ -4,7 +4,7 @@ mod hal;
 mod pins;
 mod pwm;
 
-use core::{marker::PhantomData, u16};
+use core::marker::PhantomData;
 use enumset::EnumSetType;
 
 pub use counter::Counter;

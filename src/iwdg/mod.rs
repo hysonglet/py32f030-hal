@@ -46,7 +46,7 @@ impl Default for Config {
 impl Config {
     pub fn timeout_us(&self) -> u32 {
         let hz = IWDG_CLOCK_HZ >> (self.div as usize + 2);
-        1000_000 * self.reload as u32 / hz
+        1_000_000 * self.reload as u32 / hz
     }
 }
 
@@ -62,8 +62,8 @@ impl<'d, T: Instance> IWdg<'d, T> {
         // PeripheralClockIndex::.clock(true);
         T::enable_config();
 
-        wait_for_true_timeout_block(100000, || T::is_div_updating() == false).unwrap();
-        wait_for_true_timeout_block(100000, || T::is_reloading() == false).unwrap();
+        wait_for_true_timeout_block(100000, || !T::is_div_updating()).unwrap();
+        wait_for_true_timeout_block(100000, || !T::is_reloading()).unwrap();
         T::set_div(config.div);
         T::set_reload(config.reload);
         Self { _t: PhantomData }

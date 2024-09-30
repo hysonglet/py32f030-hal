@@ -8,11 +8,7 @@ pub(super) mod sealed {
         fn block() -> &'static pac::spi1::RegisterBlock {
             match Self::id() {
                 Id::SPI1 => unsafe { pac::SPI1::PTR.as_ref().unwrap() },
-                Id::SPI2 => unsafe {
-                    (pac::SPI2::PTR as *const pac::spi1::RegisterBlock)
-                        .as_ref()
-                        .unwrap()
-                },
+                Id::SPI2 => unsafe { pac::SPI2::PTR.as_ref().unwrap() },
             }
         }
 
@@ -198,7 +194,6 @@ pub(super) mod sealed {
             Self::block().sr.read().rxne().bit()
         }
 
-        ///
         #[inline]
         fn data_write(data: u16) {
             // The data register serves as an interface between the Rx and Tx FIFOs. When the data register is

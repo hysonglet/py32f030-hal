@@ -73,7 +73,7 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
     #[inline]
     pub fn delay_us_blocking(&mut self, us: u32) {
         self.start_us(us as u64);
-        while T::event_flag(Event::UIF) == false {}
+        while !T::event_flag(Event::UIF) {}
         T::stop();
     }
 }
@@ -102,7 +102,7 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
     }
 
     fn wait(&mut self) -> nb::Result<(), void::Void> {
-        while T::event_flag(Event::UIF) == false {}
+        while !T::event_flag(Event::UIF) {}
         T::stop();
         Ok(())
     }

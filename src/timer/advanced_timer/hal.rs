@@ -369,7 +369,7 @@ pub(crate) mod sealed {
 
         /// 根据需要定时的ticks数计算出分频、重复、计数寄存器的值
         fn micros_to_compute_with_rep(micros: u64) -> (u16, u8, u16) {
-            let ticks = micros * Self::get_time_pclk() as u64 / 1000_000;
+            let ticks = micros * Self::get_time_pclk() as u64 / 1_000_000;
 
             let psc = ticks / (1u64 << 24);
             let count = ticks / (psc + 1);
@@ -382,7 +382,7 @@ pub(crate) mod sealed {
 
         /// 根据给定的纳秒计算分频和重复、计数寄存器的值
         fn nanosecond_to_compute_with_rep(nano: u64) -> (u16, u8, u16) {
-            let ticks = nano * Self::get_time_pclk() as u64 / 1000_000_000;
+            let ticks = nano * Self::get_time_pclk() as u64 / 1_000_000_000;
 
             let psc = ticks / (1u64 << 24);
             let count = ticks / (psc + 1);
