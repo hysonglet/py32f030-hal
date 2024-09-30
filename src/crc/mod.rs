@@ -1,6 +1,7 @@
 use crate::clock::peripheral::PeripheralClockIndex;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
+
 mod hal;
 
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
@@ -13,6 +14,7 @@ pub struct Crc<'d, T: Instance> {
 }
 
 impl<'d, T: Instance> Crc<'d, T> {
+    /// 新建CRC实例
     pub fn new(_crc: impl Peripheral<P = T>) -> Self {
         into_ref!(_crc);
 
@@ -22,16 +24,19 @@ impl<'d, T: Instance> Crc<'d, T> {
         Self { _t: PhantomData }
     }
 
+    /// 多次积累计算
     pub fn accumulat(&self, buf: &[u32]) -> u32 {
         buf.iter().for_each(|v| T::write_data(*v));
         T::read_data()
     }
 
+    /// 单词计算数组的crc值
     pub fn calculate(&self, buf: &[u32]) -> u32 {
         T::reset();
         self.accumulat(buf)
     }
 
+    /// 复位结果
     pub fn reset(&self) {
         T::reset()
     }
