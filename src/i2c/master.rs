@@ -219,10 +219,9 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
         EventFuture::<T>::new(EnumSet::empty() | Event::ADD)
             .await
-            .map_err(|e| {
+            .inspect_err(|_| {
                 T::event_clear(Event::AF);
                 T::stop();
-                e
             })?;
         T::event_clear(Event::ADD);
 
@@ -239,9 +238,8 @@ impl<'d, T: Instance> Master<'d, T, Async> {
             // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
             EventFuture::<T>::new(EnumSet::empty() | Event::TXE | Event::BTF)
                 .await
-                .map_err(|e| {
+                .inspect_err(|_| {
                     T::stop();
-                    e
                 })?;
 
             T::transmit(*t);
@@ -250,23 +248,20 @@ impl<'d, T: Instance> Master<'d, T, Async> {
         // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
         EventFuture::<T>::new(EnumSet::empty() | Event::TXE)
             .await
-            .map_err(|e| {
+            .inspect_err(|_| {
                 T::stop();
-                e
             })?;
 
         EventFuture::<T>::new(EnumSet::empty() | Event::TXE)
             .await
-            .map_err(|e| {
+            .inspect_err(|_| {
                 T::stop();
-                e
             })?;
 
         EventFuture::<T>::new(EnumSet::empty() | Event::BTF)
             .await
-            .map_err(|e| {
+            .inspect_err(|_| {
                 T::stop();
-                e
             })?;
 
         T::stop();

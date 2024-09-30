@@ -19,8 +19,13 @@ pub fn delay_s(s: usize) {
     }
 }
 
+#[derive(Debug)]
+pub enum Error {
+    Timeout,
+}
+
 #[inline]
-pub fn wait_for_true_timeout_block<F>(timeout_tick: usize, f: F) -> Result<(), ()>
+pub fn wait_for_true_timeout_block<F>(timeout_tick: usize, f: F) -> Result<(), Error>
 where
     F: Fn() -> bool,
 {
@@ -30,7 +35,7 @@ where
         }
         cortex_m::asm::delay(1);
     }
-    Err(())
+    Err(Error::Timeout)
 }
 
 pub struct Delay;
