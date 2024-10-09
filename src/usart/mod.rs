@@ -8,10 +8,11 @@ use crate::clock;
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
+
 use crate::mode::{Async, Blocking, Mode};
-use embassy_futures::select::select;
-use enumset::{EnumSet, EnumSetType};
+use enumset::EnumSetType;
 use future::EventFuture;
+
 use hal::sealed;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -279,6 +280,10 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         T::enable();
         T::config(config);
 
+        if M::is_async() {
+            T::id().enable_interrupt();
+        }
+
         Self {
             rx: UsartRx::<T, M>::new(rxd, rts),
             tx: UsartTx::<T, M>::new(txd, cts),
@@ -301,8 +306,35 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 }
 
 impl<'d, T: Instance> UsartRx<'d, T, Async> {
-    pub fn read(&self, _buf: &mut [u8]) {
-        todo!()
+    pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        let cnt = buf.len();
+        let events = Event::RXNE | Event::PE | Event::NE | Event::ORE | Event::FE;
+        for v in buf {
+            let event = EventFuture::<T>::new(events).await;
+            if event == Event::RXNE {
+                *v = T::read()
+            } else {
+                return Err(Error::Others);
+            }
+        }
+        Ok(cnt)
+    }
+
+    pub async fn read_with_idle(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        let mut cnt = 0;
+        let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE | Event::IDLE;
+        for v in buf {
+            let event = EventFuture::<T>::new(events).await;
+            if event == Event::RXNE {
+                *v = T::read();
+                cnt += 1;
+            } else if event.contains(Event::IDLE) {
+                return Ok(cnt);
+            } else {
+                return Err(Error::Others);
+            }
+        }
+        Ok(cnt)
     }
 }
 
@@ -329,23 +361,19 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
 }
 
 impl<'d, T: Instance> UsartTx<'d, T, Async> {
-    pub async fn write(&self, buf: &mut [u8]) -> Result<(), Error> {
-        // let errors = move || async {
-        //     EventFuture::<T>::new(Event::NE | Event::FE)
-        //         .await
-        //         .map_or(Err(Error::Others), |_e| Ok(()))
-        // };
-
-        // let rst = select(|| async {
-        //         for v in buf {
-        //         T::write(*v);
-        //         let _ = EventFuture::<T>::new(Event::TXE | EnumSet::empty())
-        //             .await?;
-        //     }
-        //     Ok(())
-        // }, errors());
-
-        todo!()
+    pub async fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
+        let events = Event::TXE | Event::CTS;
+        for v in buf {
+            T::write(*v);
+            let rst = EventFuture::<T>::new(events).await;
+            if rst != Event::TXE {
+                for e in rst {
+                    defmt::error!("events: {}", e as usize);
+                }
+                return Err(Error::Others);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -377,7 +405,7 @@ impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking
 impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blocking> {
     type Error = Error;
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
-        while !T::tx_ready() {}
+        while T::event_flag(Event::TC) {}
         Ok(())
     }
 
@@ -413,6 +441,16 @@ impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
+        todo!()
+    }
+}
+
+impl<'d, T: Instance> embedded_io_async::ErrorType for UsartRx<'d, T, Async> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_io_async::Read for UsartRx<'d, T, Async> {
+    async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         todo!()
     }
 }

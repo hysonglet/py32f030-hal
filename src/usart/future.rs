@@ -1,14 +1,16 @@
-use super::{Error, Event, Id, Instance};
+use super::{Event, Id, Instance};
 use crate::mcu::peripherals::{USART1, USART2};
 use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 
+use defmt::Debug2Format;
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
+#[allow(clippy::declare_interior_mutable_const)]
 const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
-const _EVENT_COUNT: usize = Event::PE as usize;
+const _EVENT_COUNT: usize = Event::PE as usize + 1;
 const _WAKER_COUNT: usize = Id::USART2 as usize;
 static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
     [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
@@ -20,7 +22,10 @@ pub struct EventFuture<T: Instance> {
 
 impl<T: Instance> EventFuture<T> {
     pub fn new(events: EnumSet<Event>) -> Self {
-        events.iter().for_each(|event| T::event_config(event, true));
+        events.iter().for_each(|event| {
+            T::event_clear(event);
+            T::event_config(event, true)
+        });
         Self {
             _t: PhantomData,
             events,
@@ -34,22 +39,23 @@ impl<T: Instance> EventFuture<T> {
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
             if T::is_event_enable(event) && T::event_flag(event) {
+                defmt::info!("e: {}", event as usize);
                 // 关闭触发的中断，防止重复响应
                 T::event_config(event, false);
-                EVENT_WAKERS[event as usize][id].wake()
+                EVENT_WAKERS[id][event as usize].wake()
             }
         });
     }
 }
 
 impl<T: Instance> Future for EventFuture<T> {
-    type Output = Result<(), Error>;
+    type Output = EnumSet<Event>;
     fn poll(
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
         self.events.iter().for_each(|e| {
-            EVENT_WAKERS[e as usize][T::id() as usize].register(cx.waker());
+            EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
         });
 
         let mut events = EnumSet::empty();
@@ -62,7 +68,7 @@ impl<T: Instance> Future for EventFuture<T> {
         }
 
         if !events.is_empty() {
-            return Poll::Ready(Ok(()));
+            return Poll::Ready(events);
         }
         // 没有任何事件
         Poll::Pending

@@ -37,10 +37,9 @@ pub mod sealed {
 
         #[inline]
         fn read_byte_blocking() -> u8 {
-            let block = Self::block();
+            while !Self::event_flag(Event::RXNE) {}
 
-            while block.sr.read().rxne().bit_is_clear() {}
-            block.dr.read().bits() as u8
+            Self::read()
         }
 
         #[inline]
@@ -60,12 +59,15 @@ pub mod sealed {
         }
 
         #[inline]
-        fn write_byte_blocking(data: u8) {
-            let block = Self::block();
+        fn read() -> u8 {
+            Self::block().dr.read().dr().bits() as u8
+        }
 
+        #[inline]
+        fn write_byte_blocking(data: u8) {
             // txe: 0: 未传输完， 1： 传输完毕
-            while block.sr.read().txe().bit_is_clear() {}
-            block.dr.write(|w| unsafe { w.bits(data as u32) })
+            while !Self::event_flag(Event::TXE) {}
+            Self::write(data);
         }
 
         #[inline]
@@ -91,12 +93,6 @@ pub mod sealed {
         #[inline]
         fn rx_ready() -> bool {
             Self::block().sr.read().rxne().bit()
-        }
-
-        #[inline]
-        fn tx_ready() -> bool {
-            // todo!();
-            Self::block().sr.read().txe().bit()
         }
 
         #[inline]

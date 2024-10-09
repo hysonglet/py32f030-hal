@@ -1,7 +1,8 @@
 [alias]
 
 [target.thumbv6m-none-eabi]
-runner = 'probe-rs run --chip PY32F030x8'
+# runner = 'probe-rs run --chip PY32F030x8'
+runner = 'probe-rs run --probe 1366:0105:000059768880 --chip PY32F030x8'
 rustflags = [
     "-C",
     "link-arg=-Tlink.x",
