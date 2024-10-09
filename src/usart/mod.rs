@@ -1,5 +1,7 @@
+mod future;
 mod hal;
 mod pins;
+
 use core::marker::PhantomData;
 
 use crate::clock;
@@ -7,6 +9,7 @@ use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, Periphera
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
+use enumset::EnumSetType;
 use hal::sealed;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -22,6 +25,8 @@ pub enum Error {
     StartTimeout,
     ReadTimeout,
     WriteTimeout,
+    /// 噪音/校验/帧错误
+    Others,
 }
 
 /// 串口停止位
@@ -177,6 +182,32 @@ impl PeripheralInterrupt for Id {
             Self::USART2 => PY32f030xx_pac::interrupt::USART2,
         }
     }
+}
+
+#[derive(EnumSetType)]
+pub enum Event {
+    /// ﻿自动波特率错误标志
+    ABRE,
+    /// ﻿自动波特率检测标志
+    ABRF,
+    /// ﻿CTS 标志
+    CTS,
+    /// ﻿传输寄存器空标志
+    TXE,
+    /// ﻿传送完成标志
+    TC,
+    /// ﻿读数据寄存器不空标志
+    RXNE,
+    /// ﻿空闲标志
+    IDLE,
+    /// ﻿Over 正常运行错误标志
+    ORE,
+    /// ﻿噪声错误标志
+    NE,
+    /// ﻿噪声错误标志
+    FE,
+    /// ﻿校验值错误
+    PE,
 }
 
 /// 串口接收处理的对象

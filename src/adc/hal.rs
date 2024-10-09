@@ -1,8 +1,8 @@
 pub mod sealed {
     use super::super::*;
-    // use crate::clock::peripheral::PeripheralEnable;
     use crate::bit::*;
     use crate::pac;
+
     pub(crate) trait Instance {
         fn id() -> Id;
 
@@ -12,18 +12,6 @@ pub mod sealed {
                 Id::ADC1 => unsafe { pac::ADC::PTR.as_ref().unwrap() },
             }
         }
-
-        // /// 开启外设
-        // #[inline]
-        // fn open() {
-        //     Self::id().open()
-        // }
-
-        // /// 复位外设
-        // #[inline]
-        // fn reset() {
-        //     Self::id().reset()
-        // }
 
         /// 开始校准
         #[inline]
@@ -57,6 +45,7 @@ pub mod sealed {
             Self::block().cr.modify(|_, w| w.adstart().set_bit());
         }
 
+        /// 停止转换
         #[inline]
         fn stop() {
             Self::block().cr.modify(|_, w| w.adstp().set_bit());
@@ -206,16 +195,6 @@ pub mod sealed {
             Self::block().dr.read().data().bits()
         }
 
-        #[inline]
-        fn is_eoc() -> bool {
-            Self::block().isr.read().eoc().bit()
-        }
-
-        #[inline]
-        fn clear_eoc() {
-            Self::block().isr.modify(|_, w| w.eoc().set_bit())
-        }
-
         /// 设置校准采样时间
         #[inline]
         fn set_calibration_sample_time(time: CalibrationSampleTime) {
@@ -232,8 +211,38 @@ pub mod sealed {
                 .modify(|_, w| w.calsel().bit(select == CalibrationSelect::OffsetLinearity))
         }
 
-        fn enable_eoc_interrupt(en: bool) {
-            Self::block().ier.modify(|_, w| w.eocie().bit(en))
+        #[inline]
+        fn event_flag(event: Event) -> bool {
+            let isr = Self::block().isr.read();
+            match event {
+                Event::EOSMP => isr.eosmp().bit(),
+                Event::EOC => isr.eoc().bit(),
+                Event::EOSEQ => isr.eoseq().bit(),
+                Event::OVR => isr.ovr().bit(),
+                Event::AWD => isr.awd().bit(),
+            }
+        }
+
+        #[inline]
+        fn event_config(event: Event, en: bool) {
+            Self::block().ier.modify(|_, w| match event {
+                Event::EOSMP => w.eosmpie().bit(en),
+                Event::EOC => w.eocie().bit(en),
+                Event::EOSEQ => w.eoseqie().bit(en),
+                Event::OVR => w.ovrie().bit(en),
+                Event::AWD => w.awdie().bit(en),
+            });
+        }
+
+        #[inline]
+        fn event_clear(event: Event) {
+            Self::block().isr.modify(|_, w| match event {
+                Event::EOSMP => w.eosmp().set_bit(),
+                Event::EOC => w.eoc().set_bit(),
+                Event::EOSEQ => w.eoseq().set_bit(),
+                Event::OVR => w.ovr().set_bit(),
+                Event::AWD => w.awd().set_bit(),
+            });
         }
     }
 }

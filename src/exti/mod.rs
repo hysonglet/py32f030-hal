@@ -123,10 +123,12 @@ impl<'d> ExtiInput<'d> {
         }
     }
 
+    /// 返回引脚的电平
     fn get_level(&self) -> PinLevel {
         self.pin.read()
     }
 
+    /// 等待引脚电平变低
     pub async fn wait_for_low(&self) {
         let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
         if self.get_level() == PinLevel::Low {
@@ -135,6 +137,7 @@ impl<'d> ExtiInput<'d> {
         fut.await
     }
 
+    /// 等待引脚电平变高
     pub async fn wait_for_high(&self) {
         let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
         if self.get_level() == PinLevel::Hight {
@@ -143,16 +146,19 @@ impl<'d> ExtiInput<'d> {
         fut.await
     }
 
+    /// 等待上升沿信号
     pub async fn wait_for_rising_edge(&self) {
         let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising);
         fut.await
     }
 
+    /// 等待下降沿信号
     pub async fn wait_for_falling_edge(&self) {
         let fut = ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling);
         fut.await
     }
 
+    /// 等待上升沿和下降沿信号
     pub async fn wait_for_any_edge(&self) {
         let fut =
             ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::RisingFalling);
@@ -187,11 +193,14 @@ impl Iterator for BitIter {
     }
 }
 
+/// 信号边缘检测类型
 #[derive(PartialEq)]
 enum Edge {
-    // None,
+    /// 上升沿,
     Rising,
+    /// 下降沿
     Falling,
+    /// 上升沿和下降沿
     RisingFalling,
 }
 
@@ -203,10 +212,6 @@ impl Edge {
     fn is_falling(&self) -> bool {
         *self == Self::Falling || *self == Self::RisingFalling
     }
-
-    // fn is_none(&self) -> bool {
-    //     *self == Self::None
-    // }
 }
 
 struct ExtiInputFuture<'a> {

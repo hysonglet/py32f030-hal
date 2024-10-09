@@ -272,26 +272,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     pub fn as_pwm(self) -> Pwm<'d, T> {
         Pwm::new()
     }
-    // pub fn as_pwm(
-    //     self,
-    //     channel_1_pin: Option<impl Peripheral<P = impl TimerChannel1Pin<T>> + 'd>,
-    //     channel_1_n_pin: Option<impl Peripheral<P = impl TimerChannel1NPin<T>> + 'd>,
-    //     channel_2_pin: Option<impl Peripheral<P = impl TimerChannel2Pin<T>> + 'd>,
-    //     channel_2_n_pin: Option<impl Peripheral<P = impl TimerChannel2NPin<T>> + 'd>,
-    //     channel_3_pin: Option<impl Peripheral<P = impl TimerChannel3Pin<T>> + 'd>,
-    //     channel_3_n_pin: Option<impl Peripheral<P = impl TimerChannel3NPin<T>> + 'd>,
-    //     channel_4_pin: Option<impl Peripheral<P = impl TimerChannel4Pin<T>> + 'd>,
-    // ) -> Pwm<'d, T> {
-    //     Pwm::new(
-    //         channel_1_pin,
-    //         channel_1_n_pin,
-    //         channel_2_pin,
-    //         channel_2_n_pin,
-    //         channel_3_pin,
-    //         channel_3_n_pin,
-    //         channel_4_pin,
-    //     )
-    // }
 }
 
 #[derive(EnumSetType, Debug)]

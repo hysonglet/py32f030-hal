@@ -107,6 +107,96 @@ pub mod sealed {
             Self::block().cr3.modify(|_, w| w.ctse().bit(en))
         }
 
+        /// 清除事件标志
+        fn event_clear(event: Event) {
+            Self::block().sr.modify(|_, w| match event {
+                Event::PE => {
+                    // ﻿当接收时校验值错误时，硬件置位该寄存器。
+                    // 软件先读 USART_SR 寄存器后读 USART_DR 寄
+                    //存器可以清零该位。但软件在清该位前必须等待RXNE=1
+                    w
+                }
+                Event::FE => {
+                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
+                    w
+                }
+                Event::NE => {
+                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
+                    w
+                }
+                Event::ORE => {
+                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
+                    w
+                }
+                Event::IDLE => {
+                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位
+                    w
+                }
+                Event::RXNE => {
+                    // ﻿软件读 USART_DR 寄存器、或者写 0 清零该位
+                    w.rxne().clear_bit()
+                }
+                Event::TC => {
+                    // ﻿软件先读 USART_SR 寄存器然后写 USART_DR寄存器会清零该位（针对多处理器通讯）。软件同时可以写 0 清零。
+                    w
+                }
+                Event::TXE => {
+                    // ﻿当 USART_DR 寄存器数据传送到移位寄存器，硬件置位该寄存器。当 TXEIE=1 时，产生中断。写 USART_DR 寄存器会清零该位
+                    w
+                }
+                Event::CTS => {
+                    // ﻿当 CTS 输入 toggle，别 CTSE=1 时，该寄存器为 1.软件写 0 清零。当 CTSIE=1 时，产生 CTS中断
+                    w.cts().clear_bit()
+                }
+                Event::ABRE => {
+                    // ﻿当自动波特率检测出错（波特率超出范围或者字符比较错误）时，硬件置位该寄存器。软件通过写 1 到 ABRRQ 寄存器清零该位。
+                    w.abrrq().set_bit()
+                }
+                Event::ABRF => {
+                    // ﻿软件通过写 1 到 USART_RQR 寄存器的 ABRRQ位清零该位。
+                    w
+                }
+            });
+        }
+
+        /// 返回
+        fn event_flag(event: Event) -> bool {
+            let sr = Self::block().sr.read();
+            match event {
+                Event::PE => sr.pe(),
+                Event::FE => sr.fe(),
+                Event::NE => sr.ne(),
+                Event::ORE => sr.ore(),
+                Event::IDLE => sr.idle(),
+                Event::RXNE => sr.rxne(),
+                Event::TC => sr.tc(),
+                Event::TXE => sr.txe(),
+                Event::CTS => sr.cts(),
+                Event::ABRE => sr.abre(),
+                Event::ABRF => sr.abrf(),
+            }
+            .bit()
+        }
+
+        /// 开启或关闭事件中断
+        fn event_config(event: Event, en: bool) {
+            let block = Self::block();
+            match event {
+                Event::PE => block.cr1.modify(|_, w| w.peie().bit(en)),
+                Event::FE => {}
+                Event::NE => {}
+                Event::ORE => block.cr1.modify(|_, w| w.rxneie().bit(en)),
+                Event::IDLE => block.cr1.modify(|_, w| w.idleie().bit(en)),
+                Event::RXNE => block.cr1.modify(|_, w| w.rxneie().bit(en)),
+                Event::TC => block.cr1.modify(|_, w| w.tcie().bit(en)),
+                Event::TXE => block.cr1.modify(|_, w| w.txeie().bit(en)),
+                Event::CTS => {}
+                Event::ABRE => {}
+                Event::ABRF => {}
+            }
+        }
+
+        /// 配置串口
         fn config(config: Config) {
             let block = Self::block();
 

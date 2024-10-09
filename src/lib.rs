@@ -46,6 +46,7 @@ pub mod config {
     }
 
     /// 系统初始化配置
+    ///  - 指定默认运行的时钟
     #[derive(Default)]
     pub struct Config {
         /// 默认时钟配置
@@ -53,37 +54,44 @@ pub mod config {
     }
 
     impl Config {
+        /// 设置系统时钟
         pub fn sys_clk(self, sys_clk: SysClockSource) -> Self {
             Self { sys_clk }
         }
     }
 }
 
+/// 初始化时钟运行环境、系统、基本的外设
 pub fn init(config: config::Config) -> Peripherals {
     let peripherals = Peripherals::take();
     cortex_m::asm::delay(1000 * 1000 * 5);
     match config.sys_clk {
+        // 使用外部时钟源
         SysClockSource::HSE => {
             clock::SysClock::<clock::HSE>::config().unwrap();
         }
+        // 使用内部时钟源
         SysClockSource::HSI => {
             clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
         }
+        // 使用内部的PLL时钟源
         SysClockSource::PLL_HSI => {
             // HSI::set_hz(clock::HsiHz::MHz8);
             clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
         }
     }
 
+    // 打印系统时钟（调试用）
     #[cfg(feature = "defmt")]
     defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
 
+    // 启用异步os
     #[cfg(feature = "embassy")]
     embassy::init();
 
+    // 开启中断
     critical_section::with(|cs| {
         exti::init(cs);
-
         #[cfg(feature = "dma")]
         dma::init(cs);
     });
@@ -91,7 +99,7 @@ pub fn init(config: config::Config) -> Peripherals {
     peripherals
 }
 
-/// 外设工作模式
+/// 定义外设工作模式，阻塞或异步方式
 pub mod mode {
     trait Sealed {}
 

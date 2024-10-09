@@ -1,37 +1,12 @@
-//! # ADC 主要特性
-//! ## 高性能
-//! - 12bit、10bit、8bit 和 6bit 分辨率可配置
-//! - ADC 转换时间：1us@12bit（1MHz）
-//! - 自校准
-//! - 可编程的采样时间
-//! - 可编程的数据对齐模式
-//! - 支持 DMA
-//! ## 低功耗
-//! - 为低功耗操作，降低 PCLK 频率，而仍然维持合适的 ADC 性能
-//! - 等待模式：防止以低频 PCLK 运行产生溢出
-//! ## 模拟输入通道
-//! - 10 个外部模拟输入通道：PA[7:0]和 PB[1:0]
-//! - 1 个内部 temperature sensor 通道
-//! - 1 个内部参考电压通道（VREFINT）
-//! ## 转换操作启动可以通过
-//! - 软件启动
-//! - 可配置极性的硬件启动（TIM1、TIM3 或者 GPIO）
-//! ## 转换模式
-//! - 单次模式(single mode)：可以转换 1 个单通道或者可以扫描一系列通道
-//! - 连续模式(continuous mode)：连续转换被选择的通道
-//! - 不连续模式(discontinuous mode)：每次触发，转换被选择的通道 1 次
-//! ## 中断产生
-//! - 在采样结束
-//! - 在转换结束
-//! - 在连续转换结束
-//! - 模拟看门狗事件
-//! - 溢出事件
-//! ## 模拟看门狗
+//! ADC
 
+mod future;
 mod hal;
 mod pins;
 
 use core::{future::Future, marker::PhantomData, task::Poll};
+use enumset::EnumSetType;
+use future::ChannelInputFuture;
 
 use crate::{
     clock::peripheral::PeripheralInterrupt,
@@ -133,7 +108,7 @@ pub enum AdcChannel {
     /// PB1
     Channel9 = 9,
 
-    ///  nner temperature
+    /// inner temperature
     Channel11 = 11,
     /// inner ref voltage
     Channel12 = 12,
@@ -246,11 +221,15 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
         T::id().open();
-        // T::reset();
 
         Self::new_inner(config, channel_config, channels)?;
 
         T::enable();
+
+        // 异步方式需要打开外设中断
+        if M::is_async() {
+            T::id().enable_interrupt();
+        }
 
         Ok(Self {
             t: PhantomData,
@@ -329,79 +308,15 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::set_overwrite(config.over_write);
         T::trigle_signal(config.signal);
     }
-
-    fn is_eoc() -> bool {
-        T::is_eoc()
-    }
-
-    #[inline]
-    fn on_interrupt() {
-        // 关闭中断
-        ADC_INT_WAKER[T::id() as usize].wake()
-    }
-
-    pub fn enable_interrupt(en: bool) {
-        unsafe {
-            if en {
-                cortex_m::peripheral::NVIC::unmask(interrupt::ADC_COMP)
-            } else {
-                cortex_m::peripheral::NVIC::mask(interrupt::ADC_COMP)
-            }
-        }
-    }
 }
 
-pub struct ChannelInputFuture<T: Instance> {
-    _channel: AdcChannel,
-    _t: PhantomData<T>,
-}
-
-impl<T: Instance> ChannelInputFuture<T> {
-    /// 新建一个 eoc 中断
-    /// 记得提前打开 ADC 的总中断，改任务会暂停在 异步中
-    pub fn new(channel: AdcChannel) -> Self {
-        // 开启通道
-        T::channel_enable_exclusive(channel);
-        T::clear_eoc();
-        T::enable_eoc_interrupt(true);
-
-        // 软件触发，则先触发一次
-        if T::is_soft_trigle() {
-            T::start();
-        }
-
-        Self {
-            _channel: channel,
-            _t: PhantomData,
-        }
-    }
-}
-
-impl<T: Instance> Future for ChannelInputFuture<T> {
-    type Output = u16;
-    fn poll(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Self::Output> {
-        ADC_INT_WAKER[T::id() as usize].register(cx.waker());
-
-        if T::is_eoc() {
-            // 读取 dr 寄存器会自动清除 eoc 位
-            Poll::Ready(T::data_read())
-        } else {
-            Poll::Pending
-        }
-    }
-}
-
-impl<T: Instance> Drop for ChannelInputFuture<T> {
+impl<'d, T: Instance, M: Mode> Drop for AnyAdc<'d, T, M> {
     fn drop(&mut self) {
-        // 关闭中断
-        T::enable_eoc_interrupt(false);
+        if M::is_async() {
+            T::id().disable_interrupt();
+        }
     }
 }
-
-// impl<T: Instance> Unpin for ChannelInput<T> {}
 
 impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     pub fn read_block(&self, timeout: usize) -> Result<u16, Error> {
@@ -409,14 +324,15 @@ impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
         if T::is_soft_trigle() {
             T::start();
         }
-        wait_for_true_timeout_block(timeout, || T::is_eoc()).map_err(|_| Error::Timeout)?;
+        wait_for_true_timeout_block(timeout, || T::event_flag(Event::EOC))
+            .map_err(|_| Error::Timeout)?;
         Ok(T::data_read())
     }
 }
 
 impl<'d, T: Instance> AnyAdc<'d, T, Async> {
     pub async fn read(&self, channel: impl AnalogPin<T>) -> u16 {
-        ChannelInputFuture::<T>::new(channel.channel()).await
+        ChannelInputFuture::<T>::new_with_channel(channel.channel()).await
     }
 }
 
@@ -509,6 +425,7 @@ impl ChannelConfig {
         }
     }
 
+    /// 单次扫描模式
     pub fn new_exclusive_single() -> Self {
         Self {
             mode: ConversionMode::Single,
@@ -551,13 +468,16 @@ pub fn vrefence_internal(dr: u16) -> f32 {
     4095.0 * 1.2 / dr as f32
 }
 
-use crate::pac::interrupt;
-#[interrupt]
-fn ADC_COMP() {
-    // ADC1 的中断 eoc
-    if AnyAdc::<ADC, Blocking>::is_eoc() {
-        AnyAdc::<ADC, Blocking>::on_interrupt()
-    }
-    // TODO!
-    // comp 的中断
+#[derive(EnumSetType, Debug)]
+pub enum Event {
+    /// 采样结束标志
+    EOSMP,
+    /// 转换结束标志
+    EOC,
+    /// 序列结束标志
+    EOSEQ,
+    /// ADC 过载
+    OVR,
+    /// 模拟看门狗
+    AWD,
 }
