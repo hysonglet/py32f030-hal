@@ -1,20 +1,21 @@
-use super::{Error, Event, Instance};
+use super::{Error, Event, Id, Instance};
 use crate::mcu::peripherals::{USART1, USART2};
 use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
-use critical_section::{CriticalSection, Mutex};
-// use embassy_sync::blocking_mutex::{Mutex, raw::CriticalSectionRawMutex};
+use critical_section::CriticalSection;
+
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-static RX_WAKER: [AtomicWaker; 1] = [AtomicWaker::new(); 1];
-static TX_WAKER: [AtomicWaker; 1] = [AtomicWaker::new(); 1];
-
-static mut EVENTS: Mutex<EnumSet<Event>> = Mutex::new(EnumSet::empty());
+const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
+const _EVENT_COUNT: usize = Event::PE as usize;
+const _WAKER_COUNT: usize = Id::USART2 as usize;
+static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
+    [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
 
 pub struct EventFuture<T: Instance> {
     _t: PhantomData<T>,
-    // events: EnumSet<Event>,
+    events: EnumSet<Event>,
 }
 
 impl<T: Instance> EventFuture<T> {
@@ -22,30 +23,22 @@ impl<T: Instance> EventFuture<T> {
         events.iter().for_each(|event| T::event_config(event, true));
         Self {
             _t: PhantomData,
-            // events,
+            events,
         }
     }
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt(cs: CriticalSection) {
-        let events = EVENTS.borrow(cs);
+    unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
-            if T::event_flag(event) {
+            if T::is_event_enable(event) && T::event_flag(event) {
                 // 关闭触发的中断，防止重复响应
                 T::event_config(event, false);
+                EVENT_WAKERS[event as usize][id].wake()
             }
         });
-
-        if events.contains(Event::RXNE) {
-            RX_WAKER[T::id() as usize].wake()
-        }
-
-        if events.contains(Event::TXE) | events.contains(Event::TC) {
-            TX_WAKER[T::id() as usize].wake();
-        }
     }
 }
 
@@ -55,40 +48,22 @@ impl<T: Instance> Future for EventFuture<T> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        let mut others_event = EnumSet::empty();
-        let mut err_event = EnumSet::empty();
+        self.events.iter().for_each(|e| {
+            EVENT_WAKERS[e as usize][T::id() as usize].register(cx.waker());
+        });
 
-        // 注册相应的唤醒条件
-        let events = critical_section::with(|cs| unsafe { EVENTS.borrow(cs) });
-
+        let mut events = EnumSet::empty();
         // 消除所有关注的中断标志
-        for event in *events {
-            if (Event::TC | Event::TXE).contains(event) {
-                TX_WAKER[T::id() as usize].register(cx.waker());
-            } else if Event::RXNE == event {
-                RX_WAKER[T::id() as usize].register(cx.waker());
-            }
-            // 其他标志可能发生错误
-            // todo
+        for event in self.events {
             if T::event_flag(event) {
                 T::event_clear(event);
-                if (Event::ORE | Event::NE | Event::FE | Event::PE).contains(event) {
-                    // 检测到错误了
-                    err_event |= event;
-                } else {
-                    // 检测到收发事件
-                    others_event |= event;
-                }
+                events |= event;
             }
         }
 
-        // 有错误产生
-        if !err_event.is_empty() {
-            return Poll::Ready(Err(Error::Others));
-        } else if !others_event.is_empty() {
+        if !events.is_empty() {
             return Poll::Ready(Ok(()));
         }
-
         // 没有任何事件
         Poll::Pending
     }
@@ -96,10 +71,14 @@ impl<T: Instance> Future for EventFuture<T> {
 
 #[interrupt]
 fn USART1() {
-    critical_section::with(|cs| unsafe { EventFuture::<USART1>::on_interrupt(cs) })
+    critical_section::with(|cs| unsafe {
+        EventFuture::<USART1>::on_interrupt(cs, Id::USART1 as usize)
+    })
 }
 
 #[interrupt]
 fn USART2() {
-    critical_section::with(|cs| unsafe { EventFuture::<USART2>::on_interrupt(cs) })
+    critical_section::with(|cs| unsafe {
+        EventFuture::<USART2>::on_interrupt(cs, Id::USART2 as usize)
+    })
 }

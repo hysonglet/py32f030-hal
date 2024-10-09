@@ -53,6 +53,13 @@ pub mod sealed {
         }
 
         #[inline]
+        fn write(data: u8) {
+            Self::block()
+                .dr
+                .write(|w| unsafe { w.dr().bits(data.into()) });
+        }
+
+        #[inline]
         fn write_byte_blocking(data: u8) {
             let block = Self::block();
 
@@ -193,6 +200,24 @@ pub mod sealed {
                 Event::CTS => {}
                 Event::ABRE => {}
                 Event::ABRF => {}
+            }
+        }
+
+        /// return event config
+        fn is_event_enable(event: Event) -> bool {
+            let cr1 = Self::block().cr1.read();
+            match event {
+                Event::PE => cr1.peie().bit(),
+                Event::FE => false,
+                Event::NE => false,
+                Event::ORE => false,
+                Event::IDLE => cr1.idleie().bit(),
+                Event::RXNE => cr1.rxneie().bit(),
+                Event::TC => cr1.tcie().bit(),
+                Event::TXE => cr1.txeie().bit(),
+                Event::CTS => false,
+                Event::ABRE => false,
+                Event::ABRF => false,
             }
         }
 

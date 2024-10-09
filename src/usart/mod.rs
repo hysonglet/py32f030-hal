@@ -9,7 +9,9 @@ use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, Periphera
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
-use enumset::EnumSetType;
+use embassy_futures::select::select;
+use enumset::{EnumSet, EnumSetType};
+use future::EventFuture;
 use hal::sealed;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -327,7 +329,22 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
 }
 
 impl<'d, T: Instance> UsartTx<'d, T, Async> {
-    pub fn write(&self, _buf: &mut [u8]) {
+    pub async fn write(&self, buf: &mut [u8]) -> Result<(), Error> {
+        // let errors = move || async {
+        //     EventFuture::<T>::new(Event::NE | Event::FE)
+        //         .await
+        //         .map_or(Err(Error::Others), |_e| Ok(()))
+        // };
+
+        // let rst = select(|| async {
+        //         for v in buf {
+        //         T::write(*v);
+        //         let _ = EventFuture::<T>::new(Event::TXE | EnumSet::empty())
+        //             .await?;
+        //     }
+        //     Ok(())
+        // }, errors());
+
         todo!()
     }
 }
