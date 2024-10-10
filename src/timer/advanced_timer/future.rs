@@ -1,8 +1,9 @@
-use super::{Error, Event, Instance};
+use super::{Error, Event, Instance, AdvancedTimer};
 use crate::{mcu::peripherals::TIM1, pac::interrupt};
 use core::{future::Future, marker::PhantomData, task::Poll};
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
+use critical_section::CriticalSection;
 
 static WAKER: [AtomicWaker; 1] = [AtomicWaker::new(); 1];
 
@@ -22,7 +23,7 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt() {
+    unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
@@ -61,5 +62,5 @@ impl<T: Instance> Future for EventFuture<T> {
 
 #[interrupt]
 fn TIM1_BRK_UP_TRG_COM() {
-    critical_section::with(|_cs| unsafe { EventFuture::<TIM1>::on_interrupt() })
+    critical_section::with(|cs| unsafe { EventFuture::<TIM1>::on_interrupt(cs, AdvancedTimer::TIM1 as usize) })
 }

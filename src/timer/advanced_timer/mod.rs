@@ -181,15 +181,6 @@ pub enum CountDirection {
     Down = 1,
 }
 
-impl From<CountDirection> for bool {
-    fn from(value: CountDirection) -> Self {
-        match value {
-            CountDirection::Down => true,
-            CountDirection::Up => false,
-        }
-    }
-}
-
 ///时钟分频因子
 /// 这 2 位定义在定时器时钟(CK_INT)频率，死区时间和由死区发生器与数字滤波器(ETR,Tix)所用的采样时钟之间的分频比例
 #[derive(PartialEq, Clone, Copy)]
@@ -249,7 +240,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
         into_ref!(_timer);
 
         // 开启外设时钟
-        // T::id().reset();
         T::id().open();
 
         Ok(Self {
