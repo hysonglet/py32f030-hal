@@ -291,6 +291,10 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
         T::read_bytes_blocking(buf)
     }
 
+    pub fn read_idle_blocking(&self, buf: &mut [u8]) -> usize {
+        T::read_bytes_idle_blocking(buf)
+    }
+
     pub fn nb_read(&self) -> Result<u8, nb::Error<Error>> {
         if T::rx_ready() {
             Ok(T::read_byte_blocking())
@@ -302,13 +306,16 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
 impl<'d, T: Instance> UsartRx<'d, T, Async> {
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        let cnt = buf.len();
-        let events = Event::RXNE | Event::PE | Event::NE | Event::ORE | Event::FE;
+        let cnt = buf.len(); // | Event::ORE
+        let events = Event::RXNE | Event::PE | Event::NE | Event::FE;
         for v in buf {
-            let event = EventFuture::<T>::new(events).await;
-            if event == Event::RXNE {
-                *v = T::read()
-            } else {
+            let events = EventFuture::<T>::new(events).await;
+            *v = T::read();
+            if events != Event::RXNE {
+                for e in events {
+                    defmt::info!("error event: {} {} ", e as usize, T::event_flag(e));
+                }
+                // *v = T::read();
                 return Err(Error::Others);
             }
         }

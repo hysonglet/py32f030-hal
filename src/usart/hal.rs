@@ -51,6 +51,21 @@ pub mod sealed {
             len
         }
 
+        fn read_bytes_idle_blocking(buf: &mut [u8]) -> usize {
+            let mut cnt = 0;
+            for item in buf {
+                while !Self::event_flag(Event::RXNE) {
+                    if Self::event_flag(Event::IDLE) {
+                        *item = Self::read();
+                        return cnt;
+                    }
+                }
+                cnt += 1;
+                *item = Self::read()
+            }
+            cnt
+        }
+
         #[inline]
         fn write(data: u8) {
             Self::block()
@@ -112,27 +127,11 @@ pub mod sealed {
 
         /// 清除事件标志
         fn event_clear(event: Event) {
-            Self::block().sr.modify(|_, w| match event {
-                Event::PE => {
+            Self::block().sr.modify(|r, w| match event {
+                Event::PE | Event::FE | Event::NE | Event::ORE | Event::IDLE => {
                     // ﻿当接收时校验值错误时，硬件置位该寄存器。
-                    // 软件先读 USART_SR 寄存器后读 USART_DR 寄
-                    //存器可以清零该位。但软件在清该位前必须等待RXNE=1
-                    w
-                }
-                Event::FE => {
-                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
-                    w
-                }
-                Event::NE => {
-                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
-                    w
-                }
-                Event::ORE => {
-                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。
-                    w
-                }
-                Event::IDLE => {
-                    // ﻿软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位
+                    // 软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。但软件在清该位前必须等待RXNE=1
+                    let _ = r.bits();
                     w
                 }
                 Event::RXNE => {
@@ -141,7 +140,7 @@ pub mod sealed {
                 }
                 Event::TC => {
                     // ﻿软件先读 USART_SR 寄存器然后写 USART_DR寄存器会清零该位（针对多处理器通讯）。软件同时可以写 0 清零。
-                    w
+                    w.tc().clear_bit()
                 }
                 Event::TXE => {
                     // ﻿当 USART_DR 寄存器数据传送到移位寄存器，硬件置位该寄存器。当 TXEIE=1 时，产生中断。写 USART_DR 寄存器会清零该位
@@ -186,9 +185,9 @@ pub mod sealed {
             let block = Self::block();
             match event {
                 Event::PE => block.cr1.modify(|_, w| w.peie().bit(en)),
-                Event::FE => {}
-                Event::NE => {}
-                Event::ORE => block.cr1.modify(|_, w| w.rxneie().bit(en)),
+                Event::FE | Event::NE | Event::ORE => {
+                    block.cr3.modify(|_, w| w.eie().bit(en));
+                }
                 Event::IDLE => block.cr1.modify(|_, w| w.idleie().bit(en)),
                 Event::RXNE => block.cr1.modify(|_, w| w.rxneie().bit(en)),
                 Event::TC => block.cr1.modify(|_, w| w.tcie().bit(en)),

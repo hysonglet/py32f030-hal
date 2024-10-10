@@ -34,10 +34,10 @@ async fn main(_spawner: Spawner) {
         let rst = rx.read(&mut rx_buf).await;
         // let rst = rx.read_with_idle(&mut rx_buf).await;
         defmt::info!("recv: rst: {:?} {:x}", Debug2Format(&rst), rx_buf);
-        // // 使用自定义的驱动接口发送串口数据
+        // 使用自定义的驱动接口发送串口数据
         // let rst = tx.write(buf.as_bytes()).await;
 
         // defmt::info!("send: rst:{} {:x} ", Debug2Format(&rst), buf.as_bytes());
-        Timer::after_secs(2).await;
+        Timer::after_secs(1).await;
     }
 }

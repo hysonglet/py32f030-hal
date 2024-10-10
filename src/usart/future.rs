@@ -21,10 +21,7 @@ pub struct EventFuture<T: Instance> {
 
 impl<T: Instance> EventFuture<T> {
     pub fn new(events: EnumSet<Event>) -> Self {
-        events.iter().for_each(|event| {
-            T::event_clear(event);
-            T::event_config(event, true)
-        });
+        events.iter().for_each(|event| T::event_config(event, true));
         Self {
             _t: PhantomData,
             events,
@@ -61,7 +58,6 @@ impl<T: Instance> Future for EventFuture<T> {
         // 消除所有关注的中断标志
         for event in self.events {
             if T::event_flag(event) {
-                T::event_config(event, false);
                 T::event_clear(event);
                 events |= event;
             }
