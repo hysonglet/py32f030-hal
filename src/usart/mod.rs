@@ -8,11 +8,10 @@ use crate::clock;
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
-
 use crate::mode::{Async, Blocking, Mode};
+use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::EnumSetType;
 use future::EventFuture;
-
 use hal::sealed;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -137,10 +136,6 @@ pub struct Config {
     pub over_sampling: OverSampling,
     // pub mode: T,
 }
-
-use embassy_hal_internal::into_ref;
-use embassy_hal_internal::Peripheral;
-use embassy_hal_internal::PeripheralRef;
 
 /// 串口号定义
 #[derive(Clone, Copy, PartialEq)]
@@ -375,6 +370,10 @@ impl<'d, T: Instance> UsartTx<'d, T, Async> {
         }
         Ok(())
     }
+
+    pub async fn flush(&mut self) -> Result<(), Error> {
+        todo!()
+    }
 }
 
 impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
@@ -393,8 +392,25 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/// embedded_hal::serial for AnyUsart<'d, T, Blocking>
+impl<'d, T: Instance> embedded_hal::serial::Read<u8> for AnyUsart<'d, T, Blocking> {
+    type Error = Error;
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        self.rx.nb_read()
+    }
+}
 
+impl<'d, T: Instance> embedded_hal::serial::Write<u8> for AnyUsart<'d, T, Blocking> {
+    type Error = Error;
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        self.tx.flush()
+    }
+    fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
+        self.tx.write(word)
+    }
+}
+
+/// embedded_hal::serial for UsartRx<'d, T, Blocking>
 impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking> {
     type Error = Error;
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
@@ -402,6 +418,7 @@ impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking
     }
 }
 
+/// embedded_hal::serial for UsartTx<'d, T, Blocking>
 impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blocking> {
     type Error = Error;
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
@@ -421,8 +438,18 @@ impl embedded_io::Error for Error {
     }
 }
 
+impl<'d, T: Instance> embedded_io::ErrorType for AnyUsart<'d, T, Blocking> {
+    type Error = Error;
+}
+
 impl<'d, T: Instance> embedded_io::ErrorType for UsartRx<'d, T, Blocking> {
     type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_io::Read for AnyUsart<'d, T, Blocking> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        self.rx.read(buf)
+    }
 }
 
 impl<'d, T: Instance> embedded_io::Read for UsartRx<'d, T, Blocking> {
@@ -435,22 +462,58 @@ impl<'d, T: Instance> embedded_io::ErrorType for UsartTx<'d, T, Blocking> {
     type Error = Error;
 }
 
+impl<'d, T: Instance> embedded_io::Write for AnyUsart<'d, T, Blocking> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        self.tx.write(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        self.tx.flush()
+    }
+}
+
 impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         Ok(T::write_bytes_blocking(buf))
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        todo!()
+        while T::event_flag(Event::TC) {}
+        Ok(())
     }
+}
+
+impl<'d, T: Instance> embedded_io_async::ErrorType for AnyUsart<'d, T, Async> {
+    type Error = Error;
 }
 
 impl<'d, T: Instance> embedded_io_async::ErrorType for UsartRx<'d, T, Async> {
     type Error = Error;
 }
 
+impl<'d, T: Instance> embedded_io_async::Read for AnyUsart<'d, T, Async> {
+    async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        self.rx.read(buf).await
+    }
+}
+
 impl<'d, T: Instance> embedded_io_async::Read for UsartRx<'d, T, Async> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        self.read_with_idle(buf).await
+    }
+}
+
+impl<'d, T: Instance> embedded_io_async::ErrorType for UsartTx<'d, T, Async> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_io_async::Write for UsartTx<'d, T, Async> {
+    async fn flush(&mut self) -> Result<(), Self::Error> {
         todo!()
+    }
+
+    async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        self.write(buf).await?;
+        Ok(buf.len())
     }
 }

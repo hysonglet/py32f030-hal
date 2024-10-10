@@ -4,7 +4,6 @@ use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 
-use defmt::Debug2Format;
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
@@ -62,6 +61,7 @@ impl<T: Instance> Future for EventFuture<T> {
         // 消除所有关注的中断标志
         for event in self.events {
             if T::event_flag(event) {
+                T::event_config(event, false);
                 T::event_clear(event);
                 events |= event;
             }

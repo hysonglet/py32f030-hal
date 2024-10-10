@@ -70,6 +70,7 @@ brew install llvm
 - [x] spi
 - [x] crc
 - [x] rtc
+- [x] iwatchdog
 
 
 ## examples
@@ -84,18 +85,31 @@ cargo build --release --example blinky
 
 ### Example list
 ```bash
-$ cargo r --example                    
+➜  py32f030-hal git:(main) ✗ cargo r --example 
 error: "--example" takes one argument.
 Available examples:
+    adc_block
+    advanced_timer_block
+    advanced_timer_block_2
     blinky
-    blinky_lite
+    block_uart
+    cl
     clock
+    crc
+    embassy_adc
     embassy_delay
     embassy_dma_mem2mem
     embassy_exit
+    embassy_i2c
+    embassy_iwdg
+    embassy_pwm
+    embassy_rtc
+    embassy_ssd1309
     embassy_uart
+    hello_world
+    i2c_master_block
     key
-    rcc
+    rtc_block
     uart
 ``` 
 
