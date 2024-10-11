@@ -1,4 +1,6 @@
 pub(super) mod sealed {
+    use enumset::__internal::EnumSetTypeRepr;
+
     use super::super::*;
     use crate::pac;
 
@@ -104,6 +106,74 @@ pub(super) mod sealed {
             // Self::enable(false);
 
             Ok(())
+        }
+
+        /// 清除事件标志
+        fn event_clear(event: Event) {
+            Self::block()
+                .ifcr
+                .write(|w| unsafe { w.bits(1 << event as usize) });
+        }
+
+        /// 返回事件标志
+        fn event_flag(event: Event) -> bool {
+            Self::block().isr.read().bits().has_bit(event as u32)
+        }
+
+        /// 开启或关闭事件中断
+        fn event_config(event: Event, en: bool) {
+            let block = Self::block();
+            match event {
+                Event::GIF1 => {}
+                Event::TCIF1 => {
+                    block.ccr1.modify(|_, w| w.tcie().bit(en));
+                }
+                Event::HTIF1 => {
+                    block.ccr1.modify(|_, w| w.htie().bit(en));
+                }
+                Event::TEIF1 => {
+                    block.ccr1.modify(|_, w| w.tcie().bit(en));
+                }
+                Event::GIF2 => {}
+                Event::TCIF2 => {
+                    block.ccr2.modify(|_, w| w.tcie().bit(en));
+                }
+                Event::HTIF2 => {
+                    block.ccr2.modify(|_, w| w.htie().bit(en));
+                }
+                Event::TEIF2 => {
+                    block.ccr2.modify(|_, w| w.tcie().bit(en));
+                }
+                Event::GIF3 => {}
+                Event::TCIF3 => {
+                    block.ccr3.modify(|_, w| w.tcie().bit(en));
+                }
+                Event::HTIF3 => {
+                    block.ccr3.modify(|_, w| w.htie().bit(en));
+                }
+                Event::TEIF3 => {
+                    block.ccr3.modify(|_, w| w.tcie().bit(en));
+                }
+            }
+        }
+
+        /// return event config
+        fn is_event_enable(event: Event) -> bool {
+            let block = Self::block();
+            match event {
+                Event::GIF1 => false,
+                Event::TCIF1 => block.ccr1.read().tcie().bit(),
+                Event::HTIF1 => block.ccr1.read().htie().bit(),
+                Event::TEIF1 => block.ccr1.read().teie().bit(),
+                Event::GIF2 => false,
+                Event::TCIF2 => block.ccr2.read().tcie().bit(),
+                Event::HTIF2 => block.ccr2.read().htie().bit(),
+                Event::TEIF2 => block.ccr2.read().teie().bit(),
+                Event::GIF3 => false,
+                Event::TCIF3 => block.ccr3.read().tcie().bit(),
+                Event::HTIF3 => block.ccr3.read().htie().bit(),
+                Event::TEIF3 => block.ccr3.read().teie().bit(),
+            }
         }
     }
 }

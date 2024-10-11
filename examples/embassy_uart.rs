@@ -31,8 +31,8 @@ async fn main(_spawner: Spawner) {
     loop {
         // 使用标准接口来发送串口数据
         // let _ = write!(tx, "example for usart\r\n");
-        let rst = rx.read(&mut rx_buf).await;
-        // let rst = rx.read_with_idle(&mut rx_buf).await;
+        // let rst = rx.read(&mut rx_buf).await;
+        let rst = rx.read_with_idle(&mut rx_buf).await;
         defmt::info!("recv: rst: {:?} {:x}", Debug2Format(&rst), rx_buf);
         // 使用自定义的驱动接口发送串口数据
         // let rst = tx.write(buf.as_bytes()).await;

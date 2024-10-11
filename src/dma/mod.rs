@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use critical_section::CriticalSection;
 use embassy_hal_internal::{into_ref, Peripheral};
+use enumset::{EnumSet, EnumSetType};
 
 use crate::clock::peripheral::PeripheralClockIndex;
 
@@ -232,4 +233,22 @@ impl Dma {
 
 pub fn init(_cs: CriticalSection) {
     Dma::init();
+}
+
+#[derive(EnumSetType)]
+pub enum Event {
+    GIF1,
+    TCIF1,
+    HTIF1,
+    TEIF1,
+
+    GIF2,
+    TCIF2,
+    HTIF2,
+    TEIF2,
+
+    GIF3,
+    TCIF3,
+    HTIF3,
+    TEIF3,
 }

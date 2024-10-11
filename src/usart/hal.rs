@@ -161,7 +161,7 @@ pub mod sealed {
             });
         }
 
-        /// 返回
+        /// 返回事件标志
         fn event_flag(event: Event) -> bool {
             let sr = Self::block().sr.read();
             match event {

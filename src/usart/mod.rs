@@ -2,14 +2,14 @@ mod future;
 mod hal;
 mod pins;
 
-use core::marker::PhantomData;
-use core::future::poll_fn;
-use core::task::Poll;
 use crate::clock;
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
+use core::future::poll_fn;
+use core::marker::PhantomData;
+use core::task::Poll;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
@@ -324,7 +324,7 @@ impl<'d, T: Instance> UsartRx<'d, T, Async> {
 
         let mut cnt = 0;
         for v in buf {
-            let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE;
+            let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE; //
 
             let event_future = poll_fn(move |cx| {
                 events.iter().for_each(|e| {
@@ -332,13 +332,14 @@ impl<'d, T: Instance> UsartRx<'d, T, Async> {
                     T::event_config(e, true);
                 });
 
+                // 查看事件
                 let mut events_happen = EnumSet::empty();
                 events.iter().for_each(|e| {
                     if T::event_flag(e) {
                         T::event_clear(e);
                         events_happen |= e;
                     }
-                } );
+                });
 
                 // some event happen, so reset the event future
                 if !events_happen.is_empty() {
