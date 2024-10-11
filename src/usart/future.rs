@@ -11,7 +11,7 @@ use enumset::EnumSet;
 const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
 const _EVENT_COUNT: usize = Event::PE as usize + 1;
 const _WAKER_COUNT: usize = Id::USART2 as usize;
-static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
+pub(super) static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
     [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
 
 pub struct EventFuture<T: Instance> {

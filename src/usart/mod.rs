@@ -3,14 +3,15 @@ mod hal;
 mod pins;
 
 use core::marker::PhantomData;
-
+use core::future::poll_fn;
+use core::task::Poll;
 use crate::clock;
 use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
-use enumset::EnumSetType;
+use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
 use hal::sealed;
 
@@ -306,19 +307,61 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
 impl<'d, T: Instance> UsartRx<'d, T, Async> {
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        let cnt = buf.len(); // | Event::ORE
-        let events = Event::RXNE | Event::PE | Event::NE | Event::FE;
+        // let cnt = buf.len(); // | Event::ORE
+        // let events = Event::RXNE | Event::PE | Event::NE | Event::FE;
+        // for v in buf {
+        //     let events = EventFuture::<T>::new(events).await;
+        //     *v = T::read();
+        //     if events != Event::RXNE {
+        //         for e in events {
+        //             defmt::info!("error event: {} {} ", e as usize, T::event_flag(e));
+        //         }
+        //         // *v = T::read();
+        //         return Err(Error::Others);
+        //     }
+        // }
+        // Ok(cnt)
+
+        let mut cnt = 0;
         for v in buf {
-            let events = EventFuture::<T>::new(events).await;
-            *v = T::read();
-            if events != Event::RXNE {
-                for e in events {
-                    defmt::info!("error event: {} {} ", e as usize, T::event_flag(e));
+            let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE;
+
+            let event_future = poll_fn(move |cx| {
+                events.iter().for_each(|e| {
+                    future::EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
+                    T::event_config(e, true);
+                });
+
+                let mut events_happen = EnumSet::empty();
+                events.iter().for_each(|e| {
+                    if T::event_flag(e) {
+                        T::event_clear(e);
+                        events_happen |= e;
+                    }
+                } );
+
+                // some event happen, so reset the event future
+                if !events_happen.is_empty() {
+                    events.iter().for_each(|e| {
+                        T::event_config(e, false);
+                    });
+                    return Poll::Ready(events_happen);
                 }
-                // *v = T::read();
+
+                Poll::Pending
+            });
+
+            let events_happen = event_future.await;
+
+            // grab rx data or clear some flag
+            *v = T::read();
+            cnt += 1;
+
+            if events_happen != Event::RXNE {
                 return Err(Error::Others);
             }
         }
+
         Ok(cnt)
     }
 
