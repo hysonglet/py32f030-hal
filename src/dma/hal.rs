@@ -4,46 +4,49 @@ pub(super) mod sealed {
     use super::super::*;
     use crate::pac;
 
-    pub trait Instance: hal {
+    pub trait Instance {
         fn id() -> Id;
-    }
 
-    pub trait ChannelInstance: hal {
-        fn channel() -> Channel;
+        fn block() -> &'static pac::dma::RegisterBlock {
+            match Self::id() {
+                Id::DMA => unsafe { pac::DMA::PTR.as_ref().unwrap() },
+            }
+        }
 
         #[inline]
-        fn enable(en: bool) {
-            match Self::channel() {
+        fn enable(channel: Channel, en: bool) {
+            match channel {
                 Channel::Channel1 => Self::block().ccr1.modify(|_, w| w.en().bit(en)),
                 Channel::Channel2 => Self::block().ccr2.modify(|_, w| w.en().bit(en)),
                 Channel::Channel3 => Self::block().ccr3.modify(|_, w| w.en().bit(en)),
             }
         }
 
-        fn is_cycle_mode() -> bool {
+        #[inline]
+        fn is_cycle_mode(channel: Channel) -> bool {
             let block = Self::block();
-            match Self::channel() {
+            match channel {
                 Channel::Channel1 => block.ccr1.read().circ().bit(),
                 Channel::Channel2 => block.ccr2.read().circ().bit(),
                 Channel::Channel3 => block.ccr2.read().circ().bit(),
             }
         }
+
         // 读取剩余数量的
-        fn remain_count() -> u16 {
+        fn remain_count(channel: Channel) -> u16 {
             let block = Self::block();
-            let cnt = match Self::channel() {
+            let cnt = match channel {
                 Channel::Channel1 => block.cndtr1.read().bits(),
                 Channel::Channel2 => block.cndtr2.read().bits(),
                 Channel::Channel3 => block.cndtr3.read().bits(),
             };
             cnt as u16
         }
-        fn config(config: Config) -> Result<(), Error> {
+
+        fn config(channel: Channel, config: Config) {
             let block = Self::block();
 
-            let channel = Self::channel();
-
-            Self::enable(false);
+            Self::enable(channel, false);
 
             match channel {
                 Channel::Channel1 => {
@@ -84,11 +87,11 @@ pub(super) mod sealed {
                     // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
                     // 都 不会传输数据。
                     match config.mode {
-                        Mode::OneTime(cnt) => {
+                        RepeatMode::OneTime(cnt) => {
                             block.ccr1.modify(|_, w| w.circ().bit(false));
                             block.cndtr1.modify(|_, w| unsafe { w.ndt().bits(cnt) });
                         }
-                        Mode::Repeat(cnt) => {
+                        RepeatMode::Repeat(cnt) => {
                             block.ccr1.modify(|_, w| w.circ().bit(true));
                             block.cndtr1.modify(|_, w| unsafe { w.ndt().bits(cnt) });
                         }
@@ -103,14 +106,6 @@ pub(super) mod sealed {
             }
 
             // Self::enable(false);
-
-            Ok(())
-        }
-    }
-
-    pub trait hal {
-        fn block() -> &'static pac::dma::RegisterBlock {
-            unsafe { pac::DMA::PTR.as_ref().unwrap() }
         }
 
         /// 清除事件标志

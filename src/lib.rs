@@ -93,8 +93,6 @@ pub fn init(config: config::Config) -> Peripherals {
     // 开启中断
     critical_section::with(|cs| {
         exti::init(cs);
-        #[cfg(feature = "dma")]
-        dma::init(cs);
     });
 
     peripherals

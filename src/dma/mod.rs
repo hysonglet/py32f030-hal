@@ -1,14 +1,14 @@
-use core::marker::PhantomData;
+mod hal;
+mod types;
 
 use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
 use crate::macro_def::impl_sealed_peripheral_id;
-use critical_section::CriticalSection;
+use crate::mode::{Blocking, Mode};
+use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
-use enumset::{EnumSet, EnumSetType};
-
-mod hal;
+use types::*;
 
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
@@ -18,7 +18,7 @@ pub enum Id {
     DMA,
 }
 
-// impl_sealed_peripheral_id!(DMA, DMA);
+impl_sealed_peripheral_id!(DMA, DMA);
 
 impl PeripheralIdToClockIndex for Id {
     fn clock(&self) -> PeripheralClockIndex {
@@ -26,25 +26,6 @@ impl PeripheralIdToClockIndex for Id {
             Self::DMA => PeripheralClockIndex::DMA,
         }
     }
-}
-
-/// 传输的优先级
-pub enum Priorities {
-    Low = 0,
-    Medium = 1,
-    High = 2,
-    VeryHigh = 3,
-}
-
-/// DMA 传输的宽度
-#[derive(Clone, Copy)]
-pub enum Burst {
-    // 1 byte
-    Single = 0,
-    // 2 bytes
-    Double = 1,
-    // 4 bytes
-    World = 2,
 }
 
 /// 通道 id
@@ -55,90 +36,19 @@ pub enum Channel {
     Channel3 = 3,
 }
 
-/// DMA模式，单次或循环
-#[derive(PartialEq)]
-pub enum Mode {
-    OneTime(u16),
-    Repeat(u16),
-}
-
-/// DMA传输方向
-#[derive(PartialEq)]
-pub enum Direction {
-    PeriphToMemory,
-    MemoryToPeriph,
-    MemoryToMemory,
-}
-
-pub trait DmaChannel: Peripheral<P = Self> + hal::sealed::ChannelInstance + 'static + Send {}
-
-/// 为 dma channle对象 impl 接口
-macro_rules! impl_sealed_dma_channel {
-    (
-        $peripheral: ident, $dma_channel: ident
-    ) => {
-        impl hal::sealed::ChannelInstance for crate::mcu::peripherals::$peripheral {
-            fn channel() -> Channel {
-                Channel::$dma_channel
-            }
+impl PeripheralInterrupt for Channel {
+    fn interrupt(&self) -> crate::pac::interrupt {
+        match *self {
+            Self::Channel1 => PY32f030xx_pac::interrupt::DMA_CHANNEL1,
+            Self::Channel2 | Self::Channel3 => PY32f030xx_pac::interrupt::DMA_CHANNEL2_3,
         }
-
-        impl DmaChannel for crate::mcu::peripherals::$peripheral {}
-    };
-}
-
-// impl_sealed_dma_channel!(DmaChannel1, Channel1);
-// impl_sealed_dma_channel!(DmaChannel2, Channel2);
-// impl_sealed_dma_channel!(DmaChannel3, Channel3);
-
-// pub struct AnyChannel<T: DmaChannel> {
-//     _p: PhantomData<T>,
-// }
-
-// impl<T: DmaChannel> AnyChannel<T> {
-//     pub fn config(config: Config) -> Result<(), Error> {
-//         T::config(config)
-//     }
-
-//     pub fn new(_dmachannel: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
-//         into_ref!(_dmachannel);
-
-//         // 关闭通道，dma 通道配置只有在 en 为 0 时候才能有效配置
-//         T::enable(false);
-
-//         T::config(config)?;
-
-//         Ok(Self { _p: PhantomData })
-//     }
-
-//     pub fn start(&self) {
-//         T::enable(true);
-//     }
-//     pub fn stop(&self) {
-//         T::enable(false);
-//     }
-
-//     pub fn wait_finish_block(&self) {
-//         // 剩余传输数量
-//         while T::remain_count() != 0 {}
-//     }
-// }
-
-// impl<T: DmaChannel> Drop for AnyChannel<T> {
-//     fn drop(&mut self) {
-//         T::enable(false);
-//     }
-// }
-
-#[derive(Debug)]
-pub enum Error {
-    Busy,
+    }
 }
 
 pub struct Config {
     diretion: Direction,
     prioritie: Priorities,
-    mode: Mode,
+    mode: RepeatMode,
     memInc: bool,
     periphInc: bool,
     periphDataSize: Burst,
@@ -152,7 +62,7 @@ impl Default for Config {
         Self {
             diretion: Direction::PeriphToMemory,
             prioritie: Priorities::Low,
-            mode: Mode::OneTime(0),
+            mode: RepeatMode::OneTime(0),
             memInc: false,
             periphInc: false,
             periphDataSize: Burst::Single,
@@ -170,7 +80,7 @@ impl Config {
         dst_addr: u32,
         dst_inc: bool,
         priorite: Priorities,
-        mode: Mode,
+        mode: RepeatMode,
         burst: Burst,
     ) -> Self {
         Self {
@@ -192,7 +102,7 @@ impl Config {
         dst_addr: u32,
         dst_inc: bool,
         priorite: Priorities,
-        mode: Mode,
+        mode: RepeatMode,
         burst: Burst,
     ) -> Config {
         Self {
@@ -214,7 +124,7 @@ impl Config {
         dst_addr: u32,
         dst_inc: bool,
         priorite: Priorities,
-        mode: Mode,
+        mode: RepeatMode,
         burst: Burst,
     ) -> Config {
         Self {
@@ -231,44 +141,71 @@ impl Config {
     }
 }
 
-struct Dma;
+pub struct AnyDma<'d, T: Instance, M: Mode> {
+    _t: PhantomData<&'d T>,
+    _mode: PhantomData<M>,
+}
 
-impl Dma {
-    #[inline]
-    fn enable(en: bool) {
-        PeripheralClockIndex::DMA.clock(en);
+impl<'d, T: Instance, M: Mode> AnyDma<'d, T, M> {
+    pub fn new(_dma: impl Peripheral<P = T> + 'd) -> Self {
+        into_ref!(_dma);
+
+        T::id().clock().open();
+
+        Self {
+            _t: PhantomData,
+            _mode: PhantomData,
+        }
     }
 
-    #[inline]
-    fn reset() {
-        PeripheralClockIndex::DMA.reset();
-    }
-
-    #[inline]
-    fn init() {
-        Self::enable(true);
-        Self::reset();
+    pub fn split(&mut self) -> [DmaChannel<T, M>; 3] {
+        [
+            DmaChannel::new(Channel::Channel1),
+            DmaChannel::new(Channel::Channel2),
+            DmaChannel::new(Channel::Channel3),
+        ]
     }
 }
 
-pub fn init(_cs: CriticalSection) {
-    Dma::init();
+pub struct DmaChannel<'d, T: Instance, M: Mode> {
+    _t: PhantomData<&'d T>,
+    _mode: PhantomData<M>,
+    channel: Channel,
 }
 
-#[derive(EnumSetType)]
-pub enum Event {
-    GIF1,
-    TCIF1,
-    HTIF1,
-    TEIF1,
+impl<'d, T: Instance, M: Mode> Drop for DmaChannel<'d, T, M> {
+    fn drop(&mut self) {
+        T::enable(self.channel, false);
+    }
+}
 
-    GIF2,
-    TCIF2,
-    HTIF2,
-    TEIF2,
+impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
+    pub(super) fn new(channel: Channel) -> Self {
+        if M::is_async() {
+            channel.enable_interrupt();
+        }
 
-    GIF3,
-    TCIF3,
-    HTIF3,
-    TEIF3,
+        Self {
+            _t: PhantomData,
+            _mode: PhantomData,
+            channel,
+        }
+    }
+
+    #[inline]
+    pub fn config(&mut self, config: Config) {
+        T::config(self.channel, config)
+    }
+
+    pub fn start(&mut self) {
+        todo!()
+    }
+
+    pub fn stop(&mut self) {
+        todo!()
+    }
+}
+
+impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
+
 }
