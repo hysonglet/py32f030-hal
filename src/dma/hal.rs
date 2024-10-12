@@ -1,10 +1,10 @@
-pub(super) mod sealed {
+pub(crate) mod sealed {
     use enumset::__internal::EnumSetTypeRepr;
 
     use super::super::*;
     use crate::pac;
 
-    pub trait Instance {
+    pub(crate) trait Instance {
         fn id() -> Id;
 
         fn block() -> &'static pac::dma::RegisterBlock {

@@ -14,7 +14,7 @@ pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Sen
 
 /// 串口号定义
 #[derive(Clone, Copy, PartialEq)]
-pub enum Id {
+pub(crate) enum Id {
     DMA,
 }
 

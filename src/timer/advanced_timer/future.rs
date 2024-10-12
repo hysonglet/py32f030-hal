@@ -23,7 +23,7 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
+    unsafe fn on_interrupt(_cs: CriticalSection, _id: usize) {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
