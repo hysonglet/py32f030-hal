@@ -1,5 +1,7 @@
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
+use crate::clock::peripheral::{
+    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
+};
 use crate::gpio::AnyPin;
 use crate::gpio::{PinIoType, PinSpeed};
 use crate::mode::Mode;
@@ -20,23 +22,11 @@ pub enum Id {
     SPI2,
 }
 
-impl PeripheralEnable for Id {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::SPI1 => PeripheralClockIndex::SPI1.clock(en),
-            Self::SPI2 => PeripheralClockIndex::SPI2.clock(en),
-        }
-    }
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::SPI1 => PeripheralClockIndex::SPI1.is_open(),
-            Self::SPI2 => PeripheralClockIndex::SPI2.is_open(),
-        }
-    }
-    fn reset(&self) {
-        match *self {
-            Self::SPI1 => PeripheralClockIndex::SPI1.reset(),
-            Self::SPI2 => PeripheralClockIndex::SPI2.reset(),
+            Self::SPI1 => PeripheralClockIndex::SPI1,
+            Self::SPI2 => PeripheralClockIndex::SPI2,
         }
     }
 }
@@ -272,7 +262,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         );
 
         // 使能外设时钟
-        T::id().open();
+        T::id().clock().open();
 
         into_ref!(spi);
 

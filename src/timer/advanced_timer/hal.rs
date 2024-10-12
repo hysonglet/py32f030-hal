@@ -76,7 +76,9 @@ pub(crate) mod sealed {
         /// 设置计数方向
         #[inline]
         fn set_dir(dir: CountDirection) {
-            Self::block().cr1.modify(|_, w| w.dir().bit(dir == CountDirection::Down));
+            Self::block()
+                .cr1
+                .modify(|_, w| w.dir().bit(dir == CountDirection::Down));
         }
 
         /// 设置自动重载的值

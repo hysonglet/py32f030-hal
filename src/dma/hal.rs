@@ -4,11 +4,12 @@ pub(super) mod sealed {
     use super::super::*;
     use crate::pac;
 
-    pub trait Instance {
+    pub trait Instance: hal {
+        fn id() -> Id;
+    }
+
+    pub trait ChannelInstance: hal {
         fn channel() -> Channel;
-        fn block() -> &'static pac::dma::RegisterBlock {
-            unsafe { pac::DMA::PTR.as_ref().unwrap() }
-        }
 
         #[inline]
         fn enable(en: bool) {
@@ -27,7 +28,6 @@ pub(super) mod sealed {
                 Channel::Channel3 => block.ccr2.read().circ().bit(),
             }
         }
-
         // 读取剩余数量的
         fn remain_count() -> u16 {
             let block = Self::block();
@@ -38,7 +38,6 @@ pub(super) mod sealed {
             };
             cnt as u16
         }
-
         fn config(config: Config) -> Result<(), Error> {
             let block = Self::block();
 
@@ -106,6 +105,12 @@ pub(super) mod sealed {
             // Self::enable(false);
 
             Ok(())
+        }
+    }
+
+    pub trait hal {
+        fn block() -> &'static pac::dma::RegisterBlock {
+            unsafe { pac::DMA::PTR.as_ref().unwrap() }
         }
 
         /// 清除事件标志

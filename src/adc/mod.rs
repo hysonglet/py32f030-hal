@@ -19,7 +19,7 @@ use embassy_hal_internal::Peripheral;
 pub use pins::{TemperatureChannel, VRrefChannel};
 
 use crate::{
-    clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
+    clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex},
     delay::wait_for_true_timeout_block,
     mode::Mode,
 };
@@ -38,22 +38,10 @@ pub(crate) enum Id {
 
 impl_sealed_peripheral_id!(ADC, ADC1);
 
-impl PeripheralEnable for Id {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::ADC1 => PeripheralClockIndex::ADC.clock(en),
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::ADC1 => PeripheralClockIndex::ADC.is_open(),
-        }
-    }
-
-    fn reset(&self) {
-        match *self {
-            Self::ADC1 => PeripheralClockIndex::ADC.reset(),
+            Self::ADC1 => PeripheralClockIndex::ADC,
         }
     }
 }
@@ -220,7 +208,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channel_config: ChannelConfig,
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
-        T::id().open();
+        T::id().clock().open();
 
         Self::new_inner(config, channel_config, channels)?;
 

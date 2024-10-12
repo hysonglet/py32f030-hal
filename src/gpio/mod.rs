@@ -3,7 +3,7 @@ pub(crate) mod hal;
 use core::ops::Not;
 use hal::*;
 
-use crate::clock::peripheral::{GpioClock, PeripheralEnable};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
 use embassy_hal_internal::{impl_peripheral, into_ref, Peripheral, PeripheralRef};
 
 /// GPIO Port Index
@@ -15,28 +15,12 @@ pub enum GpioPort {
     GPIOF = 2,
 }
 
-impl PeripheralEnable for GpioPort {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for GpioPort {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            GpioPort::GPIOA => GpioClock::GPIOA.enable(en),
-            GpioPort::GPIOB => GpioClock::GPIOB.enable(en),
-            GpioPort::GPIOF => GpioClock::GPIOF.enable(en),
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            GpioPort::GPIOA => GpioClock::GPIOA.is_open(),
-            GpioPort::GPIOB => GpioClock::GPIOB.is_open(),
-            GpioPort::GPIOF => GpioClock::GPIOF.is_open(),
-        }
-    }
-
-    fn reset(&self) {
-        match *self {
-            GpioPort::GPIOA => GpioClock::GPIOA.reset(),
-            GpioPort::GPIOB => GpioClock::GPIOB.reset(),
-            GpioPort::GPIOF => GpioClock::GPIOF.reset(),
+            GpioPort::GPIOA => PeripheralClockIndex::GPIOA,
+            GpioPort::GPIOB => PeripheralClockIndex::GPIOB,
+            GpioPort::GPIOF => PeripheralClockIndex::GPIOF,
         }
     }
 }
@@ -542,11 +526,11 @@ macro_rules! gpio_pin_def {
                 }
 
                 pub fn enable(&self) {
-                    GpioPort::$gpio_port.open();
+                    PeripheralClockIndex::$gpio_port.open();
                 }
 
                 pub fn reset(&self) {
-                    GpioPort::$gpio_port.reset();
+                    PeripheralClockIndex::$gpio_port.reset();
                 }
             }
 

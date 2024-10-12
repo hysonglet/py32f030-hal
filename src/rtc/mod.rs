@@ -15,7 +15,7 @@ use embassy_hal_internal::Peripheral;
 use enumset::{EnumSet, EnumSetType};
 
 use crate::{
-    clock::peripheral::{PeripheralClockIndex, PeripheralEnable},
+    clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex},
     delay::wait_for_true_timeout_block,
     mode::Mode,
 };
@@ -33,28 +33,10 @@ pub(crate) enum Id {
 // 根据ID匹配外设实体
 impl_sealed_peripheral_id!(RTC, Rtc1);
 
-impl PeripheralEnable for Id {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::Rtc1 => {
-                PeripheralClockIndex::RTCAPB.clock(en);
-                // patch, 开启 rtc 时钟需要开启pwr
-                if en {
-                    PeripheralClockIndex::PWR.clock(true);
-                }
-            }
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::Rtc1 => PeripheralClockIndex::RTCAPB.is_open(),
-        }
-    }
-
-    fn reset(&self) {
-        match *self {
-            Self::Rtc1 => PeripheralClockIndex::RTCAPB.reset(),
+            Self::Rtc1 => PeripheralClockIndex::RTCAPB,
         }
     }
 }
@@ -112,7 +94,7 @@ pub struct AnyRtc<'d, T: Instance, M: Mode> {
 impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
     pub fn new(_rtc: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
         // 开启时钟
-        T::id().open();
+        T::id().clock().open();
         // T::id().reset();
 
         Self::new_inner(config)?;

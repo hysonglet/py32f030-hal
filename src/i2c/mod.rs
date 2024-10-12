@@ -4,7 +4,9 @@ pub mod master;
 mod pins;
 pub mod slave;
 
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
+use crate::clock::peripheral::{
+    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
+};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
@@ -22,22 +24,10 @@ pub enum Id {
     I2c1,
 }
 
-impl PeripheralEnable for Id {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::I2c1 => PeripheralClockIndex::I2C.clock(en),
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::I2c1 => PeripheralClockIndex::I2C.is_open(),
-        }
-    }
-
-    fn reset(&self) {
-        match *self {
-            Self::I2c1 => PeripheralClockIndex::I2C.reset(),
+            Self::I2c1 => PeripheralClockIndex::I2C,
         }
     }
 }
@@ -89,7 +79,7 @@ pub struct AnyI2c<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
     fn new_inner(config: Config) -> Result<(), Error> {
-        T::id().open();
+        T::id().clock().open();
         T::config(config)?;
         Ok(())
     }

@@ -3,7 +3,9 @@ mod hal;
 mod pins;
 
 use crate::clock;
-use crate::clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt};
+use crate::clock::peripheral::{
+    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
+};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mode::{Async, Blocking, Mode};
@@ -149,27 +151,11 @@ pub enum Id {
 impl_sealed_peripheral_id!(USART1, USART1);
 impl_sealed_peripheral_id!(USART2, USART2);
 
-impl PeripheralEnable for Id {
-    /// 使能串口外设时钟
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::USART1 => PeripheralClockIndex::USART1.clock(en),
-            Self::USART2 => PeripheralClockIndex::UART2.clock(en),
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::USART1 => PeripheralClockIndex::USART1.is_open(),
-            Self::USART2 => PeripheralClockIndex::UART2.is_open(),
-        }
-    }
-
-    /// 复位串口外设
-    fn reset(&self) {
-        match *self {
-            Self::USART1 => PeripheralClockIndex::USART1.reset(),
-            Self::USART2 => PeripheralClockIndex::UART2.reset(),
+            Self::USART1 => PeripheralClockIndex::USART1,
+            Self::USART2 => PeripheralClockIndex::UART2,
         }
     }
 }

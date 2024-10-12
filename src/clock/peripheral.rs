@@ -1,36 +1,6 @@
 use super::Rcc;
 use crate::bit::*;
 
-#[derive(Clone, Copy)]
-pub enum GpioClock {
-    GPIOA = 0,
-    GPIOB = 1,
-    GPIOF = 5,
-}
-
-impl GpioClock {
-    #[inline]
-    pub fn enable(&self, en: bool) {
-        Rcc::block().iopenr.modify(|r, w| unsafe {
-            w.bits(bit_mask_idx_modify::<1>(
-                *self as usize,
-                r.bits(),
-                en as u32,
-            ))
-        })
-    }
-
-    pub(crate) fn is_open(&self) -> bool {
-        bit_mask_idx_get::<1>(*self as usize, Rcc::block().iopenr.read().bits()) != 0
-    }
-    #[inline]
-    pub fn reset(&self) {
-        Rcc::block()
-            .ioprstr
-            .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(*self as usize, r.bits())) })
-    }
-}
-
 #[derive(PartialEq, Clone, Copy)]
 pub enum PeripheralClockIndex {
     DMA = 0,
@@ -59,67 +29,83 @@ pub enum PeripheralClockIndex {
     COMP1 = 21 + 64,
     COMP2 = 22 + 64,
     LED = 23 + 64,
+
+    GPIOA = 0 + 96,
+    GPIOB = 1 + 96,
+    GPIOF = 5 + 96,
 }
 
 impl PeripheralClockIndex {
     /// 返回时钟开启状态
-    pub(crate) fn is_open(&self) -> bool {
+    pub fn is_open(&self) -> bool {
         let idx = *self as usize;
         if idx < 32 {
             bit_mask_idx_get::<1>(idx, Rcc::block().ahbenr.read().bits()) != 0
         } else if idx < 64 {
-            bit_mask_idx_get::<1>(idx, Rcc::block().apbenr1.read().bits()) != 0
+            bit_mask_idx_get::<1>(idx - 32, Rcc::block().apbenr1.read().bits()) != 0
+        } else if idx < 96 {
+            bit_mask_idx_get::<1>(idx - 64, Rcc::block().apbenr2.read().bits()) != 0
         } else {
-            bit_mask_idx_get::<1>(idx, Rcc::block().apbenr2.read().bits()) != 0
+            bit_mask_idx_get::<1>(idx - 96, Rcc::block().iopenr.read().bits()) != 0
         }
     }
 
     /// 设置时钟开启或关闭
-    pub(crate) fn clock(&self, en: bool) {
-        if (*self as u32) < 32 {
+    pub fn clock(&self, en: bool) {
+        let idx = *self as usize;
+        if idx < 32 {
             Rcc::block().ahbenr.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_modify::<1>(
-                    *self as usize,
-                    r.bits(),
-                    en as u32,
-                ))
+                w.bits(bit_mask_idx_modify::<1>(idx, r.bits(), en as u32))
             })
-        } else if (*self as u32) < 64 {
+        } else if idx < 64 {
             Rcc::block().apbenr1.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_modify::<1>(
-                    (*self as usize) - 32,
-                    r.bits(),
-                    en as u32,
-                ))
+                w.bits(bit_mask_idx_modify::<1>(idx - 32, r.bits(), en as u32))
+            })
+        } else if idx < 96 {
+            Rcc::block().apbenr2.modify(|r, w| unsafe {
+                w.bits(bit_mask_idx_modify::<1>(idx - 64, r.bits(), en as u32))
             })
         } else {
-            Rcc::block().apbenr2.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_modify::<1>(
-                    (*self as usize) - 64,
-                    r.bits(),
-                    en as u32,
-                ))
+            Rcc::block().iopenr.modify(|r, w| unsafe {
+                w.bits(bit_mask_idx_modify::<1>(idx - 96, r.bits(), en as u32))
             })
         }
     }
 
+    /// 关闭外设时钟
+    #[inline]
+    pub fn close(&self) {
+        self.clock(false);
+    }
+
+    /// 开启外设时钟
+    #[inline]
+    pub fn open(&self) {
+        self.clock(true);
+    }
+
     /// 复位外设
-    pub(crate) fn reset(&self) {
-        if (*self as u32) < 32 {
+    pub fn reset(&self) {
+        let idx = *self as usize;
+        if idx < 32 {
             if *self == Self::FLASH || *self == Self::SRAM {
                 panic!()
             }
             Rcc::block()
                 .ahbrstr
-                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(*self as usize, r.bits())) })
-        } else if (*self as u32) < 64 {
-            Rcc::block().apbrstr1.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_set::<1>((*self as usize) - 32, r.bits()))
-            })
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx, r.bits())) })
+        } else if idx < 64 {
+            Rcc::block()
+                .apbrstr1
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 32, r.bits())) })
+        } else if idx < 96 {
+            Rcc::block()
+                .apbrstr2
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 64, r.bits())) })
         } else {
-            Rcc::block().apbrstr2.modify(|r, w| unsafe {
-                w.bits(bit_mask_idx_set::<1>((*self as usize) - 64, r.bits()))
-            })
+            Rcc::block()
+                .ioprstr
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 96, r.bits())) })
         }
     }
 }
@@ -138,26 +124,6 @@ pub trait PeripheralInterrupt {
     }
 }
 
-/// 外设使能和重启
-pub trait PeripheralEnable {
-    /// 使能和去能外设时钟
-    fn clock(&self, en: bool);
-
-    /// 返回外设时钟状态
-    fn is_open(&self) -> bool;
-
-    /// 关闭外设时钟
-    #[inline]
-    fn close(&self) {
-        self.clock(false);
-    }
-
-    /// 开启外设时钟
-    #[inline]
-    fn open(&self) {
-        self.clock(true);
-    }
-
-    /// 复位外设
-    fn reset(&self);
+pub trait PeripheralIdToClockIndex {
+    fn clock(&self) -> PeripheralClockIndex;
 }

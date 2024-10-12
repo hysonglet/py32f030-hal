@@ -11,7 +11,7 @@ pub use counter::Counter;
 pub use pwm::Pwm;
 
 use crate::{
-    clock::peripheral::{PeripheralClockIndex, PeripheralEnable, PeripheralInterrupt},
+    clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt},
     mode::Mode,
 };
 use embassy_hal_internal::{into_ref, Peripheral};
@@ -24,22 +24,10 @@ pub enum AdvancedTimer {
     TIM1,
 }
 
-impl PeripheralEnable for AdvancedTimer {
-    fn clock(&self, en: bool) {
+impl PeripheralIdToClockIndex for AdvancedTimer {
+    fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::TIM1 => PeripheralClockIndex::TIM1.clock(en),
-        }
-    }
-
-    fn is_open(&self) -> bool {
-        match *self {
-            Self::TIM1 => PeripheralClockIndex::TIM1.is_open(),
-        }
-    }
-
-    fn reset(&self) {
-        match *self {
-            Self::TIM1 => PeripheralClockIndex::TIM1.reset(),
+            Self::TIM1 => PeripheralClockIndex::TIM1,
         }
     }
 }
@@ -240,7 +228,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
         into_ref!(_timer);
 
         // 开启外设时钟
-        T::id().open();
+        T::id().clock().open();
 
         Ok(Self {
             _t: PhantomData,

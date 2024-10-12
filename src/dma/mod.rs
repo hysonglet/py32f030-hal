@@ -1,12 +1,32 @@
 use core::marker::PhantomData;
 
+use crate::clock::peripheral::{
+    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
+};
+use crate::macro_def::impl_sealed_peripheral_id;
 use critical_section::CriticalSection;
 use embassy_hal_internal::{into_ref, Peripheral};
 use enumset::{EnumSet, EnumSetType};
 
-use crate::clock::peripheral::PeripheralClockIndex;
-
 mod hal;
+
+pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+
+/// 串口号定义
+#[derive(Clone, Copy, PartialEq)]
+pub enum Id {
+    DMA,
+}
+
+// impl_sealed_peripheral_id!(DMA, DMA);
+
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
+        match *self {
+            Self::DMA => PeripheralClockIndex::DMA,
+        }
+    }
+}
 
 /// 传输的优先级
 pub enum Priorities {
@@ -50,14 +70,14 @@ pub enum Direction {
     MemoryToMemory,
 }
 
-pub trait DmaChannel: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait DmaChannel: Peripheral<P = Self> + hal::sealed::ChannelInstance + 'static + Send {}
 
 /// 为 dma channle对象 impl 接口
 macro_rules! impl_sealed_dma_channel {
     (
         $peripheral: ident, $dma_channel: ident
     ) => {
-        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
+        impl hal::sealed::ChannelInstance for crate::mcu::peripherals::$peripheral {
             fn channel() -> Channel {
                 Channel::$dma_channel
             }
@@ -67,48 +87,48 @@ macro_rules! impl_sealed_dma_channel {
     };
 }
 
-impl_sealed_dma_channel!(DmaChannel1, Channel1);
-impl_sealed_dma_channel!(DmaChannel2, Channel2);
-impl_sealed_dma_channel!(DmaChannel3, Channel3);
+// impl_sealed_dma_channel!(DmaChannel1, Channel1);
+// impl_sealed_dma_channel!(DmaChannel2, Channel2);
+// impl_sealed_dma_channel!(DmaChannel3, Channel3);
 
-pub struct AnyChannel<T: DmaChannel> {
-    _p: PhantomData<T>,
-}
+// pub struct AnyChannel<T: DmaChannel> {
+//     _p: PhantomData<T>,
+// }
 
-impl<T: DmaChannel> AnyChannel<T> {
-    pub fn config(config: Config) -> Result<(), Error> {
-        T::config(config)
-    }
+// impl<T: DmaChannel> AnyChannel<T> {
+//     pub fn config(config: Config) -> Result<(), Error> {
+//         T::config(config)
+//     }
 
-    pub fn new(_dmachannel: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
-        into_ref!(_dmachannel);
+//     pub fn new(_dmachannel: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
+//         into_ref!(_dmachannel);
 
-        // 关闭通道，dma 通道配置只有在 en 为 0 时候才能有效配置
-        T::enable(false);
+//         // 关闭通道，dma 通道配置只有在 en 为 0 时候才能有效配置
+//         T::enable(false);
 
-        T::config(config)?;
+//         T::config(config)?;
 
-        Ok(Self { _p: PhantomData })
-    }
+//         Ok(Self { _p: PhantomData })
+//     }
 
-    pub fn start(&self) {
-        T::enable(true);
-    }
-    pub fn stop(&self) {
-        T::enable(false);
-    }
+//     pub fn start(&self) {
+//         T::enable(true);
+//     }
+//     pub fn stop(&self) {
+//         T::enable(false);
+//     }
 
-    pub fn wait_finish_block(&self) {
-        // 剩余传输数量
-        while T::remain_count() != 0 {}
-    }
-}
+//     pub fn wait_finish_block(&self) {
+//         // 剩余传输数量
+//         while T::remain_count() != 0 {}
+//     }
+// }
 
-impl<T: DmaChannel> Drop for AnyChannel<T> {
-    fn drop(&mut self) {
-        T::enable(false);
-    }
-}
+// impl<T: DmaChannel> Drop for AnyChannel<T> {
+//     fn drop(&mut self) {
+//         T::enable(false);
+//     }
+// }
 
 #[derive(Debug)]
 pub enum Error {

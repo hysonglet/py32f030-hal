@@ -40,7 +40,8 @@ embassy_hal_internal::peripherals! {
     COMP2,
 
     /// DMA
-    DmaChannel1,
-    DmaChannel2,
-    DmaChannel3,
+    DMA,
+    // DmaChannel1,
+    // DmaChannel2,
+    // DmaChannel3,
 }

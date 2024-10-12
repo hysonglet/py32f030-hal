@@ -27,7 +27,7 @@ pub(super) mod sealed {
         /// 重启 I2c外设
         #[inline]
         fn reset() {
-            Self::id().reset()
+            Self::id().clock().reset()
         }
 
         /// 查看总线是否释放

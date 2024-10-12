@@ -17,12 +17,12 @@ pub mod sealed {
 
         #[inline]
         fn enable() {
-            Self::id().open()
+            Self::id().clock().open()
         }
 
         #[inline]
         fn reset() {
-            Self::id().reset()
+            Self::id().clock().reset()
         }
 
         #[inline]
