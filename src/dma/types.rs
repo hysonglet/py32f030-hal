@@ -9,7 +9,7 @@ pub enum Priorities {
 }
 
 /// DMA 传输的宽度
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Burst {
     // 1 byte
     Single = 0,
@@ -37,6 +37,7 @@ pub enum Direction {
 #[derive(Debug)]
 pub enum Error {
     Busy,
+    Address,
 }
 
 #[derive(EnumSetType)]

@@ -75,6 +75,42 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn new(
+        diretion: Direction,
+        prioritie: Priorities,
+        mode: RepeatMode,
+        memInc: bool,
+        periphInc: bool,
+        periphDataSize: Burst,
+        memDataSize: Burst,
+        memAddr: u32,
+        periphAddr: u32,
+    ) -> Result<Self, Error> {
+        if periphDataSize != Burst::Single {
+            if periphDataSize == Burst::Double {
+                if periphAddr % 2 != 0 {
+                    return Err(Error::Address);
+                }
+            } else {
+                if periphAddr % 4 != 0 {
+                    return Err(Error::Address);
+                }
+            }
+        };
+
+        Ok(Self {
+            diretion,
+            prioritie,
+            mode,
+            memInc,
+            periphInc,
+            periphDataSize,
+            memDataSize,
+            memAddr,
+            periphAddr,
+        })
+    }
+
     pub fn new_mem2mem(
         src_addr: u32,
         src_inc: bool,
@@ -84,17 +120,18 @@ impl Config {
         mode: RepeatMode,
         burst: Burst,
     ) -> Self {
-        Self {
-            diretion: Direction::MemoryToMemory,
-            prioritie: priorite,
+        Self::new(
+            Direction::MemoryToMemory,
+            priorite,
             mode,
-            memDataSize: burst,
-            periphDataSize: burst,
-            memAddr: src_addr,
-            memInc: src_inc,
-            periphAddr: dst_addr,
-            periphInc: dst_inc,
-        }
+            src_inc,
+            dst_inc,
+            burst,
+            burst,
+            src_addr,
+            dst_addr,
+        )
+        .unwrap()
     }
 
     pub fn new_mem2periph(

@@ -32,15 +32,15 @@ pub enum Parity {
     Odd = 2,
 }
 
-/// 串口流控
-#[derive(Default)]
-pub enum HwFlowCtrl {
-    #[default]
-    None,
-    Rts = 1,
-    Cts = 2,
-    RtsCts = 3,
-}
+// /// 串口流控
+// #[derive(Default)]
+// pub enum HwFlowCtrl {
+//     #[default]
+//     None,
+//     Rts = 1,
+//     Cts = 2,
+//     RtsCts = 3,
+// }
 
 /// 串口的波特率定义
 #[derive(Default)]

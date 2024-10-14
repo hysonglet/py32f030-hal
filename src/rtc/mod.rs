@@ -56,6 +56,12 @@ pub struct Config {
     load: Option<u32>,
 }
 
+impl Config {
+    pub fn new(clock: RtcClock, load: Option<u32>) -> Self {
+        Self { clock, load }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {

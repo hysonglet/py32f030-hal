@@ -87,7 +87,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
     }
 
     /// 校准 adc
-    fn calibration(config: CalibrationConfig, timeout: usize) -> Result<(), Error> {
+    pub fn calibration(config: CalibrationConfig, timeout: usize) -> Result<(), Error> {
         T::set_calibration_content(config.content);
         T::set_calibration_sample_time(config.sample_time);
         T::calibration_start();
@@ -186,9 +186,18 @@ impl<'d, T: Instance> AnyAdc<'d, T, Async> {
 }
 
 #[derive(Clone, Copy)]
-struct CalibrationConfig {
+pub struct CalibrationConfig {
     content: CalibrationSelect,
     sample_time: CalibrationSampleTime,
+}
+
+impl CalibrationConfig {
+    pub fn new(content: CalibrationSelect, sample_time: CalibrationSampleTime) -> Self {
+        Self {
+            content,
+            sample_time,
+        }
+    }
 }
 
 impl Default for CalibrationConfig {
@@ -231,6 +240,24 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    pub fn new(
+        calibration: bool,
+        sample_cycle: SampleCycles,
+        resolution: Resolution,
+        align: Align,
+        clock: ClockMode,
+    ) -> Self {
+        Self {
+            calibration,
+            sample_cycle,
+            resolution,
+            align,
+            clock,
+        }
+    }
+}
+
 pub struct ChannelConfig {
     /* 转换模式 */
     mode: ConversionMode,
@@ -243,6 +270,10 @@ pub struct ChannelConfig {
 impl ChannelConfig {
     pub fn mode(self, mode: ConversionMode) -> Self {
         Self { mode, ..self }
+    }
+
+    pub fn singal(self, signal: TrigleSignal) -> Self {
+        Self { signal, ..self }
     }
 
     pub fn scan_dir(self, scan_dir: ScanDir) -> Self {

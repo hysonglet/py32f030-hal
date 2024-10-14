@@ -74,15 +74,15 @@ pub enum CountDirection {
 
 ///时钟分频因子
 /// 这 2 位定义在定时器时钟(CK_INT)频率，死区时间和由死区发生器与数字滤波器(ETR,Tix)所用的采样时钟之间的分频比例
-#[derive(PartialEq, Clone, Copy)]
-pub enum ClockDiv {
-    ///  tDTS = tCK_INT
-    DIV1,
-    /// tDTS = 2 x tCK_INT
-    DIV2,
-    /// tDTS = 4 x tCK_INT
-    DIV4,
-}
+// #[derive(PartialEq, Clone, Copy)]
+// pub enum ClockDiv {
+//     ///  tDTS = tCK_INT
+//     DIV1,
+//     /// tDTS = 2 x tCK_INT
+//     DIV2,
+//     /// tDTS = 4 x tCK_INT
+//     DIV4,
+// }
 
 /// 选择中央对齐模式
 ///     注：在计数器开启时(CEN=1)，不允许从边沿对齐模式转换到中央对齐模式

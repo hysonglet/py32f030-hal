@@ -7,7 +7,7 @@ mod types;
 use crate::delay::wait_for_true_timeout_block;
 use crate::pac;
 use core::marker::PhantomData;
-use types::*;
+pub use types::*;
 
 static mut F_CPU: u32 = 8000000;
 
