@@ -1,3 +1,4 @@
+mod future;
 mod hal;
 mod types;
 
@@ -31,9 +32,9 @@ impl PeripheralIdToClockIndex for Id {
 /// 通道 id
 #[derive(PartialEq, Clone, Copy)]
 pub enum Channel {
-    Channel1 = 1,
-    Channel2 = 2,
-    Channel3 = 3,
+    Channel1 = 0,
+    Channel2 = 1,
+    Channel3 = 2,
 }
 
 impl PeripheralInterrupt for Channel {
@@ -198,14 +199,23 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
     }
 
     pub fn start(&mut self) {
-        todo!()
+        T::enable(self.channel, true);
     }
 
     pub fn stop(&mut self) {
-        todo!()
+        T::enable(self.channel, false);
     }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
+    pub fn wait(&self) {
+        let event = match self.channel {
+            Channel::Channel1 => Event::TCIF1,
+            Channel::Channel2 => Event::TCIF2,
+            Channel::Channel3 => Event::TCIF3,
+        };
 
+        while !T::event_flag(event) {}
+        T::event_clear(event);
+    }
 }
