@@ -1,4 +1,4 @@
-// mod future;
+mod future;
 mod hal;
 mod types;
 
@@ -6,11 +6,14 @@ use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
 use crate::macro_def::impl_sealed_peripheral_id;
-use crate::mode::{Blocking, Mode};
+use crate::mode::{Async, Blocking, Mode};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
-use types::*;
+use embedded_dma;
+use future::EventFuture;
+pub use types::*;
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 /// 串口号定义
@@ -75,6 +78,7 @@ impl Default for Config {
 }
 
 impl Config {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         diretion: Direction,
         prioritie: Priorities,
@@ -85,20 +89,8 @@ impl Config {
         memDataSize: Burst,
         memAddr: u32,
         periphAddr: u32,
-    ) -> Result<Self, Error> {
-        if periphDataSize != Burst::Single {
-            if periphDataSize == Burst::Double {
-                if periphAddr % 2 != 0 {
-                    return Err(Error::Address);
-                }
-            } else {
-                if periphAddr % 4 != 0 {
-                    return Err(Error::Address);
-                }
-            }
-        };
-
-        Ok(Self {
+    ) -> Self {
+        Self {
             diretion,
             prioritie,
             mode,
@@ -108,7 +100,7 @@ impl Config {
             memDataSize,
             memAddr,
             periphAddr,
-        })
+        }
     }
 
     pub fn new_mem2mem(
@@ -131,7 +123,6 @@ impl Config {
             src_addr,
             dst_addr,
         )
-        .unwrap()
     }
 
     pub fn new_mem2periph(
@@ -185,7 +176,9 @@ pub struct AnyDma<'d, T: Instance, M: Mode> {
 }
 
 impl<'d, T: Instance, M: Mode> Drop for AnyDma<'d, T, M> {
-    fn drop(&mut self) {}
+    fn drop(&mut self) {
+        T::id().clock().close();
+    }
 }
 
 impl<'d, T: Instance, M: Mode> AnyDma<'d, T, M> {
@@ -215,18 +208,8 @@ pub struct DmaChannel<'d, T: Instance, M: Mode> {
     channel: Channel,
 }
 
-impl<'d, T: Instance, M: Mode> Drop for DmaChannel<'d, T, M> {
-    fn drop(&mut self) {
-        T::enable(self.channel, false);
-    }
-}
-
 impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
     pub(super) fn new(channel: Channel) -> Self {
-        if M::is_async() {
-            channel.enable_interrupt();
-        }
-
         Self {
             _t: PhantomData,
             _mode: PhantomData,
@@ -251,19 +234,84 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
     pub fn stop(&mut self) {
         T::enable(self.channel, false);
     }
+
+    // 返回剩余的数量
+    pub fn remain(&self) -> u16 {
+        T::remain_count(self.channel)
+    }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
     // 等待传输完成
-    #[inline]
-    pub fn wait(&self) {
-        let event = match self.channel {
-            Channel::Channel1 => Event::TCIF1,
-            Channel::Channel2 => Event::TCIF2,
-            Channel::Channel3 => Event::TCIF3,
+    pub fn wait_complet(&self) -> Result<(), Error> {
+        let (event, error_event) = match self.channel {
+            Channel::Channel1 => (Event::TCIF1, Event::TEIF1),
+            Channel::Channel2 => (Event::TCIF2, Event::TEIF2),
+            Channel::Channel3 => (Event::TCIF3, Event::TEIF3),
         };
 
-        while !T::event_flag(event) {}
+        while !T::event_flag(event) {
+            // 检查是否出错
+            if T::event_flag(error_event) {
+                T::event_clear(error_event);
+                return Err(Error::Others);
+            }
+        }
         T::event_clear(event);
+        Ok(())
+    }
+
+    // 等待半完成
+    pub fn wait_half_complet(&self) -> Result<(), Error> {
+        let (event, error_event) = match self.channel {
+            Channel::Channel1 => (Event::HTIF1, Event::TEIF1),
+            Channel::Channel2 => (Event::HTIF2, Event::TEIF2),
+            Channel::Channel3 => (Event::HTIF1, Event::TEIF3),
+        };
+
+        while !T::event_flag(event) {
+            // 检查是否出错
+            if T::event_flag(error_event) {
+                T::event_clear(error_event);
+                return Err(Error::Others);
+            }
+        }
+        T::event_clear(event);
+        Ok(())
     }
 }
+
+impl<'d, T: Instance> DmaChannel<'d, T, Async> {
+    pub async fn wait_complet(&self) -> Result<(), Error> {
+        let (event, error_event) = match self.channel {
+            Channel::Channel1 => (Event::TCIF1, Event::TEIF1),
+            Channel::Channel2 => (Event::TCIF2, Event::TEIF2),
+            Channel::Channel3 => (Event::TCIF3, Event::TEIF3),
+        };
+
+        if EventFuture::<T>::new(self.channel, event | error_event).await != event {
+            return Err(Error::Others);
+        }
+
+        Ok(())
+    }
+
+    // 等待半完成
+    pub async fn wait_half_complet(&self) -> Result<(), Error> {
+        let (event, error_event) = match self.channel {
+            Channel::Channel1 => (Event::HTIF1, Event::TEIF1),
+            Channel::Channel2 => (Event::HTIF2, Event::TEIF2),
+            Channel::Channel3 => (Event::HTIF1, Event::TEIF3),
+        };
+
+        if EventFuture::<T>::new(self.channel, event | error_event).await != event {
+            return Err(Error::Others);
+        }
+
+        Ok(())
+    }
+}
+
+// impl<'d, T: Instance> embedded_dma::ReadBuffer for DmaChannel<'d, T, Blocking> {
+//     unsafe fn read_buffer(&self) -> (*const Self::Word, usize) {}
+// }

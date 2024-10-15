@@ -38,6 +38,7 @@ pub enum Direction {
 pub enum Error {
     Busy,
     Address,
+    Others,
 }
 
 #[derive(EnumSetType)]

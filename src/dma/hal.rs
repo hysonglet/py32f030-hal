@@ -23,14 +23,14 @@ pub(crate) mod sealed {
         }
 
         #[inline]
-        fn is_cycle_mode(channel: Channel) -> bool {
-            let block = Self::block();
-            match channel {
-                Channel::Channel1 => block.ccr1.read().circ().bit(),
-                Channel::Channel2 => block.ccr2.read().circ().bit(),
-                Channel::Channel3 => block.ccr2.read().circ().bit(),
-            }
-        }
+        // fn is_cycle_mode(channel: Channel) -> bool {
+        //     let block = Self::block();
+        //     match channel {
+        //         Channel::Channel1 => block.ccr1.read().circ().bit(),
+        //         Channel::Channel2 => block.ccr2.read().circ().bit(),
+        //         Channel::Channel3 => block.ccr2.read().circ().bit(),
+        //     }
+        // }
 
         // 读取剩余数量的
         fn remain_count(channel: Channel) -> u16 {
