@@ -184,6 +184,10 @@ pub struct AnyDma<'d, T: Instance, M: Mode> {
     _mode: PhantomData<M>,
 }
 
+impl<'d, T: Instance, M: Mode> Drop for AnyDma<'d, T, M> {
+    fn drop(&mut self) {}
+}
+
 impl<'d, T: Instance, M: Mode> AnyDma<'d, T, M> {
     pub fn new(_dma: impl Peripheral<P = T> + 'd) -> Self {
         into_ref!(_dma);
@@ -230,21 +234,28 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
         }
     }
 
+    // 配置dma通道
     #[inline]
     pub fn config(&mut self, config: Config) {
         T::config(self.channel, config)
     }
 
+    // 开始dma
+    #[inline]
     pub fn start(&mut self) {
         T::enable(self.channel, true);
     }
 
+    // 停止或取消dma
+    #[inline]
     pub fn stop(&mut self) {
         T::enable(self.channel, false);
     }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
+    // 等待传输完成
+    #[inline]
     pub fn wait(&self) {
         let event = match self.channel {
             Channel::Channel1 => Event::TCIF1,
