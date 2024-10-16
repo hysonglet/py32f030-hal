@@ -9,7 +9,6 @@ use crate::macro_def::impl_sealed_peripheral_id;
 use crate::mode::{Async, Blocking, Mode};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
-use embedded_dma;
 use future::EventFuture;
 pub use types::*;
 
@@ -125,26 +124,28 @@ impl Config {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_mem2periph(
         src_addr: u32,
         src_inc: bool,
+        src_burst: Burst,
         dst_addr: u32,
         dst_inc: bool,
+        dst_burst: Burst,
         priorite: Priorities,
         mode: RepeatMode,
-        burst: Burst,
     ) -> Config {
-        Self {
-            diretion: Direction::MemoryToPeriph,
-            prioritie: priorite,
+        Self::new(
+            Direction::MemoryToPeriph,
+            priorite,
             mode,
-            memDataSize: burst,
-            periphDataSize: burst,
-            memAddr: src_addr,
-            periphAddr: dst_addr,
-            memInc: src_inc,
-            periphInc: dst_inc,
-        }
+            src_inc,
+            dst_inc,
+            src_burst,
+            dst_burst,
+            src_addr,
+            dst_addr,
+        )
     }
 
     pub fn new_periph2mem(
@@ -311,7 +312,3 @@ impl<'d, T: Instance> DmaChannel<'d, T, Async> {
         Ok(())
     }
 }
-
-// impl<'d, T: Instance> embedded_dma::ReadBuffer for DmaChannel<'d, T, Blocking> {
-//     unsafe fn read_buffer(&self) -> (*const Self::Word, usize) {}
-// }

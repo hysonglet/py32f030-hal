@@ -95,6 +95,16 @@ pub mod sealed {
         }
 
         #[inline]
+        fn rx_dma_enable(en: bool) {
+            Self::block().cr3.modify(|_, w| w.dmar().bit(en));
+        }
+
+        #[inline]
+        fn tx_dma_enable(en: bool) {
+            Self::block().cr3.modify(|_, w| w.dmat().bit(en));
+        }
+
+        #[inline]
         fn set_flow_control(rts: bool, cts: bool) {
             let block = Self::block();
             block.cr3.modify(|_, w| w.ctse().bit(cts).rtse().bit(rts))

@@ -50,30 +50,26 @@ pub(crate) mod sealed {
 
             match channel {
                 Channel::Channel1 => {
-                    block.ccr1.modify(
-                        |_, w| unsafe {
-                            w.mem2mem()
-                                .bit(config.diretion == Direction::MemoryToMemory)
-                                .pl() // 优先级
-                                .bits(config.prioritie as u8)
-                                .msize() // 存储器宽度
-                                .bits(config.memDataSize as u8)
-                                .psize() // 外设传输宽度
-                                .bits(config.periphDataSize as u8)
-                                .minc() // 存储器地址增长使能
-                                .bit(config.memInc)
-                                .pinc() // 外设地址增长使能
-                                .bit(config.periphInc)
-                                .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
-                                .bit(config.diretion != Direction::PeriphToMemory)
-                        },
-                        // 错误中断
-                        // 半传输中断
-                        // 传输完成中断
-                    );
-                    if config.diretion == Direction::MemoryToMemory
-                    // || config.diretion == Direction::MemoryToMemory
-                    {
+                    block.ccr1.modify(|_, w| unsafe {
+                        w.mem2mem()
+                            .bit(config.diretion == Direction::MemoryToMemory)
+                            .pl() // 优先级
+                            .bits(config.prioritie as u8)
+                            .msize() // 存储器宽度
+                            .bits(config.memDataSize as u8)
+                            .psize() // 外设传输宽度
+                            .bits(config.periphDataSize as u8)
+                            .minc() // 存储器地址增长使能
+                            .bit(config.memInc)
+                            .pinc() // 外设地址增长使能
+                            .bit(config.periphInc)
+                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .bit(config.diretion != Direction::PeriphToMemory)
+                    });
+                    if config.diretion == Direction::MemoryToMemory {
+                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
+                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
+                    } else if config.diretion == Direction::MemoryToPeriph {
                         block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
                         block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
                     } else {

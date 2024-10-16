@@ -3,16 +3,19 @@ mod hal;
 mod pins;
 mod types;
 
-use crate::clock;
 use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
+use crate::dma::DmaChannel;
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
+use crate::mcu::peripherals::DMA;
 use crate::mode::{Async, Blocking, Mode};
+use crate::{clock, dma};
 use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
+use defmt::Debug2Format;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
@@ -101,6 +104,8 @@ pub struct UsartRx<'d, T: Instance, M: Mode> {
     _p: PhantomData<(T, M)>,
     _rxd: Option<PeripheralRef<'d, AnyPin>>,
     _rts: Option<PeripheralRef<'d, AnyPin>>,
+
+    rx_dma: Option<DmaChannel<'d, DMA, M>>,
 }
 
 /// 串口发送对象
@@ -108,6 +113,8 @@ pub struct UsartTx<'d, T: Instance, M: Mode> {
     _p: PhantomData<(T, M)>,
     _txd: Option<PeripheralRef<'d, AnyPin>>,
     _cts: Option<PeripheralRef<'d, AnyPin>>,
+
+    tx_dma: Option<DmaChannel<'d, DMA, M>>,
 }
 
 /// 串口对象
@@ -125,6 +132,10 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         usart: impl Peripheral<P = T> + 'd,
         rxd: Option<impl Peripheral<P = impl RxPin<T>> + 'd>,
         txd: Option<impl Peripheral<P = impl TxPin<T>> + 'd>,
+
+        rx_dma: Option<DmaChannel<'d, DMA, M>>,
+        tx_dma: Option<DmaChannel<'d, DMA, M>>,
+
         config: Config,
     ) -> Self {
         // 初始化 rxd 引脚
@@ -148,15 +159,18 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
 
         into_ref!(usart);
 
-        Self::new_inner(usart, rxd, txd, None, None, config)
+        Self::new_inner(usart, rxd, txd, None, None, rx_dma, tx_dma, config)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_inner(
         _usart: PeripheralRef<'d, T>,
         rxd: Option<PeripheralRef<'d, AnyPin>>,
         txd: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
         rts: Option<PeripheralRef<'d, AnyPin>>,
+        rx_dma: Option<DmaChannel<'d, DMA, M>>,
+        tx_dma: Option<DmaChannel<'d, DMA, M>>,
         config: Config,
     ) -> Self {
         T::enable();
@@ -167,8 +181,8 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         }
 
         Self {
-            rx: UsartRx::<T, M>::new(rxd, rts),
-            tx: UsartTx::<T, M>::new(txd, cts),
+            rx: UsartRx::<T, M>::new(rxd, rts, rx_dma),
+            tx: UsartTx::<T, M>::new(txd, cts, tx_dma),
         }
     }
 }
@@ -193,21 +207,6 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
 impl<'d, T: Instance> UsartRx<'d, T, Async> {
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        // let cnt = buf.len(); // | Event::ORE
-        // let events = Event::RXNE | Event::PE | Event::NE | Event::FE;
-        // for v in buf {
-        //     let events = EventFuture::<T>::new(events).await;
-        //     *v = T::read();
-        //     if events != Event::RXNE {
-        //         for e in events {
-        //             defmt::info!("error event: {} {} ", e as usize, T::event_flag(e));
-        //         }
-        //         // *v = T::read();
-        //         return Err(Error::Others);
-        //     }
-        // }
-        // Ok(cnt)
-
         let mut cnt = 0;
         for v in buf {
             let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE; //
@@ -274,6 +273,7 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
     pub(crate) fn new(
         rxd: Option<PeripheralRef<'d, AnyPin>>,
         rts: Option<PeripheralRef<'d, AnyPin>>,
+        rx_dma: Option<DmaChannel<'d, DMA, M>>,
     ) -> Self {
         T::rx_enable(rxd.is_some());
         T::rts_enable(rts.is_none());
@@ -282,13 +282,40 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
             _p: PhantomData,
             _rxd: rxd,
             _rts: rts,
+            rx_dma,
         }
     }
 }
 
 impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
-    pub fn write_bytes_blocking(&self, buf: &[u8]) {
-        T::write_bytes_blocking(buf);
+    pub fn write_bytes_blocking(&mut self, buf: &[u8]) {
+        if let Some(dma) = &mut self.tx_dma {
+            let config = dma::Config::new_mem2periph(
+                buf.as_ptr() as u32,
+                true,
+                dma::Burst::Single,
+                T::block().dr.as_ptr() as u32,
+                false,
+                dma::Burst::World,
+                dma::Priorities::Medium,
+                dma::RepeatMode::OneTime(buf.len() as u16),
+            );
+
+            defmt::info!(
+                "tc: {} txe: {}",
+                T::event_flag(Event::TC),
+                T::event_flag(Event::TXE)
+            );
+            dma.config(config);
+            T::tx_dma_enable(true);
+            dma.start();
+
+            let rst = dma.wait_complet();
+
+            defmt::info!("rst: {}", Debug2Format(&rst));
+        } else {
+            T::write_bytes_blocking(buf);
+        }
     }
 }
 
@@ -317,6 +344,7 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
     pub(crate) fn new(
         txd: Option<PeripheralRef<'d, AnyPin>>,
         cts: Option<PeripheralRef<'d, AnyPin>>,
+        tx_dma: Option<DmaChannel<'d, DMA, M>>,
     ) -> Self {
         T::tx_enable(txd.is_some());
         T::cts_enable(cts.is_some());
@@ -325,6 +353,7 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
             _p: PhantomData,
             _txd: txd,
             _cts: cts,
+            tx_dma,
         }
     }
 }
