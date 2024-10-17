@@ -29,6 +29,7 @@ pub mod mcu;
 pub(crate) mod pwr;
 pub mod rtc;
 pub mod spi;
+pub mod syscfg;
 pub mod timer;
 pub mod usart;
 

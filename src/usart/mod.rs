@@ -11,6 +11,7 @@ use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mcu::peripherals::DMA;
 use crate::mode::{Async, Blocking, Mode};
+use crate::syscfg::DmaChannelMap;
 use crate::{clock, dma};
 use core::future::poll_fn;
 use core::marker::PhantomData;
@@ -72,29 +73,39 @@ impl PeripheralInterrupt for Id {
     }
 }
 
+impl Id {
+    // 返回串口 rx 和 tx 的 dma 映射值
+    fn dma_channel_map(&self) -> (DmaChannelMap, DmaChannelMap) {
+        match *self {
+            Self::USART1 => (DmaChannelMap::USART1_RX, DmaChannelMap::USART1_TX),
+            Self::USART2 => (DmaChannelMap::USART2_RX, DmaChannelMap::USART2_TX),
+        }
+    }
+}
+
 #[derive(EnumSetType)]
 pub enum Event {
-    /// ﻿自动波特率错误标志
+    /// 自动波特率错误标志
     ABRE,
-    /// ﻿自动波特率检测标志
+    /// 自动波特率检测标志
     ABRF,
-    /// ﻿CTS 标志
+    /// CTS 标志
     CTS,
-    /// ﻿传输寄存器空标志
+    /// 传输寄存器空标志
     TXE,
-    /// ﻿传送完成标志
+    /// 传送完成标志
     TC,
-    /// ﻿读数据寄存器不空标志
+    /// 读数据寄存器不空标志
     RXNE,
-    /// ﻿空闲标志
+    /// 空闲标志
     IDLE,
-    /// ﻿Over 正常运行错误标志
+    /// Over 正常运行错误标志
     ORE,
-    /// ﻿噪声错误标志
+    /// 噪声错误标志
     NE,
-    /// ﻿噪声错误标志
+    /// 噪声错误标志
     FE,
-    /// ﻿校验值错误
+    /// 校验值错误
     PE,
 }
 
@@ -290,6 +301,12 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
 impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
     pub fn write_bytes_blocking(&mut self, buf: &[u8]) {
         if let Some(dma) = &mut self.tx_dma {
+            // 返回dma 通道的映射值
+            let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
+
+            // 将 tx 信号绑定到 通道
+            dma.channel_bind(tx_dma_map);
+
             let config = dma::Config::new_mem2periph(
                 buf.as_ptr() as u32,
                 true,

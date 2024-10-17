@@ -7,6 +7,7 @@ use crate::clock::peripheral::{
 };
 use crate::macro_def::impl_sealed_peripheral_id;
 use crate::mode::{Async, Blocking, Mode};
+use crate::syscfg::{syscfg, DmaChannelMap};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
 use future::EventFuture;
@@ -216,6 +217,16 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
             _mode: PhantomData,
             channel,
         }
+    }
+
+    /// 绑定通道到外设
+    pub fn channel_bind(&mut self, map: DmaChannelMap) {
+        syscfg::set_dma_channel_map(self.channel, map);
+    }
+
+    /// 使能dma快速响应
+    pub fn en_fast_response(&mut self, en: bool) {
+        syscfg::en_dma_channel_fast_response(self.channel, en);
     }
 
     // 配置dma通道

@@ -9,8 +9,13 @@ pub fn bit_mask_idx<const BIT_WIDTH: usize>(idx: usize) -> u32 {
 /// 修改指定连续的bit
 #[inline]
 pub fn bit_mask_idx_modify<const BIT_WIDTH: usize>(idx: usize, origin: u32, val: u32) -> u32 {
-    let val = (val & (bit_mask_idx::<BIT_WIDTH>(0))) << idx;
-    origin & !bit_mask_idx::<BIT_WIDTH>(idx) | val
+    assert!(val <= bit_mask_idx::<BIT_WIDTH>(0));
+
+    let mask = bit_mask_idx::<BIT_WIDTH>(idx);
+    origin & !mask | (val << idx)
+
+    // let val = (val & (bit_mask_idx::<BIT_WIDTH>(0))) << idx;
+    // origin & !bit_mask_idx::<BIT_WIDTH>(idx) | val
 }
 
 /// 清除指定的bit域
