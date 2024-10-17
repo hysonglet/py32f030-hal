@@ -345,6 +345,11 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
             self.write_bytes_dma_blocking(buf)
         }
     }
+
+    fn flush(&self) -> nb::Result<(), Error> {
+        T::tx_flush();
+        Ok(())
+    }
 }
 
 impl<'d, T: Instance> UsartTx<'d, T, Async> {
@@ -465,13 +470,14 @@ impl<'d, T: Instance> embedded_io::Write for AnyUsart<'d, T, Blocking> {
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        self.tx.flush()
+        T::tx_flush();
+        Ok(())
     }
 }
 
 impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        T::write_bytes_blocking(buf)?;
+        self.write(buf)?;
         Ok(buf.len())
     }
 
