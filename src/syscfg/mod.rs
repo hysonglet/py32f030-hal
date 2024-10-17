@@ -1,5 +1,7 @@
 mod types;
 
+use core::u8::MAX;
+
 use crate::pac;
 pub use types::*;
 
@@ -11,6 +13,18 @@ pub struct syscfg;
 impl syscfg {
     fn block() -> &'static pac::syscfg::RegisterBlock {
         unsafe { pac::SYSCFG::ptr().as_ref().unwrap() }
+    }
+
+    fn clock() -> crate::clock::peripheral::PeripheralClockIndex {
+        crate::clock::peripheral::PeripheralClockIndex::SYSCFG
+    }
+
+    pub fn open() {
+        Self::clock().open();
+    }
+
+    pub fn close() {
+        Self::clock().close();
     }
 
     /// 设置dma通道映射

@@ -30,7 +30,7 @@ pub enum PeripheralClockIndex {
     COMP2 = 22 + 64,
     LED = 23 + 64,
 
-    GPIOA = 0 + 96,
+    GPIOA = 96,
     GPIOB = 1 + 96,
     GPIOF = 5 + 96,
 }

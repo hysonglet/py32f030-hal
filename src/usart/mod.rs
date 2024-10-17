@@ -304,28 +304,24 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
             // 返回dma 通道的映射值
             let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
 
-            // 将 tx 信号绑定到 通道
-            dma.channel_bind(tx_dma_map);
-
             let config = dma::Config::new_mem2periph(
                 buf.as_ptr() as u32,
                 true,
                 dma::Burst::Single,
                 T::block().dr.as_ptr() as u32,
                 false,
-                dma::Burst::World,
+                dma::Burst::Single,
                 dma::Priorities::Medium,
                 dma::RepeatMode::OneTime(buf.len() as u16),
             );
 
-            defmt::info!(
-                "tc: {} txe: {}",
-                T::event_flag(Event::TC),
-                T::event_flag(Event::TXE)
-            );
             dma.config(config);
-            T::tx_dma_enable(true);
+
+            // 将 tx 信号绑定到 通道
+            dma.channel_bind(tx_dma_map);
             dma.start();
+
+            T::tx_dma_enable(true);
 
             let rst = dma.wait_complet();
 

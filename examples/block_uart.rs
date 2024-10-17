@@ -3,6 +3,7 @@
 
 use embedded_io::{Read, Write};
 use hal::dma::AnyDma;
+use hal::syscfg;
 use hal::usart::AnyUsart;
 use heapless::String;
 use py32f030_hal as hal;
@@ -12,6 +13,8 @@ use {defmt_rtt as _, panic_probe as _};
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = hal::init(Default::default());
+
+    syscfg::syscfg::open();
 
     let gpioa = p.GPIOA.split();
     let rx = gpioa.PA9;
