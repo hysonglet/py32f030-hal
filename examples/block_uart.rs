@@ -6,7 +6,7 @@ use hal::dma::AnyDma;
 use hal::syscfg;
 use hal::usart::AnyUsart;
 use heapless::String;
-use py32f030_hal as hal;
+use py32f030_hal::{self as hal, mode::Blocking};
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -23,7 +23,7 @@ fn main() -> ! {
     let mut dma: AnyDma<_, _> = AnyDma::new(p.DMA);
     let [channel1, _, _] = dma.split();
 
-    let usart = AnyUsart::new(
+    let usart: AnyUsart<_, Blocking> = AnyUsart::new(
         p.USART1,
         Some(rx),
         Some(tx),
@@ -51,7 +51,7 @@ fn main() -> ! {
         // let _ = write!(tx, "example for usart\r\n");
 
         // // 使用自定义的驱动接口发送串口数据
-        tx.write_bytes_blocking(buf.as_bytes());
+        let _ = tx.write(buf.as_bytes());
 
         defmt::info!("send: {} ", buf.as_bytes());
 

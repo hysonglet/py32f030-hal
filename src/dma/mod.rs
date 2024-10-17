@@ -220,7 +220,7 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
     }
 
     /// 绑定通道到外设
-    pub fn channel_bind(&mut self, map: DmaChannelMap) {
+    pub fn bind(&mut self, map: DmaChannelMap) {
         syscfg::set_dma_channel_map(self.channel, map);
     }
 

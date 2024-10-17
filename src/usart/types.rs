@@ -3,6 +3,7 @@ pub enum Error {
     StartTimeout,
     ReadTimeout,
     WriteTimeout,
+    DMA,
     /// 噪音/校验/帧错误
     Others,
 }

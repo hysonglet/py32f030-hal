@@ -16,7 +16,7 @@ use crate::{clock, dma};
 use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
-use defmt::Debug2Format;
+use drop_move::DropGuard;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
@@ -299,12 +299,16 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
 }
 
 impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
-    pub fn write_bytes_blocking(&mut self, buf: &[u8]) {
+    fn write_bytes_dma_blocking(&mut self, buf: &[u8]) -> Result<(), Error> {
         if let Some(dma) = &mut self.tx_dma {
             // 返回dma 通道的映射值
             let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
 
-            let config = dma::Config::new_mem2periph(
+            // 不管成功与否都关闭dma触发
+            let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
+
+            // 配置dma channel
+            dma.config(dma::Config::new_mem2periph(
                 buf.as_ptr() as u32,
                 true,
                 dma::Burst::Single,
@@ -313,21 +317,32 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
                 dma::Burst::Single,
                 dma::Priorities::Medium,
                 dma::RepeatMode::OneTime(buf.len() as u16),
-            );
-
-            dma.config(config);
+            ));
 
             // 将 tx 信号绑定到 通道
-            dma.channel_bind(tx_dma_map);
+            dma.bind(tx_dma_map);
+            // 使能 dma channel
             dma.start();
 
+            // 串口开启dma
             T::tx_dma_enable(true);
-
-            let rst = dma.wait_complet();
-
-            defmt::info!("rst: {}", Debug2Format(&rst));
+            // 等待dma传输完成
+            dma.wait_complet().map_err(|_| Error::DMA)?;
+            Ok(())
         } else {
-            T::write_bytes_blocking(buf);
+            Err(Error::DMA)
+        }
+    }
+
+    fn write_bytes_blocking(&mut self, buf: &[u8]) -> Result<(), Error> {
+        T::write_bytes_blocking(buf)
+    }
+
+    pub fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
+        if self.tx_dma.is_none() {
+            self.write_bytes_blocking(buf)
+        } else {
+            self.write_bytes_dma_blocking(buf)
         }
     }
 }
@@ -349,7 +364,8 @@ impl<'d, T: Instance> UsartTx<'d, T, Async> {
     }
 
     pub async fn flush(&mut self) -> Result<(), Error> {
-        todo!()
+        EventFuture::<T>::new(EnumSet::empty() | Event::TC).await;
+        Ok(())
     }
 }
 
@@ -385,7 +401,8 @@ impl<'d, T: Instance> embedded_hal::serial::Write<u8> for AnyUsart<'d, T, Blocki
         self.tx.flush()
     }
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
-        self.tx.write(word)
+        self.tx.write(&[word])?;
+        Ok(())
     }
 }
 
@@ -401,12 +418,12 @@ impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking
 impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blocking> {
     type Error = Error;
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
-        while T::event_flag(Event::TC) {}
+        T::tx_flush();
         Ok(())
     }
 
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
-        T::write_byte_blocking(word);
+        T::write_byte_blocking(word)?;
         Ok(())
     }
 }
@@ -443,7 +460,8 @@ impl<'d, T: Instance> embedded_io::ErrorType for UsartTx<'d, T, Blocking> {
 
 impl<'d, T: Instance> embedded_io::Write for AnyUsart<'d, T, Blocking> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        self.tx.write(buf)
+        self.tx.write(buf)?;
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
@@ -453,11 +471,12 @@ impl<'d, T: Instance> embedded_io::Write for AnyUsart<'d, T, Blocking> {
 
 impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        Ok(T::write_bytes_blocking(buf))
+        T::write_bytes_blocking(buf)?;
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        while T::event_flag(Event::TC) {}
+        T::tx_flush();
         Ok(())
     }
 }
@@ -488,7 +507,8 @@ impl<'d, T: Instance> embedded_io_async::ErrorType for UsartTx<'d, T, Async> {
 
 impl<'d, T: Instance> embedded_io_async::Write for UsartTx<'d, T, Async> {
     async fn flush(&mut self) -> Result<(), Self::Error> {
-        todo!()
+        EventFuture::<T>::new(EnumSet::empty() | Event::TC).await;
+        Ok(())
     }
 
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {

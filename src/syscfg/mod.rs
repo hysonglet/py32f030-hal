@@ -1,7 +1,5 @@
 mod types;
 
-use core::u8::MAX;
-
 use crate::pac;
 pub use types::*;
 

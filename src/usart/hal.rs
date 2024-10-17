@@ -79,19 +79,24 @@ pub mod sealed {
         }
 
         #[inline]
-        fn write_byte_blocking(data: u8) {
+        fn write_byte_blocking(data: u8) -> Result<(), Error> {
             // txe: 0: 未传输完， 1： 传输完毕
             while !Self::event_flag(Event::TXE) {}
             Self::write(data);
+            Ok(())
         }
 
         #[inline]
-        fn write_bytes_blocking(buf: &[u8]) -> usize {
-            let len = buf.len();
+        fn tx_flush() {
+            while !Self::event_flag(Event::TC) {}
+        }
+
+        #[inline]
+        fn write_bytes_blocking(buf: &[u8]) -> Result<(), Error> {
             for item in buf {
-                Self::write_byte_blocking(*item);
+                Self::write_byte_blocking(*item)?;
             }
-            len
+            Ok(())
         }
 
         #[inline]

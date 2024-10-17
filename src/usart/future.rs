@@ -35,7 +35,6 @@ impl<T: Instance> EventFuture<T> {
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
             if T::is_event_enable(event) && T::event_flag(event) {
-                defmt::info!("e: {}", event as usize);
                 // 关闭触发的中断，防止重复响应
                 T::event_config(event, false);
                 EVENT_WAKERS[id][event as usize].wake()
@@ -50,10 +49,6 @@ impl<T: Instance> Future for EventFuture<T> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        self.events.iter().for_each(|e| {
-            EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
-        });
-
         let mut events = EnumSet::empty();
         // 消除所有关注的中断标志
         for event in self.events {
@@ -66,6 +61,10 @@ impl<T: Instance> Future for EventFuture<T> {
         if !events.is_empty() {
             return Poll::Ready(events);
         }
+
+        self.events.iter().for_each(|e| {
+            EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
+        });
         // 没有任何事件
         Poll::Pending
     }
