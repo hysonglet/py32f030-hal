@@ -3,16 +3,16 @@ mod hal;
 mod pins;
 mod types;
 
+use crate::clock;
 use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
-use crate::dma::DmaChannel;
+use crate::dma::{self, DmaChannel};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mcu::peripherals::DMA;
 use crate::mode::{Async, Blocking, Mode};
 use crate::syscfg::DmaChannelMap;
-use crate::{clock, dma};
 use core::future::poll_fn;
 use core::marker::PhantomData;
 use core::task::Poll;
@@ -21,6 +21,7 @@ use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
 use hal::sealed;
+use heapless::pool::Box;
 use types::*;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -354,18 +355,63 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
 
 impl<'d, T: Instance> UsartTx<'d, T, Async> {
     pub async fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
+        if self.tx_dma.is_some() {
+            self.write_bytes_dma(buf).await
+        } else {
+            self.write(buf).await
+        }
+    }
+
+    async fn write_bytes(&mut self, buf: &[u8]) -> Result<(), Error> {
         let events = Event::TXE | Event::CTS;
         for v in buf {
             T::write(*v);
             let rst = EventFuture::<T>::new(events).await;
             if rst != Event::TXE {
-                for e in rst {
-                    defmt::error!("events: {}", e as usize);
-                }
+                // for e in rst {
+                //     defmt::error!("events: {}", e as usize);
+                // }
                 return Err(Error::Others);
             }
         }
         Ok(())
+    }
+
+    async fn write_bytes_dma(&mut self, buf: &[u8]) -> Result<(), Error> {
+        if let Some(dma) = &mut self.tx_dma {
+            // 返回dma 通道的映射值
+            let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
+
+            // 不管成功与否都关闭dma触发
+            let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
+
+            // 配置dma channel
+            dma.config(dma::Config::new_mem2periph(
+                buf.as_ptr() as u32,
+                true,
+                dma::Burst::Single,
+                T::block().dr.as_ptr() as u32,
+                false,
+                dma::Burst::Single,
+                dma::Priorities::Medium,
+                dma::RepeatMode::OneTime(buf.len() as u16),
+            ));
+
+            // 将 tx 信号绑定到 通道
+            dma.bind(tx_dma_map);
+            // 使能 dma channel
+            dma.start();
+
+            // 串口开启dma
+            T::tx_dma_enable(true);
+            // 等待dma传输完成
+
+            dma.wait_complet().await.map_err(|_| Error::DMA)?;
+
+            Ok(())
+        } else {
+            Err(Error::DMA)
+        }
     }
 
     pub async fn flush(&mut self) -> Result<(), Error> {
@@ -428,7 +474,8 @@ impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blockin
     }
 
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
-        T::write_byte_blocking(word)?;
+        self.write(&[word])?;
+        // T::write_byte_blocking(word)?;
         Ok(())
     }
 }

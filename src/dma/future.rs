@@ -18,6 +18,8 @@ pub struct EventFuture<T: Instance> {
     channel: Channel,
 }
 
+impl<T: Instance> Unpin for EventFuture<T> {}
+
 impl<T: Instance> Drop for EventFuture<T> {
     fn drop(&mut self) {
         // 关闭通道中断
