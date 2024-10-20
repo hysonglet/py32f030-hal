@@ -43,18 +43,8 @@ pub enum Error {
 
 #[derive(EnumSetType)]
 pub enum Event {
-    GIF1,
-    TCIF1,
-    HTIF1,
-    TEIF1,
-
-    GIF2,
-    TCIF2,
-    HTIF2,
-    TEIF2,
-
-    GIF3,
-    TCIF3,
-    HTIF3,
-    TEIF3,
+    GIF,
+    TCIF,
+    HTIF,
+    TEIF,
 }

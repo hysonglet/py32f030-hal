@@ -29,7 +29,9 @@ impl<T: Instance> Drop for EventFuture<T> {
 
 impl<T: Instance> EventFuture<T> {
     pub fn new(channel: Channel, events: EnumSet<Event>) -> Self {
-        events.iter().for_each(|event| T::event_config(event, true));
+        events
+            .iter()
+            .for_each(|event| T::event_config(channel, event, true));
 
         // 开启通道的中断
         channel.enable_interrupt();
@@ -47,9 +49,9 @@ impl<T: Instance> EventFuture<T> {
         // 关闭已经发生的中断事件
         events.iter().for_each(|event| {
             /* 中断开启了并且，匹配到中断了 */
-            if T::is_event_enable(event) && T::event_flag(event) {
+            if T::is_event_enable(channel, event) && T::event_flag(channel, event) {
                 // 关闭触发的中断，防止重复响应
-                T::event_config(event, false);
+                T::event_config(channel, event, false);
                 EVENT_WAKERS[channel as usize].wake()
             }
         });
@@ -67,8 +69,8 @@ impl<T: Instance> Future for EventFuture<T> {
         let mut events = EnumSet::empty();
         // 消除所有关注的中断标志
         for event in self.events {
-            if T::event_flag(event) {
-                T::event_clear(event);
+            if T::event_flag(self.channel, event) {
+                T::event_clear(self.channel, event);
                 events |= event;
             }
         }
@@ -87,7 +89,7 @@ fn DMA_CHANNEL1() {
         EventFuture::<DMA>::on_interrupt(
             cs,
             Channel::Channel1,
-            Event::GIF1 | Event::HTIF1 | Event::TCIF1 | Event::TEIF1,
+            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
         )
     })
 }
@@ -99,12 +101,12 @@ fn DMA_CHANNEL2_3() {
         EventFuture::<DMA>::on_interrupt(
             cs,
             Channel::Channel2,
-            Event::GIF2 | Event::HTIF2 | Event::TCIF2 | Event::TEIF2,
+            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
         );
         EventFuture::<DMA>::on_interrupt(
             cs,
             Channel::Channel2,
-            Event::GIF3 | Event::HTIF3 | Event::TCIF3 | Event::TEIF3,
+            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
         )
     })
 }

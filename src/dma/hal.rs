@@ -7,6 +7,7 @@ pub(crate) mod sealed {
     pub(crate) trait Instance {
         fn id() -> Id;
 
+        #[inline]
         fn block() -> &'static pac::dma::RegisterBlock {
             match Self::id() {
                 Id::DMA => unsafe { pac::DMA::PTR.as_ref().unwrap() },
@@ -22,7 +23,7 @@ pub(crate) mod sealed {
             }
         }
 
-        #[inline]
+        // #[inline]
         // fn is_cycle_mode(channel: Channel) -> bool {
         //     let block = Self::block();
         //     match channel {
@@ -105,70 +106,88 @@ pub(crate) mod sealed {
         }
 
         /// 清除事件标志
-        fn event_clear(event: Event) {
+        fn event_clear(channel: Channel, event: Event) {
             Self::block()
                 .ifcr
-                .write(|w| unsafe { w.bits(1 << event as usize) });
+                .write(|w| unsafe { w.bits((1 << event as usize) << (channel as usize * 4)) });
         }
 
         /// 返回事件标志
-        fn event_flag(event: Event) -> bool {
-            Self::block().isr.read().bits().has_bit(event as u32)
+        fn event_flag(channel: Channel, event: Event) -> bool {
+            Self::block()
+                .isr
+                .read()
+                .bits()
+                .has_bit((event as u32) << (channel as usize * 4))
         }
 
         /// 开启或关闭事件中断
-        fn event_config(event: Event, en: bool) {
+        fn event_config(channel: Channel, event: Event, en: bool) {
             let block = Self::block();
-            match event {
-                Event::GIF1 => {}
-                Event::TCIF1 => {
-                    block.ccr1.modify(|_, w| w.tcie().bit(en));
-                }
-                Event::HTIF1 => {
-                    block.ccr1.modify(|_, w| w.htie().bit(en));
-                }
-                Event::TEIF1 => {
-                    block.ccr1.modify(|_, w| w.tcie().bit(en));
-                }
-                Event::GIF2 => {}
-                Event::TCIF2 => {
-                    block.ccr2.modify(|_, w| w.tcie().bit(en));
-                }
-                Event::HTIF2 => {
-                    block.ccr2.modify(|_, w| w.htie().bit(en));
-                }
-                Event::TEIF2 => {
-                    block.ccr2.modify(|_, w| w.tcie().bit(en));
-                }
-                Event::GIF3 => {}
-                Event::TCIF3 => {
-                    block.ccr3.modify(|_, w| w.tcie().bit(en));
-                }
-                Event::HTIF3 => {
-                    block.ccr3.modify(|_, w| w.htie().bit(en));
-                }
-                Event::TEIF3 => {
-                    block.ccr3.modify(|_, w| w.tcie().bit(en));
-                }
+
+            match channel {
+                Channel::Channel1 => match event {
+                    Event::GIF => {}
+                    Event::HTIF => {
+                        block.ccr1.modify(|_, w| w.htie().bit(en));
+                    }
+                    Event::TCIF => {
+                        block.ccr1.modify(|_, w| w.tcie().bit(en));
+                    }
+                    Event::TEIF => {
+                        block.ccr1.modify(|_, w| w.tcie().bit(en));
+                    }
+                },
+                Channel::Channel2 => match event {
+                    Event::GIF => {}
+                    Event::HTIF => {
+                        block.ccr2.modify(|_, w| w.htie().bit(en));
+                    }
+                    Event::TCIF => {
+                        block.ccr2.modify(|_, w| w.tcie().bit(en));
+                    }
+                    Event::TEIF => {
+                        block.ccr2.modify(|_, w| w.tcie().bit(en));
+                    }
+                },
+                Channel::Channel3 => match event {
+                    Event::GIF => {}
+                    Event::HTIF => {
+                        block.ccr3.modify(|_, w| w.htie().bit(en));
+                    }
+                    Event::TCIF => {
+                        block.ccr3.modify(|_, w| w.tcie().bit(en));
+                    }
+                    Event::TEIF => {
+                        block.ccr3.modify(|_, w| w.tcie().bit(en));
+                    }
+                },
             }
         }
 
         /// return event config
-        fn is_event_enable(event: Event) -> bool {
+        fn is_event_enable(channel: Channel, event: Event) -> bool {
             let block = Self::block();
-            match event {
-                Event::GIF1 => false,
-                Event::TCIF1 => block.ccr1.read().tcie().bit(),
-                Event::HTIF1 => block.ccr1.read().htie().bit(),
-                Event::TEIF1 => block.ccr1.read().teie().bit(),
-                Event::GIF2 => false,
-                Event::TCIF2 => block.ccr2.read().tcie().bit(),
-                Event::HTIF2 => block.ccr2.read().htie().bit(),
-                Event::TEIF2 => block.ccr2.read().teie().bit(),
-                Event::GIF3 => false,
-                Event::TCIF3 => block.ccr3.read().tcie().bit(),
-                Event::HTIF3 => block.ccr3.read().htie().bit(),
-                Event::TEIF3 => block.ccr3.read().teie().bit(),
+
+            match channel {
+                Channel::Channel1 => match event {
+                    Event::GIF => false,
+                    Event::HTIF => block.ccr1.read().htie().bit(),
+                    Event::TCIF => block.ccr1.read().tcie().bit(),
+                    Event::TEIF => block.ccr1.read().teie().bit(),
+                },
+                Channel::Channel2 => match event {
+                    Event::GIF => false,
+                    Event::HTIF => block.ccr2.read().htie().bit(),
+                    Event::TCIF => block.ccr2.read().tcie().bit(),
+                    Event::TEIF => block.ccr2.read().teie().bit(),
+                },
+                Channel::Channel3 => match event {
+                    Event::GIF => false,
+                    Event::HTIF => block.ccr3.read().htie().bit(),
+                    Event::TCIF => block.ccr3.read().tcie().bit(),
+                    Event::TEIF => block.ccr3.read().teie().bit(),
+                },
             }
         }
     }

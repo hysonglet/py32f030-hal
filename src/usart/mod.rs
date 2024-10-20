@@ -21,7 +21,6 @@ use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
 use future::EventFuture;
 use hal::sealed;
-use heapless::pool::Box;
 use types::*;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
@@ -204,6 +203,44 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
         T::read_bytes_blocking(buf)
     }
 
+    pub fn read_dma_idle_blocking(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        let len = buf.len();
+
+        if let Some(dma) = &mut self.rx_dma {
+            // 返回dma 通道的映射值
+            let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
+
+            // 不管成功与否都关闭dma触发
+            let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
+
+            // 配置dma channel
+            dma.config(dma::Config::new_periph2mem(
+                T::block().dr.as_ptr() as u32,
+                true,
+                dma::Burst::Single,
+                buf.as_ptr() as u32,
+                false,
+                dma::Burst::Single,
+                dma::Priorities::Medium,
+                dma::RepeatMode::OneTime(buf.len() as u16),
+            ));
+
+            // 将 tx 信号绑定到 通道
+            dma.bind(tx_dma_map);
+            // 使能 dma channel
+            dma.start();
+
+            // 串口开启dma
+            T::tx_dma_enable(true);
+            // 等待dma传输完成
+            dma.wait_complet().map_err(|_| Error::DMA)?;
+        } else {
+            return Err(Error::DMA);
+        };
+
+        Ok(len)
+    }
+
     pub fn read_idle_blocking(&self, buf: &mut [u8]) -> usize {
         T::read_bytes_idle_blocking(buf)
     }
@@ -358,25 +395,24 @@ impl<'d, T: Instance> UsartTx<'d, T, Async> {
         if self.tx_dma.is_some() {
             self.write_bytes_dma(buf).await
         } else {
-            self.write(buf).await
+            self.write_bytes(buf).await
         }
     }
 
+    // 异步发送数据
     async fn write_bytes(&mut self, buf: &[u8]) -> Result<(), Error> {
         let events = Event::TXE | Event::CTS;
         for v in buf {
             T::write(*v);
             let rst = EventFuture::<T>::new(events).await;
             if rst != Event::TXE {
-                // for e in rst {
-                //     defmt::error!("events: {}", e as usize);
-                // }
                 return Err(Error::Others);
             }
         }
         Ok(())
     }
 
+    /// 通过dma异步发送数据
     async fn write_bytes_dma(&mut self, buf: &[u8]) -> Result<(), Error> {
         if let Some(dma) = &mut self.tx_dma {
             // 返回dma 通道的映射值
@@ -404,8 +440,8 @@ impl<'d, T: Instance> UsartTx<'d, T, Async> {
 
             // 串口开启dma
             T::tx_dma_enable(true);
-            // 等待dma传输完成
 
+            // 等待dma传输完成
             dma.wait_complet().await.map_err(|_| Error::DMA)?;
 
             Ok(())

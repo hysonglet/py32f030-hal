@@ -10,6 +10,7 @@ use crate::mode::{Async, Blocking, Mode};
 use crate::syscfg::{syscfg, DmaChannelMap};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
+use enumset::EnumSet;
 use future::EventFuture;
 pub use types::*;
 
@@ -149,25 +150,27 @@ impl Config {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_periph2mem(
         src_addr: u32,
         src_inc: bool,
+        src_burst: Burst,
         dst_addr: u32,
         dst_inc: bool,
+        burst: Burst,
         priorite: Priorities,
         mode: RepeatMode,
-        burst: Burst,
     ) -> Config {
         Self {
             diretion: Direction::PeriphToMemory,
             prioritie: priorite,
             mode,
             memDataSize: burst,
-            periphDataSize: burst,
-            memAddr: src_addr,
-            periphAddr: dst_addr,
-            memInc: src_inc,
-            periphInc: dst_inc,
+            periphDataSize: src_burst,
+            memAddr: dst_addr,
+            periphAddr: src_addr,
+            memInc: dst_inc,
+            periphInc: src_inc,
         }
     }
 }
@@ -254,54 +257,46 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
+    pub fn is_finish(&self) -> bool {
+        T::event_flag(self.channel, Event::TCIF)
+    }
+
+    pub fn clear_flag(&mut self, events: EnumSet<Event>) {
+        for e in events {
+            T::event_clear(self.channel, e);
+        }
+    }
+
     // 等待传输完成
     pub fn wait_complet(&self) -> Result<(), Error> {
-        let (event, error_event) = match self.channel {
-            Channel::Channel1 => (Event::TCIF1, Event::TEIF1),
-            Channel::Channel2 => (Event::TCIF2, Event::TEIF2),
-            Channel::Channel3 => (Event::TCIF3, Event::TEIF3),
-        };
-
-        while !T::event_flag(event) {
+        while !T::event_flag(self.channel, Event::TCIF) {
             // 检查是否出错
-            if T::event_flag(error_event) {
-                T::event_clear(error_event);
+            if T::event_flag(self.channel, Event::TEIF) {
+                T::event_clear(self.channel, Event::TEIF);
                 return Err(Error::Others);
             }
         }
-        T::event_clear(event);
+        T::event_clear(self.channel, Event::TCIF);
         Ok(())
     }
 
     // 等待半完成
     pub fn wait_half_complet(&self) -> Result<(), Error> {
-        let (event, error_event) = match self.channel {
-            Channel::Channel1 => (Event::HTIF1, Event::TEIF1),
-            Channel::Channel2 => (Event::HTIF2, Event::TEIF2),
-            Channel::Channel3 => (Event::HTIF1, Event::TEIF3),
-        };
-
-        while !T::event_flag(event) {
+        while !T::event_flag(self.channel, Event::HTIF) {
             // 检查是否出错
-            if T::event_flag(error_event) {
-                T::event_clear(error_event);
+            if T::event_flag(self.channel, Event::TEIF) {
+                T::event_clear(self.channel, Event::TEIF);
                 return Err(Error::Others);
             }
         }
-        T::event_clear(event);
+        T::event_clear(self.channel, Event::HTIF);
         Ok(())
     }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Async> {
     pub async fn wait_complet(&self) -> Result<(), Error> {
-        let (event, error_event) = match self.channel {
-            Channel::Channel1 => (Event::TCIF1, Event::TEIF1),
-            Channel::Channel2 => (Event::TCIF2, Event::TEIF2),
-            Channel::Channel3 => (Event::TCIF3, Event::TEIF3),
-        };
-
-        if EventFuture::<T>::new(self.channel, event | error_event).await != event {
+        if EventFuture::<T>::new(self.channel, Event::TCIF | Event::TEIF).await != Event::TCIF {
             return Err(Error::Others);
         }
 
@@ -310,13 +305,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Async> {
 
     // 等待半完成
     pub async fn wait_half_complet(&self) -> Result<(), Error> {
-        let (event, error_event) = match self.channel {
-            Channel::Channel1 => (Event::HTIF1, Event::TEIF1),
-            Channel::Channel2 => (Event::HTIF2, Event::TEIF2),
-            Channel::Channel3 => (Event::HTIF1, Event::TEIF3),
-        };
-
-        if EventFuture::<T>::new(self.channel, event | error_event).await != event {
+        if EventFuture::<T>::new(self.channel, Event::HTIF | Event::TEIF).await != Event::HTIF {
             return Err(Error::Others);
         }
 
