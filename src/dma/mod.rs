@@ -261,6 +261,10 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
         T::event_flag(self.channel, Event::TCIF)
     }
 
+    pub fn is_error(&self) -> bool {
+        T::event_flag(self.channel, Event::TEIF)
+    }
+
     pub fn clear_flag(&mut self, events: EnumSet<Event>) {
         for e in events {
             T::event_clear(self.channel, e);

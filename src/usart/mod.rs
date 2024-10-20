@@ -207,6 +207,10 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
         let len = buf.len();
 
         if let Some(dma) = &mut self.rx_dma {
+            // 删除上次的标志
+            let clear_events = Event::IDLE | Event::RXNE | Event::NE | Event::FE | Event::PE;
+            clear_events.iter().for_each(|e| T::event_clear(e));
+
             // 返回dma 通道的映射值
             let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
 
@@ -215,7 +219,7 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
             // 配置dma channel
             dma.config(dma::Config::new_periph2mem(
-                T::block().dr.as_ptr() as u32,
+                T::block().dr.as_ptr() as u32, // 数据寄存器
                 true,
                 dma::Burst::Single,
                 buf.as_ptr() as u32,
@@ -232,13 +236,34 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
             // 串口开启dma
             T::tx_dma_enable(true);
-            // 等待dma传输完成
-            dma.wait_complet().map_err(|_| Error::DMA)?;
-        } else {
-            return Err(Error::DMA);
-        };
 
-        Ok(len)
+            let remain = loop {
+                if T::event_flag(Event::FE) {
+                    return Err(Error::Frame);
+                }
+                if T::event_flag(Event::PE) {
+                    return Err(Error::Parity);
+                }
+                if T::event_flag(Event::NE) {
+                    return Err(Error::Noise);
+                }
+
+                if dma.is_error() {
+                    return Err(Error::DMA);
+                }
+
+                if dma.is_finish() {
+                    break 0;
+                }
+
+                if T::event_flag(Event::IDLE) {
+                    break dma.remain() as usize;
+                }
+            };
+            Ok(len - remain)
+        } else {
+            Err(Error::DMA)
+        }
     }
 
     pub fn read_idle_blocking(&self, buf: &mut [u8]) -> usize {

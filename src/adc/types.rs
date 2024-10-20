@@ -109,11 +109,11 @@ pub enum ScanDir {
 
 /// DMA Configuration
 /// This bit can be set and cleared by software, selects between two DMA modes of operation and is valid when DMAEN = 1
-#[derive(PartialEq)]
-pub enum DmaMode {
-    Single,
-    Cycle,
-}
+// #[derive(PartialEq)]
+// pub enum DmaMode {
+//     Single,
+//     Cycle,
+// }
 
 /// Sampling time selection
 /// Software configurable bit selects the sampling time for all channels

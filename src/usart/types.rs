@@ -5,6 +5,9 @@ pub enum Error {
     WriteTimeout,
     DMA,
     /// 噪音/校验/帧错误
+    Noise,
+    Frame,
+    Parity,
     Others,
 }
 

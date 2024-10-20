@@ -29,12 +29,10 @@ impl<T: Instance> Drop for EventFuture<T> {
 
 impl<T: Instance> EventFuture<T> {
     pub fn new(channel: Channel, events: EnumSet<Event>) -> Self {
-        events
-            .iter()
-            .for_each(|event| T::event_config(channel, event, true));
-
-        // 开启通道的中断
-        channel.enable_interrupt();
+        // 消除所有关注的中断标志
+        // for event in events {
+        //     T::event_clear(channel, event);
+        // }
 
         Self {
             _t: PhantomData,
@@ -64,9 +62,8 @@ impl<T: Instance> Future for EventFuture<T> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        EVENT_WAKERS[self.channel as usize].register(cx.waker());
-
         let mut events = EnumSet::empty();
+
         // 消除所有关注的中断标志
         for event in self.events {
             if T::event_flag(self.channel, event) {
@@ -78,6 +75,14 @@ impl<T: Instance> Future for EventFuture<T> {
         if !events.is_empty() {
             return Poll::Ready(events);
         }
+
+        EVENT_WAKERS[self.channel as usize].register(cx.waker());
+        // 开启中断标志
+        events
+            .iter()
+            .for_each(|event| T::event_config(self.channel, event, true));
+        // 开启通道的中断
+        self.channel.enable_interrupt();
         // 没有任何事件
         Poll::Pending
     }
@@ -86,11 +91,7 @@ impl<T: Instance> Future for EventFuture<T> {
 #[interrupt]
 fn DMA_CHANNEL1() {
     critical_section::with(|cs| unsafe {
-        EventFuture::<DMA>::on_interrupt(
-            cs,
-            Channel::Channel1,
-            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
-        )
+        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel1, EnumSet::all())
     })
 }
 
@@ -98,15 +99,7 @@ fn DMA_CHANNEL1() {
 fn DMA_CHANNEL2_3() {
     // 通道 2 和 通道 3可能会混，所以都遍历一遍
     critical_section::with(|cs| unsafe {
-        EventFuture::<DMA>::on_interrupt(
-            cs,
-            Channel::Channel2,
-            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
-        );
-        EventFuture::<DMA>::on_interrupt(
-            cs,
-            Channel::Channel2,
-            Event::GIF | Event::HTIF | Event::TCIF | Event::TEIF,
-        )
+        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all());
+        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all())
     })
 }
