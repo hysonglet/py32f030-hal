@@ -372,6 +372,8 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
             // 不管成功与否都关闭dma触发
             let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
 
+            dma.clear_flag(EnumSet::all());
+
             // 配置dma channel
             dma.config(dma::Config::new_mem2periph(
                 buf.as_ptr() as u32,

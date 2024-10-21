@@ -214,6 +214,7 @@ pub struct DmaChannel<'d, T: Instance, M: Mode> {
 }
 
 impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
+    /// 新建
     pub(super) fn new(channel: Channel) -> Self {
         Self {
             _t: PhantomData,
@@ -232,46 +233,49 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
         syscfg::en_dma_channel_fast_response(self.channel, en);
     }
 
-    // 配置dma通道
+    /// 配置dma通道
     #[inline]
     pub fn config(&mut self, config: Config) {
         T::config(self.channel, config)
     }
 
-    // 开始dma
+    /// 开始dma
     #[inline]
     pub fn start(&mut self) {
         T::enable(self.channel, true);
     }
 
-    // 停止或取消dma
+    /// 停止或取消dma
     #[inline]
     pub fn stop(&mut self) {
         T::enable(self.channel, false);
     }
 
-    // 返回剩余的数量
+    /// 返回剩余的数量
     pub fn remain(&self) -> u16 {
         T::remain_count(self.channel)
     }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
+    /// 返回是否结束
     pub fn is_finish(&self) -> bool {
         T::event_flag(self.channel, Event::TCIF)
     }
 
+    /// 返回是否发生错误
     pub fn is_error(&self) -> bool {
         T::event_flag(self.channel, Event::TEIF)
     }
 
+    /// 清除状态标志
     pub fn clear_flag(&mut self, events: EnumSet<Event>) {
         for e in events {
             T::event_clear(self.channel, e);
         }
     }
 
-    // 等待传输完成
+    /// 等待传输完成
     pub fn wait_complet(&self) -> Result<(), Error> {
         while !T::event_flag(self.channel, Event::TCIF) {
             // 检查是否出错
@@ -284,7 +288,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
         Ok(())
     }
 
-    // 等待半完成
+    /// 等待半完成
     pub fn wait_half_complet(&self) -> Result<(), Error> {
         while !T::event_flag(self.channel, Event::HTIF) {
             // 检查是否出错
@@ -299,6 +303,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Async> {
+    /// 等待完成
     pub async fn wait_complet(&self) -> Result<(), Error> {
         if EventFuture::<T>::new(self.channel, Event::TCIF | Event::TEIF).await != Event::TCIF {
             return Err(Error::Others);
@@ -307,7 +312,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Async> {
         Ok(())
     }
 
-    // 等待半完成
+    /// 等待半完成
     pub async fn wait_half_complet(&self) -> Result<(), Error> {
         if EventFuture::<T>::new(self.channel, Event::HTIF | Event::TEIF).await != Event::HTIF {
             return Err(Error::Others);

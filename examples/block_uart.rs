@@ -22,14 +22,14 @@ fn main() -> ! {
     let tx = gpioa.PA10;
 
     let mut dma: AnyDma<_, _> = AnyDma::new(p.DMA);
-    let [channel1, _, _] = dma.split();
+    let [channel1, channel2, _] = dma.split();
 
     let usart: AnyUsart<_, Blocking> = AnyUsart::new(
         p.USART1,
         Some(rx),
         Some(tx),
         Some(channel1),
-        None,
+        Some(channel2),
         Default::default(),
     );
 

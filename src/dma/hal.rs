@@ -67,16 +67,9 @@ pub(crate) mod sealed {
                             .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
                             .bit(config.diretion != Direction::PeriphToMemory)
                     });
-                    if config.diretion == Direction::MemoryToMemory {
-                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
-                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
-                    } else if config.diretion == Direction::MemoryToPeriph {
-                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
-                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
-                    } else {
-                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
-                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
-                    }
+
+                    block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
+                    block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
 
                     // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
                     // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
@@ -95,10 +88,78 @@ pub(crate) mod sealed {
                     };
                 }
                 Channel::Channel2 => {
-                    unimplemented!()
+                    block.ccr2.modify(|_, w| unsafe {
+                        w.mem2mem()
+                            .bit(config.diretion == Direction::MemoryToMemory)
+                            .pl() // 优先级
+                            .bits(config.prioritie as u8)
+                            .msize() // 存储器宽度
+                            .bits(config.memDataSize as u8)
+                            .psize() // 外设传输宽度
+                            .bits(config.periphDataSize as u8)
+                            .minc() // 存储器地址增长使能
+                            .bit(config.memInc)
+                            .pinc() // 外设地址增长使能
+                            .bit(config.periphInc)
+                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .bit(config.diretion != Direction::PeriphToMemory)
+                    });
+
+                    block.cpar2.write(|w| unsafe { w.bits(config.periphAddr) });
+                    block.cmar2.write(|w| unsafe { w.bits(config.memAddr) });
+
+                    // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
+                    // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
+                    // 数据传输结束后，寄存器的内容或者变为 0，或 者当该通道配置为循环模式时，寄存器的内
+                    // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
+                    // 都 不会传输数据。
+                    match config.mode {
+                        RepeatMode::OneTime(cnt) => {
+                            block.ccr2.modify(|_, w| w.circ().bit(false));
+                            block.cndtr2.modify(|_, w| unsafe { w.ndt().bits(cnt) });
+                        }
+                        RepeatMode::Repeat(cnt) => {
+                            block.ccr2.modify(|_, w| w.circ().bit(true));
+                            block.cndtr2.modify(|_, w| unsafe { w.ndt().bits(cnt) });
+                        }
+                    };
                 }
                 Channel::Channel3 => {
-                    unimplemented!()
+                    block.ccr3.modify(|_, w| unsafe {
+                        w.mem2mem()
+                            .bit(config.diretion == Direction::MemoryToMemory)
+                            .pl() // 优先级
+                            .bits(config.prioritie as u8)
+                            .msize() // 存储器宽度
+                            .bits(config.memDataSize as u8)
+                            .psize() // 外设传输宽度
+                            .bits(config.periphDataSize as u8)
+                            .minc() // 存储器地址增长使能
+                            .bit(config.memInc)
+                            .pinc() // 外设地址增长使能
+                            .bit(config.periphInc)
+                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .bit(config.diretion != Direction::PeriphToMemory)
+                    });
+
+                    block.cpar3.write(|w| unsafe { w.bits(config.periphAddr) });
+                    block.cmar3.write(|w| unsafe { w.bits(config.memAddr) });
+
+                    // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
+                    // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
+                    // 数据传输结束后，寄存器的内容或者变为 0，或 者当该通道配置为循环模式时，寄存器的内
+                    // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
+                    // 都 不会传输数据。
+                    match config.mode {
+                        RepeatMode::OneTime(cnt) => {
+                            block.ccr3.modify(|_, w| w.circ().bit(false));
+                            block.cndtr3.modify(|_, w| unsafe { w.ndt().bits(cnt) });
+                        }
+                        RepeatMode::Repeat(cnt) => {
+                            block.ccr3.modify(|_, w| w.circ().bit(true));
+                            block.cndtr3.modify(|_, w| unsafe { w.ndt().bits(cnt) });
+                        }
+                    };
                 }
             }
 
@@ -109,7 +170,7 @@ pub(crate) mod sealed {
         fn event_clear(channel: Channel, event: Event) {
             Self::block()
                 .ifcr
-                .write(|w| unsafe { w.bits((1 << event as usize) << (channel as usize * 4)) });
+                .write(|w| unsafe { w.bits(1 << (event as usize + (channel as usize * 4))) });
         }
 
         /// 返回事件标志
@@ -118,7 +179,7 @@ pub(crate) mod sealed {
                 .isr
                 .read()
                 .bits()
-                .has_bit((event as u32) << (channel as usize * 4))
+                .has_bit((event as u32) + (channel as u32 * 4))
         }
 
         /// 开启或关闭事件中断
