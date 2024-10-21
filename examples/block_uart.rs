@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use defmt::Debug2Format;
 use embedded_io::{Read, Write};
 use hal::dma::AnyDma;
 use hal::syscfg;
@@ -27,8 +28,8 @@ fn main() -> ! {
         p.USART1,
         Some(rx),
         Some(tx),
-        None,
         Some(channel1),
+        None,
         Default::default(),
     );
 
@@ -41,7 +42,8 @@ fn main() -> ! {
 
     loop {
         // let cnt = rx.read_blocking(&mut rx_buf);
-        // defmt::info!("recv: cnt: {} {:x}", cnt, rx_buf);
+        let cnt = rx.read_dma_idle_blocking(&mut rx_buf).unwrap();
+        defmt::info!("recv: cnt: {} {}", Debug2Format(&cnt), rx_buf[0..cnt]);
         // tx.write_bytes_blocking(&rx_buf);
 
         // let cnt = rx.read_idle_blocking(&mut rx_buf);
@@ -51,10 +53,11 @@ fn main() -> ! {
         // let _ = write!(tx, "example for usart\r\n");
 
         // // 使用自定义的驱动接口发送串口数据
-        let _ = tx.write(buf.as_bytes());
+        let _ = tx.write(&rx_buf[0..cnt]);
+        // let _ = tx.write(buf.as_bytes());
 
-        defmt::info!("send: {} ", buf.as_bytes());
+        // defmt::info!("send: {} ", buf.as_bytes());
 
-        hal::delay::delay_ms(1000);
+        // hal::delay::delay_ms(1000);
     }
 }

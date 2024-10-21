@@ -147,6 +147,7 @@ pub mod sealed {
                     // ﻿当接收时校验值错误时，硬件置位该寄存器。
                     // 软件先读 USART_SR 寄存器后读 USART_DR 寄存器可以清零该位。但软件在清该位前必须等待RXNE=1
                     let _ = r.bits();
+                    let _ = Self::read();
                     w
                 }
                 Event::RXNE => {

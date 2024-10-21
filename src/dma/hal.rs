@@ -74,8 +74,8 @@ pub(crate) mod sealed {
                         block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
                         block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
                     } else {
-                        block.cmar1.write(|w| unsafe { w.bits(config.periphAddr) });
-                        block.cpar1.write(|w| unsafe { w.bits(config.memAddr) });
+                        block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
+                        block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
                     }
 
                     // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。

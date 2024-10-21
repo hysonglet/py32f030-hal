@@ -212,30 +212,31 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
             clear_events.iter().for_each(|e| T::event_clear(e));
 
             // 返回dma 通道的映射值
-            let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
+            let (rx_dma_map, _tx_dma_map) = T::id().dma_channel_map();
 
+            dma.clear_flag(EnumSet::all());
             // 不管成功与否都关闭dma触发
             let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
 
             // 配置dma channel
             dma.config(dma::Config::new_periph2mem(
                 T::block().dr.as_ptr() as u32, // 数据寄存器
-                true,
+                false,
                 dma::Burst::Single,
                 buf.as_ptr() as u32,
-                false,
+                true,
                 dma::Burst::Single,
                 dma::Priorities::Medium,
                 dma::RepeatMode::OneTime(buf.len() as u16),
             ));
 
             // 将 tx 信号绑定到 通道
-            dma.bind(tx_dma_map);
+            dma.bind(rx_dma_map);
             // 使能 dma channel
             dma.start();
 
             // 串口开启dma
-            T::tx_dma_enable(true);
+            T::rx_dma_enable(true);
 
             let remain = loop {
                 if T::event_flag(Event::FE) {
@@ -257,6 +258,7 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
                 }
 
                 if T::event_flag(Event::IDLE) {
+                    //defmt::info!("reamin: {}", dma.remain());
                     break dma.remain() as usize;
                 }
             };
