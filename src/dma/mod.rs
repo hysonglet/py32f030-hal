@@ -62,22 +62,6 @@ pub struct Config {
     memAddr: u32,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            diretion: Direction::PeriphToMemory,
-            prioritie: Priorities::Low,
-            mode: RepeatMode::OneTime(0),
-            memInc: false,
-            periphInc: false,
-            periphDataSize: Burst::Single,
-            memDataSize: Burst::Single,
-            memAddr: 0,
-            periphAddr: 0,
-        }
-    }
-}
-
 impl Config {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
