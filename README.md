@@ -29,7 +29,7 @@ cargo build
 
 ### 查看本机Rust 版本
 ```bash
-➜  py32f030-hal git:(main) ✗ rustup --version                    
+➜  py32f030-hal git:(main) ✗ rustup --version
 rustup 1.27.1 (54dd3d00f 2024-04-24)
 info: This is the version for the rustup toolchain manager, not the rustc compiler.
 info: The currently active `rustc` version is `rustc 1.82.0-nightly (6de928dce 2024-08-18)`
@@ -72,6 +72,11 @@ brew install llvm
 - [x] rtc
 - [x] iwatchdog
 
+## TODO
+- LPTimer
+- Flash
+- Clock -> 48M
+- spi test
 
 ## examples
 
@@ -80,38 +85,39 @@ brew install llvm
 # run
 cargo run --example blinky
 # build
-cargo build --release --example blinky 
+cargo build --release --example blinky
 ```
 
 ### Example list
 ```bash
-➜  py32f030-hal git:(main) ✗ cargo r --example 
+py32f030-hal git:(main) ✗ cargo r --example
 error: "--example" takes one argument.
 Available examples:
-    adc_block
-    advanced_timer_block
-    advanced_timer_block_2
-    blinky
-    block_uart
-    cl
-    clock
-    crc
-    embassy_adc
-    embassy_delay
-    embassy_dma_mem2mem
-    embassy_exit
-    embassy_i2c
-    embassy_iwdg
-    embassy_pwm
-    embassy_rtc
-    embassy_ssd1309
-    embassy_uart
-    hello_world
-    i2c_master_block
-    key
-    rtc_block
-    uart
-``` 
+   adc_block
+   advanced_timer_block
+   advanced_timer_block_2
+   bit_test
+   blinky
+   block_uart
+   clock
+   crc
+   dma_mem2mem
+   embassy_adc
+   embassy_delay
+   embassy_dma_mem2mem
+   embassy_exit
+   embassy_i2c
+   embassy_iwdg
+   embassy_pwm
+   embassy_rtc
+   embassy_ssd1309
+   embassy_uart
+   hello_world
+   i2c_master_block
+   key
+   rtc_block
+   uart
+```
 
 
 ##  关于
