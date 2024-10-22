@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 
 pub use counter::Counter;
 pub use pwm::Pwm;
-use types::*;
+pub use types::*;
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt},

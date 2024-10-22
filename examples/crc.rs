@@ -42,5 +42,7 @@ async fn main(_spawner: Spawner) {
     let rst = crc.accumulat(&buf1[10..]);
     defmt::info!("{:x}", rst);
 
-    loop {}
+    loop {
+        cortex_m::asm::wfe();
+    }
 }

@@ -9,7 +9,7 @@ use core::{future::Future, marker::PhantomData, task::Poll};
 
 use future::ChannelInputFuture;
 
-use types::*;
+pub use types::*;
 
 use crate::{
     clock::peripheral::PeripheralInterrupt,

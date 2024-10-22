@@ -48,7 +48,7 @@ fn main() -> ! {
         let rst = master.read_block(SLAVE_DEVICE_ADDRESS, &mut r_buf);
         defmt::info!("read rst: {:?} ", Debug2Format(&rst));
 
-        delay::delay_ms(1000 * 1);
+        delay::delay_ms(1000);
         defmt::info!("{}", cnt);
         cnt += 1;
     }

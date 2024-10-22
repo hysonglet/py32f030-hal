@@ -19,7 +19,7 @@ async fn main(_spawner: Spawner) {
     let rx = gpioa.PA9;
     let tx = gpioa.PA10;
 
-    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), Default::default());
+    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), None, None, Default::default());
 
     let (mut rx, mut tx) = usart.split();
 

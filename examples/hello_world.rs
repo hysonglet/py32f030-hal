@@ -9,5 +9,7 @@ use {defmt_rtt as _, panic_probe as _};
 #[cortex_m_rt::entry]
 fn main() -> ! {
     defmt::info!("hello world");
-    loop {}
+    loop {
+        cortex_m::asm::wfe();
+    }
 }

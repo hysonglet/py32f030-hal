@@ -11,10 +11,11 @@ use panic_halt as _;
 fn main() -> ! {
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
-    let mut led = Output::new(gpioa.PA0, PinIoType::PullUp, PinSpeed::Low);
+    let mut led = Output::new(gpioa.PA11, PinIoType::PullUp, PinSpeed::Low);
 
     loop {
+        // 翻转led
         let _ = led.toggle();
-        cortex_m::asm::delay(10000000);
+        cortex_m::asm::delay(10_000_000);
     }
 }

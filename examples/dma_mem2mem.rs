@@ -36,5 +36,7 @@ fn main() -> ! {
     defmt::info!("src: {} ", src);
     defmt::info!("dst: {} ", dst);
 
-    loop {}
+    loop {
+        cortex_m::asm::wfe();
+    }
 }

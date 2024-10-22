@@ -1,8 +1,7 @@
 #![no_std]
 #![no_main]
 
-use hal::delay;
-use hal::rtc::{AnyRtc, Config};
+use hal::rtc::AnyRtc;
 use py32f030_hal::{self as hal, mode::Blocking};
 
 // use panic_halt as _;

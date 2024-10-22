@@ -15,7 +15,7 @@ fn main() -> ! {
     let rx = gpioa.PA9;
     let tx = gpioa.PA10;
 
-    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), Default::default());
+    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), None, None, Default::default());
 
     let (_, mut tx) = usart.split();
 
@@ -26,7 +26,7 @@ fn main() -> ! {
         let _ = write!(tx, "example for usart\r\n");
 
         // 使用自定义的驱动接口发送串口数据
-        tx.write_bytes_blocking(buf.as_bytes());
+        let _ = tx.write(buf.as_bytes());
 
         defmt::info!("send: {} ", buf.as_bytes());
         cortex_m::asm::delay(1000 * 1000 * 10);

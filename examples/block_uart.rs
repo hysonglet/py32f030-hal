@@ -50,7 +50,7 @@ fn main() -> ! {
         // defmt::info!("recv idle: cnt: {} {:x}", cnt, rx_buf[0..cnt]);
 
         // // 使用标准接口来发送串口数据
-        // let _ = write!(tx, "example for usart\r\n");
+        let _ = write!(tx, "example for usart\r\n");
 
         // // 使用自定义的驱动接口发送串口数据
         let _ = tx.write(&rx_buf[0..cnt]);

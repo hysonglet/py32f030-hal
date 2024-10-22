@@ -21,7 +21,7 @@ fn main() -> ! {
     loop {
         // 延时 5s
         defmt::info!("repeat...{} ", cnt);
-        let _ = counter.start(5u32.secs());
+        counter.start(5u32.secs());
         let _ = counter.wait();
         cnt += 1;
     }
