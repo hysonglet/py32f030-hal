@@ -1,21 +1,27 @@
 //! ADC
 
+#[cfg(feature = "embassy")]
 mod future;
 mod hal;
 mod pins;
 mod types;
 
-use core::{future::Future, marker::PhantomData, task::Poll};
+#[cfg(feature = "embassy")]
+use core::{future::Future, task::Poll};
 
+use core::marker::PhantomData;
+
+#[cfg(feature = "embassy")]
+use crate::mcu::peripherals::ADC;
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
+#[cfg(feature = "embassy")]
 use future::ChannelInputFuture;
 
 pub use types::*;
 
 use crate::{
-    clock::peripheral::PeripheralInterrupt,
-    macro_def::impl_sealed_peripheral_id,
-    mcu::peripherals::ADC,
-    mode::{Async, Blocking},
+    clock::peripheral::PeripheralInterrupt, macro_def::impl_sealed_peripheral_id, mode::Blocking,
 };
 
 use embassy_hal_internal::Peripheral;
@@ -27,8 +33,10 @@ use crate::{
     mode::Mode,
 };
 
+#[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
 
+#[cfg(feature = "embassy")]
 static ADC_INT_WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 
 #[allow(private_bounds)]
@@ -179,6 +187,7 @@ impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> AnyAdc<'d, T, Async> {
     pub async fn read(&self, channel: impl AnalogPin<T>) -> u16 {
         ChannelInputFuture::<T>::new_with_channel(channel.channel()).await

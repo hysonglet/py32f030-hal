@@ -1,28 +1,27 @@
+#[cfg(feature = "embassy")]
+mod future;
 mod hal;
 mod types;
-
-use core::{future::Future, marker::PhantomData, task::Poll};
-
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
 use crate::{
     clock::peripheral::PeripheralInterrupt,
     macro_def::impl_sealed_peripheral_id,
-    mcu::peripherals::RTC,
-    mode::{Async, Blocking},
-    pac::interrupt,
+    // mcu::peripherals::RTC,
+    mode::Blocking,
+
     pwr::pwr,
 };
-
+use core::marker::PhantomData;
 use embassy_hal_internal::Peripheral;
-use enumset::{EnumSet, EnumSetType};
-use types::*;
+use enumset::EnumSet;
+pub use types::*;
 
 use crate::{
     clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex},
     delay::wait_for_true_timeout_block,
     mode::Mode,
 };
-
-use embassy_sync::waitqueue::AtomicWaker;
 
 #[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
@@ -99,7 +98,7 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
         // 关闭所有中断
         EnumSet::all()
             .iter()
-            .for_each(|event| T::enable_interrupt(event, false));
+            .for_each(|event| T::event_config(event, false));
 
         // 重新写入计数值
         if let Some(load) = config.load {
@@ -123,8 +122,24 @@ impl<'d, T: Instance> AnyRtc<'d, T, Blocking> {
         let br = self.read() + second;
         while self.read() < br {}
     }
+
+    pub fn wait_alarm(&self, after: u32) {
+        let br = self.read() + after - 1;
+        let _ = T::enable_config();
+        T::set_alarm(br);
+
+        T::clear_interrupt(EventKind::Alarm);
+
+        while !T::event_flag(EventKind::Alarm) {}
+    }
+
+    pub fn wait_second(&self) {
+        T::clear_interrupt(EventKind::Second);
+        while !T::event_flag(EventKind::Second) {}
+    }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> AnyRtc<'d, T, Async> {
     #[inline]
     pub async fn wait_alarm(&self, after: u32) {
@@ -136,10 +151,10 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
         // 开启中断使能
         event.iter().for_each(|event| {
             T::clear_interrupt(event);
-            T::enable_interrupt(event, true);
+            T::event_config(event, true);
         });
         T::id().enable_interrupt();
-        WakeFuture::<T>::new(event).await
+        future::WakeFuture::<T>::new(event).await
     }
 
     pub async fn wait_second(&self) {
@@ -150,77 +165,9 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
         // 开启中断使能
         event.iter().for_each(|event| {
             T::clear_interrupt(event);
-            T::enable_interrupt(event, true);
+            T::event_config(event, true);
         });
         T::id().enable_interrupt();
-        WakeFuture::<T>::new(event).await
+        future::WakeFuture::<T>::new(event).await
     }
-}
-
-#[derive(EnumSetType, Debug)]
-pub enum EventKind {
-    Alarm,
-    Second,
-    OverFlow,
-}
-
-static WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
-
-pub struct WakeFuture<T: Instance> {
-    _t: PhantomData<T>,
-    event: EnumSet<EventKind>,
-}
-
-impl<T: Instance> WakeFuture<T> {
-    pub fn new(event: EnumSet<EventKind>) -> Self {
-        Self {
-            _t: PhantomData,
-            event,
-        }
-    }
-
-    #[inline]
-    fn on_interrupt() {
-        EnumSet::all().iter().for_each(|event| {
-            if T::is_interrupt(event) && T::is_enable_interrupt(event) {
-                T::enable_interrupt(event, false);
-            }
-        });
-        WAKER[T::id() as usize].wake()
-    }
-}
-
-impl<T: Instance> Future for WakeFuture<T> {
-    type Output = ();
-    fn poll(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Self::Output> {
-        WAKER[T::id() as usize].register(cx.waker());
-
-        let mut interrupt = false;
-
-        self.event.iter().for_each(|event| {
-            if T::is_interrupt(event) {
-                interrupt = true;
-                T::clear_interrupt(event);
-            }
-        });
-
-        if interrupt {
-            T::disable_config();
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
-    }
-}
-
-impl<T: Instance> Drop for WakeFuture<T> {
-    fn drop(&mut self) {}
-}
-
-#[interrupt]
-fn RTC() {
-    critical_section::with(|_cs| WakeFuture::<RTC>::on_interrupt())
 }

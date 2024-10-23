@@ -33,12 +33,10 @@ impl<T: Instance> ChannelInputFuture<T> {
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
             if T::event_flag(event) {
-                // defmt::info!("{:x}", event as u32);
                 // 关闭该中断
                 T::event_config(event, false);
             }
         });
-        // defmt::info!("XXXXX");
         ADC_INT_WAKER[T::id() as usize].wake()
     }
 }

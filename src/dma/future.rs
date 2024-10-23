@@ -4,12 +4,16 @@ use crate::{clock::peripheral::PeripheralInterrupt, mcu::peripherals::DMA};
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 
+#[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
 #[allow(clippy::declare_interior_mutable_const)]
+#[cfg(feature = "embassy")]
 const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
+#[cfg(feature = "embassy")]
 const _WAKER_COUNT: usize = 3;
+#[cfg(feature = "embassy")]
 pub(super) static EVENT_WAKERS: [AtomicWaker; _WAKER_COUNT] = [_ATOMIC_WAKER; _WAKER_COUNT];
 
 pub struct EventFuture<T: Instance> {

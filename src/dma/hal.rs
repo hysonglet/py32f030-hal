@@ -183,6 +183,7 @@ pub(crate) mod sealed {
         }
 
         /// 开启或关闭事件中断
+        #[allow(dead_code)]
         fn event_config(channel: Channel, event: Event, en: bool) {
             let block = Self::block();
 
@@ -227,6 +228,7 @@ pub(crate) mod sealed {
         }
 
         /// return event config
+        #[allow(dead_code)]
         fn is_event_enable(channel: Channel, event: Event) -> bool {
             let block = Self::block();
 

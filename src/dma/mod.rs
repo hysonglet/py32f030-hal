@@ -1,3 +1,4 @@
+#[cfg(feature = "embassy")]
 mod future;
 mod hal;
 mod types;
@@ -6,11 +7,14 @@ use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
 use crate::macro_def::impl_sealed_peripheral_id;
-use crate::mode::{Async, Blocking, Mode};
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
+use crate::mode::{Blocking, Mode};
 use crate::syscfg::{syscfg, DmaChannelMap};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
 use enumset::EnumSet;
+#[cfg(feature = "embassy")]
 use future::EventFuture;
 pub use types::*;
 
@@ -286,6 +290,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> DmaChannel<'d, T, Async> {
     /// 等待完成
     pub async fn wait_complet(&self) -> Result<(), Error> {

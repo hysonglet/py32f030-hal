@@ -4,13 +4,18 @@ use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 
+#[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
 #[allow(clippy::declare_interior_mutable_const)]
+#[cfg(feature = "embassy")]
 const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
+#[cfg(feature = "embassy")]
 const _EVENT_COUNT: usize = Event::PE as usize + 1;
+#[cfg(feature = "embassy")]
 const _WAKER_COUNT: usize = Id::USART2 as usize;
+#[cfg(feature = "embassy")]
 pub(super) static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
     [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
 

@@ -21,6 +21,7 @@ pub mod sealed {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) trait Instance {
         #[inline]
         fn block() -> &'static pac::exti::RegisterBlock {

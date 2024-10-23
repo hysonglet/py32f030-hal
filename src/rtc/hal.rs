@@ -129,7 +129,7 @@ pub mod sealed {
         }
 
         #[inline]
-        fn enable_interrupt(event: EventKind, en: bool) {
+        fn event_config(event: EventKind, en: bool) {
             let block = Self::block();
             match event {
                 EventKind::Alarm => block.crh.modify(|_, w| w.alrie().bit(en)),
@@ -139,6 +139,7 @@ pub mod sealed {
         }
 
         #[inline]
+        #[allow(dead_code)]
         fn is_enable_interrupt(event: EventKind) -> bool {
             let block = Self::block();
             match event {
@@ -149,7 +150,7 @@ pub mod sealed {
         }
 
         #[inline]
-        fn is_interrupt(event: EventKind) -> bool {
+        fn event_flag(event: EventKind) -> bool {
             let block = Self::block();
             match event {
                 EventKind::Alarm => block.crl.read().alrf().bit(),

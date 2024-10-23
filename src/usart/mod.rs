@@ -1,3 +1,4 @@
+#[cfg(feature = "embassy")]
 mod future;
 mod hal;
 mod pins;
@@ -11,14 +12,19 @@ use crate::dma::{self, DmaChannel};
 use crate::gpio::{self, AnyPin};
 use crate::macro_def::pin_af_for_instance_def;
 use crate::mcu::peripherals::DMA;
-use crate::mode::{Async, Blocking, Mode};
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
+use crate::mode::{Blocking, Mode};
 use crate::syscfg::DmaChannelMap;
+#[cfg(feature = "embassy")]
 use core::future::poll_fn;
 use core::marker::PhantomData;
+#[cfg(feature = "embassy")]
 use core::task::Poll;
 use drop_move::DropGuard;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
+#[cfg(feature = "embassy")]
 use future::EventFuture;
 use hal::sealed;
 use types::*;
@@ -258,7 +264,6 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
                 }
 
                 if T::event_flag(Event::IDLE) {
-                    //defmt::info!("reamin: {}", dma.remain());
                     break dma.remain() as usize;
                 }
             };
@@ -281,6 +286,7 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> UsartRx<'d, T, Async> {
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         let mut cnt = 0;
@@ -419,6 +425,7 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> UsartTx<'d, T, Async> {
     pub async fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
         if self.tx_dma.is_some() {
@@ -599,30 +606,36 @@ impl<'d, T: Instance> embedded_io::Write for UsartTx<'d, T, Blocking> {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::ErrorType for AnyUsart<'d, T, Async> {
     type Error = Error;
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::ErrorType for UsartRx<'d, T, Async> {
     type Error = Error;
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::Read for AnyUsart<'d, T, Async> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         self.rx.read(buf).await
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::Read for UsartRx<'d, T, Async> {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         self.read_with_idle(buf).await
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::ErrorType for UsartTx<'d, T, Async> {
     type Error = Error;
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_io_async::Write for UsartTx<'d, T, Async> {
     async fn flush(&mut self) -> Result<(), Self::Error> {
         EventFuture::<T>::new(EnumSet::empty() | Event::TC).await;

@@ -1,11 +1,17 @@
-use super::{future::EventFuture, Event, Instance};
+#[cfg(feature = "embassy")]
+use super::future::EventFuture;
+use super::{Event, Instance};
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
 use crate::{
     clock::peripheral::PeripheralInterrupt,
-    mode::{Async, Blocking, Mode},
+    mode::{Blocking, Mode},
     timer::advanced_timer::{CenterAlignedMode, CountDirection},
 };
 use core::marker::PhantomData;
+#[cfg(feature = "embassy")]
 use enumset::EnumSet;
+
 use fugit::MicrosDurationU32;
 
 /// 计数器
@@ -49,7 +55,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::start();
     }
 
-    fn start_ns(&mut self, nano: u64) {
+    pub fn start_ns(&mut self, nano: u64) {
         let (div, rep, arr) = T::nanosecond_to_compute_with_rep(nano);
         T::stop();
         T::set_prescaler(div);
@@ -110,6 +116,7 @@ impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking
 
 /////////////////////// Async ///////////////////////
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_hal_async::delay::DelayNs for Counter<'d, T, Async> {
     async fn delay_ns(&mut self, ns: u32) {
         self.start_ns(ns as u64);

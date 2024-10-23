@@ -1,4 +1,5 @@
 mod counter;
+#[cfg(feature = "embassy")]
 mod future;
 mod hal;
 mod pins;

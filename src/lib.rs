@@ -83,18 +83,9 @@ pub fn init(config: config::Config) -> Peripherals {
         }
     }
 
-    // 打印系统时钟（调试用）
-    #[cfg(feature = "defmt")]
-    defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
-
     // 启用异步os
     #[cfg(feature = "embassy")]
     embassy::init();
-
-    // 开启中断
-    critical_section::with(|cs| {
-        exti::init(cs);
-    });
 
     peripherals
 }

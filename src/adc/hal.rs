@@ -177,6 +177,7 @@ pub mod sealed {
             }
         }
 
+        #[allow(dead_code)]
         fn channel_enable_exclusive(channel: AdcChannel) {
             // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
             Self::block()
@@ -224,6 +225,7 @@ pub mod sealed {
         }
 
         #[inline]
+        #[allow(dead_code)]
         fn event_config(event: Event, en: bool) {
             Self::block().ier.modify(|_, w| match event {
                 Event::EOSMP => w.eosmpie().bit(en),
@@ -235,6 +237,7 @@ pub mod sealed {
         }
 
         #[inline]
+        #[allow(dead_code)]
         fn event_clear(event: Event) {
             Self::block().isr.modify(|_, w| match event {
                 Event::EOSMP => w.eosmp().set_bit(),

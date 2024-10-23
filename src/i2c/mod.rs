@@ -1,3 +1,4 @@
+#[cfg(feature = "embassy")]
 mod future;
 mod hal;
 pub mod master;

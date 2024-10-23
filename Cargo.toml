@@ -16,11 +16,10 @@ embedded-io = "0.6.1"
 embedded-io-async = { version = "0.6.1", option = true }
 nb = "1"
 void = { version = "1.0", default-features = false }
-panic-halt = { version = "0.2.0", option = true }
-panic-probe = { version = "0.3", features = ["print-defmt"], option = true }
-
-defmt = { version = "0.3.2", option = true }
-defmt-rtt = { version = "0.4", option = true }
+panic-halt = { version = "0.2.0", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+defmt = { version = "0.3.2", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
 cortex-m = { version = "0.7.7", features = [
     "critical-section-single-core",
     "inline-asm",
@@ -43,12 +42,12 @@ embassy-executor = { version = "0.5.0", optional = true, features = [
 embassy-time = { version = "0.3.0", features = [
     "generic-queue-16",
 ], optional = true }
-embassy-futures = { version = "0.1.0", features = ["defmt"] }
-# ssd1309 = {version = "0.4.0", option = true}
+embassy-futures = { version = "0.1.0" }
+# ssd1309 = {version = "0.4.0", optional = true}
 # display-interface = "^ 0.4"
 # embedded-graphics-core = { version = "^ 0.4", optional = true }
-# embedded-graphics = {version ="0.8.1", option = true}
-display-interface = {version = "0.4.1", option = true}
+# embedded-graphics = {version ="0.8.1", optional = true}
+display-interface = {version = "0.4.1", optional = true}
 # oled_async = "0.1.0-alpha1"
 embedded-graphics = "0.7.0"
 ssd1309 = "0.3.0"
@@ -57,27 +56,22 @@ display-interface-i2c = "^ 0.4"
 fugit = { version = "0.3.6" }
 fugit-timer = "0.1.3"
 drop-move = "0.1.0"
+
 [features]
-dma = []
+default = ["example"] #"embassy",
+example = ["dep:defmt", "dep:defmt-rtt", "dep:panic-probe"]
 
 ## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
 time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
-default = ["embassy", "dma"]
+
 embassy = [
     "dep:embassy-executor",
     "dep:embassy-sync",
     "dep:embassy-time",
     "time-driver",
 ]
-defmt = []
-
-# critical-section-impl = ["critical-section:restore-state-u8"]
-
 
 [dev-dependencies]
-# panic-halt = "0.2"
-# usb-device = "0.2.7"
-# usbd-serial = "0.1.1"
 
 [[example]]
 name = "blinky"
@@ -87,6 +81,9 @@ name = "embassy_uart"
 
 [[example]]
 name = "embassy_delay"
+
+[[example]]
+name = "crc"
 
 [profile.dev]
 codegen-units = 1
@@ -101,6 +98,6 @@ codegen-units = 1
 opt-level = "z"
 lto = true
 debug = false
-link-dead-code = false
+# link-dead-code = false
 overflow-checks = false
 # strip = true   # 开启后release模式的日志不会显示

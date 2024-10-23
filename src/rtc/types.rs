@@ -1,3 +1,5 @@
+use enumset::EnumSetType;
+
 #[derive(Debug)]
 pub enum Error {
     Clock,
@@ -19,4 +21,11 @@ pub enum RtcClock {
     LSI,
     LSE,
     HSE_DIV_32,
+}
+
+#[derive(EnumSetType, Debug)]
+pub enum EventKind {
+    Alarm,
+    Second,
+    OverFlow,
 }

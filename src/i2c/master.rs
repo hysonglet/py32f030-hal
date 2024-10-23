@@ -1,11 +1,16 @@
+#[cfg(feature = "embassy")]
 use enumset::EnumSet;
 
+#[cfg(feature = "embassy")]
+use super::future::EventFuture;
 use super::hal::sealed::WAIT_FLAG_TIMEOUT;
-use super::{future::EventFuture, Error, Event, Instance};
+use super::{Error, Event, Instance};
 use crate::delay::wait_for_true_timeout_block;
+#[cfg(feature = "embassy")]
+use crate::mode::Async;
 use crate::{
     clock::peripheral::PeripheralInterrupt,
-    mode::{Async, Blocking, Mode},
+    mode::{Blocking, Mode},
 };
 use core::marker::PhantomData;
 
@@ -149,6 +154,8 @@ impl<'d, T: Instance> embedded_hal::blocking::i2c::WriteRead for Master<'d, T, B
 }
 
 ////////
+
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> Master<'d, T, Async> {
     pub async fn read(&self, address: u8, buf: &mut [u8]) -> Result<usize, Error> {
         let block = T::block();
@@ -287,10 +294,12 @@ impl embedded_hal_async::i2c::Error for Error {
     }
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_hal_async::i2c::ErrorType for Master<'d, T, Async> {
     type Error = Error;
 }
 
+#[cfg(feature = "embassy")]
 impl<'d, T: Instance> embedded_hal_async::i2c::I2c for Master<'d, T, Async> {
     async fn read(&mut self, _address: u8, _read: &mut [u8]) -> Result<(), Self::Error> {
         todo!()
