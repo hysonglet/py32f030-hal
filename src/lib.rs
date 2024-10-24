@@ -39,11 +39,11 @@ pub mod config {
     #[derive(Default)]
     pub enum SysClockSource {
         /// 8M
+        #[default]
         HSI,
         /// 24M
         HSE,
         /// 16M
-        #[default]
         PLL_HSI,
     }
 
