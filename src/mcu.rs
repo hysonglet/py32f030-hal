@@ -39,6 +39,8 @@ embassy_hal_internal::peripherals! {
     COMP1,
     COMP2,
 
+    FLASH,
+
     /// DMA
     DMA,
 }
