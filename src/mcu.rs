@@ -41,7 +41,4 @@ embassy_hal_internal::peripherals! {
 
     /// DMA
     DMA,
-    // DmaChannel1,
-    // DmaChannel2,
-    // DmaChannel3,
 }

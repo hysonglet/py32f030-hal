@@ -17,6 +17,5 @@ fn main() -> ! {
         // 翻转led
         let _ = led.toggle();
         cortex_m::asm::delay(10_000_000);
-        defmt::info!("XXXX");
     }
 }

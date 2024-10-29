@@ -1,25 +1,8 @@
 pub mod sealed {
+    use super::super::types::*;
     use crate::bit::*;
     use crate::exti::Line;
-    use crate::gpio::GpioPort;
-    use crate::{gpio, pac};
-
-    #[derive(Debug, PartialEq)]
-    pub enum ExitPinSource {
-        PA = 0,
-        PB = 1,
-        PF = 2,
-    }
-
-    impl From<gpio::GpioPort> for ExitPinSource {
-        fn from(value: GpioPort) -> Self {
-            match value {
-                GpioPort::GPIOA => Self::PA,
-                GpioPort::GPIOB => Self::PB,
-                GpioPort::GPIOF => Self::PF,
-            }
-        }
-    }
+    use crate::pac;
 
     #[allow(dead_code)]
     pub(crate) trait Instance {
@@ -79,7 +62,7 @@ pub mod sealed {
                     ))
                 }),
                 Line::Line8 => block.exticr3.modify(|r, w| unsafe {
-                    assert!(pin == ExitPinSource::PF);
+                    assert!(pin != ExitPinSource::PF);
                     w.bits(bit_mask_idx_modify::<1>(0, r.bits(), pin as u32))
                 }),
                 Line::Line9
@@ -91,9 +74,7 @@ pub mod sealed {
                 | Line::Line15 => {
                     assert!(pin != ExitPinSource::PB);
                     assert!(pin != ExitPinSource::PF);
-                } // _ => {
-                  //     panic!()
-                  // }
+                }
             }
         }
 

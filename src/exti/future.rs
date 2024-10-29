@@ -1,4 +1,5 @@
 use super::types::*;
+use crate::clock::peripheral::PeripheralInterrupt;
 use crate::exti::hal::sealed::Instance;
 use crate::gpio::{AnyPin, GpioPort};
 use crate::pac::interrupt;
@@ -53,11 +54,11 @@ impl<'d> Future for ExtiInputFuture<'d> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
-
         if !Exti::is_line_pend_enable(self.line) {
             Poll::Ready(())
         } else {
+            EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
+            self.line.enable_interrupt();
             Poll::Pending
         }
     }

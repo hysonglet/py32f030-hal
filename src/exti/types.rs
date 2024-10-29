@@ -1,5 +1,7 @@
 use crate::bit::*;
 use crate::clock::peripheral::PeripheralInterrupt;
+use crate::gpio::{self, GpioPort};
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Line {
     // GPIO 0
@@ -44,6 +46,23 @@ pub enum Line {
     // Line19 = 19,
     // // LPTIM
     // Line29 = 29,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ExitPinSource {
+    PA = 0,
+    PB = 1,
+    PF = 2,
+}
+
+impl From<gpio::GpioPort> for ExitPinSource {
+    fn from(value: GpioPort) -> Self {
+        match value {
+            GpioPort::GPIOA => Self::PA,
+            GpioPort::GPIOB => Self::PB,
+            GpioPort::GPIOF => Self::PF,
+        }
+    }
 }
 
 impl PeripheralInterrupt for Line {

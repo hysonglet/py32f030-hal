@@ -1,3 +1,32 @@
+//! General purpose input/output (GPIO) driver.
+//!
+//! Output
+//!
+//! ```rust, ignore
+//! let p = hal::init(Default::default());
+//! let gpioa = p.GPIOA.split();
+//! let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, PinSpeed::Low);
+//! ```
+//!
+//! Input
+//! ```rust, ignore
+//! let p = hal::init(Default::default());
+//! let gpioa = p.GPIOA.split();
+//! let key = Input::new(gpioa.PA12, PinPullUpDown::PullUp, PinSpeed::Low);
+//! ```
+//!
+//! AF
+//! ```rust, ignore
+//! let gpioa = p.GPIOA.split();
+//! let _mco_pin = Af::new(
+//!    gpioa.PA1,
+//!    PinAF::AF15,
+//!    PinSpeed::VeryHigh,
+//!    PinIoType::PullUp,
+//! );
+//! Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);
+//! ```
+
 pub(crate) mod hal;
 mod types;
 

@@ -4,6 +4,7 @@
 use embedded_hal::digital::v2::InputPin;
 use hal::exti::ExtiInput;
 use hal::gpio::{PinPullUpDown, PinSpeed};
+use hal::mode::Async;
 use py32f030_hal as hal;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -11,11 +12,11 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 
 #[embassy_executor::task]
-async fn run(key: ExtiInput<'static>) {
+async fn run(key: ExtiInput<'static, Async>) {
     loop {
         defmt::info!("wating for key push...");
         key.wait_for_low().await;
-        defmt::info!("key pushed {}", key.is_high());
+        defmt::info!("key pushed {}, and wating for key release", key.is_high());
         key.wait_for_high().await;
         defmt::info!("key released");
     }
@@ -24,11 +25,11 @@ async fn run(key: ExtiInput<'static>) {
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = hal::init(Default::default());
-    let gpioa = p.GPIOA.split();
+    let gpioa = p.GPIOF.split();
 
     defmt::info!("Example: embassy exti!");
 
-    let key: ExtiInput = ExtiInput::new(gpioa.PA12, PinPullUpDown::No, PinSpeed::Low);
+    let key: ExtiInput<_> = ExtiInput::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
     _spawner.spawn(run(key)).unwrap();
 
     let mut cnt: u32 = 0;

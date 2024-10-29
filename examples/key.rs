@@ -14,9 +14,9 @@ fn main() -> ! {
 
     let p = hal::init(Default::default());
 
-    let gpioa = p.GPIOA.split();
+    let gpioa = p.GPIOF.split();
 
-    let key = Input::new(gpioa.PA12, PinPullUpDown::PullUp, PinSpeed::Low);
+    let key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::PullUp, PinSpeed::Low);
 
     loop {
         defmt::info!("key: {}", key.is_low());

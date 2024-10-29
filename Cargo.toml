@@ -58,18 +58,16 @@ fugit-timer = "0.1.3"
 drop-move = "0.1.0"
 
 [features]
-default = ["embassy","example"] #"embassy",
+default = ["embassy","example"]
 example = ["dep:defmt", "dep:defmt-rtt", "dep:panic-probe", "dep:panic-halt"]
-
-## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
-time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
-
 embassy = [
     "dep:embassy-executor",
     "dep:embassy-sync",
     "dep:embassy-time",
     "time-driver",
 ]
+## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
+time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
 
 [dev-dependencies]
 

@@ -112,10 +112,6 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
         Ok(buf.len())
     }
 
-    pub fn clear_errors(&self) {
-        // T::soft_reset()
-    }
-
     pub fn read_block(&self, address: u8, buf: &mut [u8]) -> Result<usize, Error> {
         T::master_receive_block(address, buf)
     }

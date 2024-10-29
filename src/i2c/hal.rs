@@ -19,7 +19,7 @@ pub(super) mod sealed {
             }
         }
 
-        // 使能配置
+        /// 使能配置
         fn enable_config(en: bool) {
             Self::block().cr1.modify(|_, w| w.pe().bit(en))
         }
