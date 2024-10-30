@@ -2,6 +2,7 @@ pub(crate) mod sealed {
     use super::super::types::*;
     use super::super::*;
     use crate::bit::*;
+    use crate::delay::wait_for_true_timeout_block;
     use crate::pac;
 
     pub(crate) trait Instance {
@@ -12,10 +13,15 @@ pub(crate) mod sealed {
 
         #[inline]
         fn uuid() -> [u8; 16] {
-            const UUID_ADDR: u32 = 0x1fff0e00;;
+            const UUID_ADDR: u32 = 0x1fff0e00;
             let uuid: *const [u8; 16] = UUID_ADDR as _;
 
             unsafe { *uuid }
+        }
+
+        #[inline]
+        fn busy() -> bool {
+            Self::block().sr.read().bsy().bit()
         }
 
         /// 锁定 main flash
@@ -39,9 +45,9 @@ pub(crate) mod sealed {
 
             let block = Self::block();
             if block.cr.read().lock().bit() {
-                if block.sr.read().bsy().bit() {
-                    return Err(Error::Busy);
-                }
+                wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !Self::busy())
+                    .map_err(|e| Error::Busy)?;
+
                 Self::block().keyr.write(|w| unsafe { w.bits(KEY1) });
                 Self::block().keyr.write(|w| unsafe { w.bits(KEY2) });
                 if block.cr.read().lock().bit() {
@@ -84,9 +90,9 @@ pub(crate) mod sealed {
 
             let block = Self::block();
             if block.cr.read().optlock().bit() {
-                if block.sr.read().bsy().bit() {
-                    return Err(Error::Busy);
-                }
+                wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !Self::busy())
+                    .map_err(|e| Error::Busy)?;
+
                 Self::block().optkeyr.write(|w| unsafe { w.bits(KEY1) });
                 Self::block().optkeyr.write(|w| unsafe { w.bits(KEY2) });
                 if block.cr.read().optlock().bit() {
@@ -109,8 +115,54 @@ pub(crate) mod sealed {
             });
         }
 
+        /// 删除整个 main flash
+        #[inline]
         fn mass_erase() {
             Self::block().cr.modify(|_, w| w.mer().set_bit());
+            unsafe {
+                core::ptr::write_volatile(FLASH_BASE_ADDR as _, 0x12344321);
+            }
+        }
+
+        /// page 擦除
+        #[inline]
+        fn page_erase(page_addr: u32) {
+            assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
+            assert!(page_addr % FLASH_PAGE_SIZE as u32 == 0);
+            Self::block().cr.modify(|_, w| w.per().set_bit());
+            unsafe {
+                core::ptr::write_volatile(page_addr as _, 0xff);
+            }
+        }
+
+        /// sector 擦除
+        #[inline]
+        fn sector_erase(sector_addr: u32) {
+            assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&sector_addr));
+            assert!(sector_addr % FLASH_SECTOR_SIZE as u32 == 0);
+
+            Self::block().cr.modify(|_, w| w.ser().set_bit());
+            unsafe {
+                core::ptr::write_volatile(sector_addr as _, 0xff);
+            }
+        }
+
+        /// page 编程
+        #[inline]
+        fn page_program(page_addr: u32, content: [u32; FLASH_PAGE_SIZE / 4]) {
+            assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
+            assert!(page_addr % FLASH_PAGE_SIZE as u32 == 0);
+
+            let block = Self::block();
+            block.cr.modify(|_, w| w.pg().set_bit());
+
+            //  避免中断干扰
+            critical_section::with(|_cs| {
+                content.iter().enumerate().for_each(|(i, v)| unsafe {
+                    core::ptr::write_volatile((page_addr + i as u32 * 4) as _, *v);
+                });
+                block.cr.modify(|_, w| w.pgtstrt().set_bit());
+            });
         }
     }
 }
