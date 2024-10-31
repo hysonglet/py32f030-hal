@@ -55,6 +55,28 @@ cargo install cargo-get
 brew install llvm
 ```
 
+### 串口烧录工具
+1. 工具安装
+```
+pip install puyaisp
+pip install pyusb pyserial hid
+```
+2. 烧录
+```bash
+# 同时按下 boot 和 RST 按键，然后先释放 RST，然后释放 RST 即可，然后执行以下命令
+puyaisp -f blink.bin
+```
+
+### Jlink 连接运行并查看日志
+1. 使用cargo run命令
+```
+cargo r  --example embassy_uart
+```
+2. 使用 probe-rs 运行
+```
+probe-rs run --chip PY32F030x8 target/thumbv6m-none-eabi/debug/examples/embassy_uart
+```
+
 ## 外设驱动
 
 - [x] gpio

@@ -110,9 +110,9 @@ impl<'d, T: Instance> Flash<'d, T> {
             return Err(Error::Addr);
         }
 
-        buf.iter().enumerate().for_each(|(i, v)| {
-            *v = unsafe { core::ptr::read_volatile(addr + i * 4 as _) };
-        });
+        // buf.iter().enumerate().for_each(|(i, v)| {
+        //     // *v = unsafe { core::ptr::read_volatile(addr + i * 4 as _) };
+        // });
 
         Ok(())
     }
@@ -130,5 +130,5 @@ impl<'d, T: Instance> Flash<'d, T> {
         self.read_page(addr, buf)
     }
 
-    pub fn write_page(&self, addr: u32, buf: &[u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {}
+    // pub fn write_page(&self, addr: u32, buf: &[u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {}
 }

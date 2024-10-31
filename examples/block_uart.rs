@@ -18,8 +18,9 @@ fn main() -> ! {
     syscfg::syscfg::open();
 
     let gpioa = p.GPIOA.split();
-    let rx = gpioa.PA9;
-    let tx = gpioa.PA10;
+
+    let rx = gpioa.PA10;
+    let tx = gpioa.PA9;
 
     let mut dma: AnyDma<_, _> = AnyDma::new(p.DMA);
     let [channel1, channel2, _] = dma.split();
