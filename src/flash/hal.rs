@@ -46,7 +46,7 @@ pub(crate) mod sealed {
             let block = Self::block();
             if block.cr.read().lock().bit() {
                 wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !Self::busy())
-                    .map_err(|e| Error::Busy)?;
+                    .map_err(|_| Error::Busy)?;
 
                 Self::block().keyr.write(|w| unsafe { w.bits(KEY1) });
                 Self::block().keyr.write(|w| unsafe { w.bits(KEY2) });
@@ -58,6 +58,7 @@ pub(crate) mod sealed {
         }
 
         /// 锁定 ob flash
+        #[allow(unused)]
         #[inline]
         fn lock_ob() -> Result<(), Error> {
             let block = Self::block();
@@ -70,6 +71,7 @@ pub(crate) mod sealed {
             Ok(())
         }
 
+        #[allow(unused)]
         unsafe fn obl_launch() -> Result<(), Error> {
             let block = Self::block();
             if block.cr.read().optlock().bit() {
@@ -83,6 +85,7 @@ pub(crate) mod sealed {
         }
 
         /// 解锁 ob flash
+        #[allow(unused)]
         #[inline]
         fn unlock_ob() -> Result<(), Error> {
             const KEY1: u32 = 0x0819_2a3b;
@@ -103,6 +106,7 @@ pub(crate) mod sealed {
         }
 
         /// 使能扇区写保护
+        #[allow(unused)]
         #[inline]
         fn en_sector_protect(sector: usize, en: bool) {
             assert!(sector < FLASH_SECTOR_CNT);
@@ -154,15 +158,25 @@ pub(crate) mod sealed {
             assert!(page_addr % FLASH_PAGE_SIZE as u32 == 0);
 
             let block = Self::block();
+
+            // 开启 编程
             block.cr.modify(|_, w| w.pg().set_bit());
 
             //  避免中断干扰
             critical_section::with(|_cs| {
                 content.iter().enumerate().for_each(|(i, v)| unsafe {
                     core::ptr::write_volatile((page_addr + i as u32 * 4) as _, *v);
+                    if i == 30 {
+                        block.cr.modify(|_, w| w.pgtstrt().set_bit());
+                    }
                 });
-                block.cr.modify(|_, w| w.pgtstrt().set_bit());
             });
+
+            // 等待写完
+            while Self::busy() {}
+
+            // disable 编程
+            block.cr.modify(|_, w| w.pg().clear_bit());
         }
     }
 }

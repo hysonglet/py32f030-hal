@@ -41,6 +41,8 @@ impl<'d, T: Instance> Flash<'d, T> {
     pub fn erase_flash(&self) -> Result<(), Error> {
         T::unlock()?;
 
+        let _drop = DropGuard::new(|| T::lock().unwrap());
+
         T::mass_erase();
 
         // 等待擦除完毕
@@ -53,6 +55,8 @@ impl<'d, T: Instance> Flash<'d, T> {
     /// page 擦除
     pub fn erase_page(&self, addr: u32) -> Result<(), Error> {
         T::unlock()?;
+
+        let _drop = DropGuard::new(|| T::lock().unwrap());
 
         // 地址错误
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || addr % FLASH_PAGE_SIZE as u32 != 0
@@ -77,10 +81,10 @@ impl<'d, T: Instance> Flash<'d, T> {
         self.erase_page(addr)
     }
 
-    pub fn erase_sector(addr: u32) -> Result<(), Error> {
+    pub fn erase_sector(&self, addr: u32) -> Result<(), Error> {
         T::unlock()?;
 
-        // let drop = DropGuard::new(|| T::lock());
+        let _drop = DropGuard::new(|| T::lock().unwrap());
 
         // 地址错误
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr)
@@ -103,6 +107,26 @@ impl<'d, T: Instance> Flash<'d, T> {
         self.erase_page(addr)
     }
 
+    pub fn program_page(
+        &self,
+        page_addr: u32,
+        content: [u32; FLASH_PAGE_SIZE / 4],
+    ) -> Result<(), Error> {
+        // 地址错误
+        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr)
+            || page_addr % FLASH_PAGE_SIZE as u32 != 0
+        {
+            return Err(Error::Addr);
+        }
+
+        T::unlock()?;
+
+        T::page_program(page_addr, content);
+
+        T::lock()
+    }
+
+    /// 读取一个 page 内容
     pub fn read_page(&self, addr: u32, buf: &mut [u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {
         // 地址错误
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || addr % FLASH_PAGE_SIZE as u32 != 0
@@ -110,13 +134,15 @@ impl<'d, T: Instance> Flash<'d, T> {
             return Err(Error::Addr);
         }
 
-        // buf.iter().enumerate().for_each(|(i, v)| {
-        //     // *v = unsafe { core::ptr::read_volatile(addr + i * 4 as _) };
-        // });
+        for (i, item) in buf.iter_mut().enumerate() {
+            let addr = addr + i as u32 * 4;
+            *item = unsafe { core::ptr::read_volatile(addr as *const u32) };
+        }
 
         Ok(())
     }
 
+    /// 返回一个 page 内容
     pub fn read_page_by_index(
         &self,
         sector: usize,
@@ -128,6 +154,18 @@ impl<'d, T: Instance> Flash<'d, T> {
             + page as u32 * FLASH_PAGE_SIZE as u32;
 
         self.read_page(addr, buf)
+    }
+
+    /// 返回页地址
+    pub fn get_page_addr(sector: usize, page: usize) -> Result<u32, Error> {
+        if sector >= FLASH_SECTOR_CNT || page >= FLASH_PAGE_PER_SECTOR_CNT {
+            return Err(Error::Addr);
+        }
+        let addr = FLASH_BASE_ADDR
+            + sector as u32 * FLASH_SECTOR_SIZE as u32
+            + page as u32 * FLASH_PAGE_SIZE as u32;
+
+        Ok(addr)
     }
 
     // pub fn write_page(&self, addr: u32, buf: &[u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {}
