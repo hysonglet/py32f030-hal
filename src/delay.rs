@@ -38,16 +38,16 @@ where
     Err(Error::Timeout)
 }
 
-pub struct Delay;
+// pub struct Delay;
 
-impl Delay {
-    pub fn delay_ms(&self, ms: usize) {
-        delay(4000 * ms as u32)
-    }
-}
+// impl Delay {
+//     pub fn delay_ms(&self, ms: usize) {
+//         delay(4000 * ms as u32)
+//     }
+// }
 
-impl embedded_hal::blocking::delay::DelayMs<usize> for Delay {
-    fn delay_ms(&mut self, _ms: usize) {
-        delay(400)
-    }
-}
+// impl embedded_hal::blocking::delay::DelayMs<usize> for Delay {
+//     fn delay_ms(&mut self, _ms: usize) {
+//         delay(400)
+//     }
+// }

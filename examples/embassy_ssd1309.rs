@@ -4,11 +4,13 @@
 use embedded_hal::digital::v2::OutputPin;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::mode::Blocking;
+
 use py32f030_hal::{self as hal, clock};
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use hal::i2c::{AnyI2c, Config};
+use hal::timer::advanced_timer::AnyTimer;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -49,11 +51,14 @@ async fn main(_spawner: Spawner) {
     let i2c1 = AnyI2c::<_, Blocking>::new(p.I2C, scl, sda, config).unwrap();
     let master = i2c1.as_master();
 
+    let timer = AnyTimer::<_, Blocking>::new(p.TIM1).unwrap();
+    let mut counter = timer.as_counter();
+
     _spawner.spawn(run()).unwrap();
 
     let i2c_interface = I2CInterface::new(master, 0x3C, 0x40);
     let mut disp: GraphicsMode<_> = Builder::new().connect(i2c_interface).into();
-    disp.reset(&mut lcd_rst, &mut hal::delay::Delay).unwrap();
+    disp.reset(&mut lcd_rst, &mut counter).unwrap();
 
     disp.init().unwrap();
     disp.flush().unwrap();

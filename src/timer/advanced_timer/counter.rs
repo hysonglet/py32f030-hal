@@ -98,6 +98,12 @@ impl<'d, T: Instance> embedded_hal::blocking::delay::DelayMs<u32> for Counter<'d
     }
 }
 
+impl<'d, T: Instance> embedded_hal::blocking::delay::DelayMs<u8> for Counter<'d, T, Blocking> {
+    fn delay_ms(&mut self, ms: u8) {
+        self.delay_us_blocking(ms as u32 * 1000);
+    }
+}
+
 impl<'d, T: Instance> embedded_hal::timer::CountDown for Counter<'d, T, Blocking> {
     type Time = MicrosDurationU32;
     fn start<H>(&mut self, count: H)
