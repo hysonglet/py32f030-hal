@@ -41,7 +41,7 @@ fn main() -> ! {
 
         defmt::info!("write rst: {:?} ", Debug2Format(&rst));
         if rst.is_err() {
-            master.clear_errors()
+            // master.clear_errors()
         }
 
         // read from i2c
