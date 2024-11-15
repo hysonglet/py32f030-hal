@@ -63,7 +63,7 @@ pip install pyusb pyserial hid
 ```
 2. 烧录
 ```bash
-# 同时按下 boot 和 RST 按键，然后先释放 RST，然后释放 RST 即可，然后执行以下命令
+# 同时按下 boot 和 RST 按键，然后先释放 RST，然后释放 Boot 即可，然后执行以下命令
 puyaisp -f blink.bin
 ```
 
