@@ -88,7 +88,7 @@ probe-rs run --chip PY32F030x8 target/thumbv6m-none-eabi/debug/examples/embassy_
 - [x] dma
 - [x] usart
 - [x] adc
-- [ ] flash
+- [x] flash
 - [x] spi
 - [x] crc
 - [x] rtc

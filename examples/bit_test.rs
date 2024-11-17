@@ -15,6 +15,9 @@ fn main() -> ! {
 
     // panic
     defmt::info!("{:b}", bit_mask_idx_modify::<3>(3, 0b110110, 0b1011));
+
+    let v: u32 = 0xffff0000;
+
     loop {
         cortex_m::asm::wfe();
     }

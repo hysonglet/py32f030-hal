@@ -12,8 +12,9 @@ use {defmt_rtt as _, panic_probe as _};
 fn main() -> ! {
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
-    let rx = gpioa.PA9;
-    let tx = gpioa.PA10;
+
+    let tx = gpioa.PA9;
+    let rx = gpioa.PA10;
 
     let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), None, None, Default::default());
 
