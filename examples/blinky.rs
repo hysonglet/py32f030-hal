@@ -10,6 +10,9 @@ use {defmt_rtt as _, panic_probe as _};
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = hal::init(Default::default());
+
+    defmt::info!("Led blinky testing...");
+
     let gpioa = p.GPIOA.split();
     let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, PinSpeed::Low);
 
