@@ -68,7 +68,7 @@ impl From<u32> for PinAF {
 pub enum PinPullUpDown {
     No = 0,
     PullUp = 1,
-    PollDown = 2,
+    PullDown = 2,
 }
 
 /// Gpio pin 输出类型

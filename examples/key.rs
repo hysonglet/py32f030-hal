@@ -16,10 +16,10 @@ fn main() -> ! {
 
     let gpioa = p.GPIOF.split();
 
-    let key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::PullUp, PinSpeed::Low);
+    let key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
 
     loop {
         defmt::info!("key: {}", key.is_low());
-        delay::delay_ms(100);
+        delay::delay_ms(1000);
     }
 }
