@@ -91,7 +91,7 @@ impl PinIoType {
     pub(crate) fn split(self) -> (PinPullUpDown, PinOutputType) {
         let (push_pull, output_type) = match self {
             PinIoType::PullUp => (PinPullUpDown::PullUp, PinOutputType::PushPull),
-            PinIoType::PullDown => (PinPullUpDown::PollDown, PinOutputType::PushPull),
+            PinIoType::PullDown => (PinPullUpDown::PullDown, PinOutputType::PushPull),
             PinIoType::Floating => (PinPullUpDown::No, PinOutputType::PushPull),
             PinIoType::OpenDrain => (PinPullUpDown::No, PinOutputType::OpenDrain),
         };
