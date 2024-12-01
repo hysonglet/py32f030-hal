@@ -23,13 +23,13 @@ async fn run() {
 }
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let p = hal::init(Default::default());
 
     let rtc: AnyRtc<_, Async> = AnyRtc::new(p.RTC, Default::default()).unwrap();
 
     defmt::info!("start: {}", rtc.read());
-    _spawner.spawn(run()).unwrap();
+    spawner.spawn(run()).unwrap();
 
     loop {
         rtc.wait_alarm(3).await;

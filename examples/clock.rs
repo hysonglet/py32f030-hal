@@ -28,7 +28,7 @@ fn main() -> ! {
 
     cortex_m::asm::delay(1000 * 1000 * 5);
     // let _sysclk = clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
-    // let _sysclk = clock::SysClock::<clock::HSE>::config().unwrap();
+    let _sysclk = clock::SysClock::<clock::HSE>::config().unwrap();
 
     // let _sysclk = clock::SysClock::<clock::PLL<HSE>>::config().unwrap();
 
