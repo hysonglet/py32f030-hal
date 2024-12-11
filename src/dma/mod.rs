@@ -67,6 +67,7 @@ pub struct Config {
 }
 
 impl Config {
+    // 新建配置结构体
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         diretion: Direction,
@@ -92,6 +93,7 @@ impl Config {
         }
     }
 
+    /// 新建内存到内存的配置
     pub fn new_mem2mem(
         src_addr: u32,
         src_inc: bool,
@@ -114,6 +116,7 @@ impl Config {
         )
     }
 
+    /// 新建内存到外设的配置
     #[allow(clippy::too_many_arguments)]
     pub fn new_mem2periph(
         src_addr: u32,
@@ -138,6 +141,7 @@ impl Config {
         )
     }
 
+    /// 新建外设到内存的配置
     #[allow(clippy::too_many_arguments)]
     pub fn new_periph2mem(
         src_addr: u32,

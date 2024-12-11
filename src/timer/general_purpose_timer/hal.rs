@@ -1,4 +1,5 @@
 pub(crate) mod sealed {
+
     use super::super::*;
     use crate::clock::timer_pclk;
     use crate::pac;
@@ -10,9 +11,9 @@ pub(crate) mod sealed {
 
         /// 返回外设的基地址
         #[inline]
-        fn block() -> &'static pac::tim1::RegisterBlock {
+        fn block() -> &'static pac::tim3::RegisterBlock {
             match Self::id() {
-                Timer::TIM1 => unsafe { pac::TIM1::PTR.as_ref().unwrap() },
+                Timer::TIM3 => unsafe { pac::TIM3::PTR.as_ref().unwrap() },
             }
         }
 
@@ -117,14 +118,6 @@ pub(crate) mod sealed {
             timer_pclk() / (psc + 1)
         }
 
-        /// 设置重复值
-        #[inline]
-        fn set_repetition(repetition: u8) {
-            Self::block()
-                .rcr
-                .write(|w| unsafe { w.rep().bits(repetition) })
-        }
-
         /// 设置通道输入或输出类型
         fn set_channel_type(channel: Channel, channel_type: ChannelType) {
             let block = Self::block();
@@ -196,12 +189,6 @@ pub(crate) mod sealed {
             }
         }
 
-        /// 使能通道连接到引脚
-        #[inline]
-        fn enable_channel_output(en: bool) {
-            Self::block().bdtr.write(|w| w.moe().bit(en));
-        }
-
         /// 设置通道的捕获/比较值
         fn set_channel_compare(channel: Channel, ccr: u16) {
             let block = Self::block();
@@ -224,74 +211,14 @@ pub(crate) mod sealed {
             }
         }
 
-        /// 设置输出通道的有效极性，true: 高电平   ，false：低电平
-        fn set_channel_output_effective_level(
-            channel: Channel,
-            channel_output: ChannelOutput,
-            polarity: bool,
-            state: bool,
-            idle: bool,
-        ) {
-            let block = Self::block();
-            match (channel, channel_output) {
-                (Channel::CH1, ChannelOutput::P) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc1p().bit(!polarity).cc1e().bit(state));
-                    block.cr2.modify(|_, w| w.ois1().bit(idle))
-                }
-                (Channel::CH2, ChannelOutput::P) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc2p().bit(!polarity).cc2e().bit(state));
-                    block.cr2.modify(|_, w| w.ois1n().bit(idle))
-                }
-                (Channel::CH3, ChannelOutput::P) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc3p().bit(!polarity).cc3e().bit(state));
-                    block.cr2.modify(|_, w| w.ois2().bit(idle))
-                }
-                (Channel::CH4, ChannelOutput::P) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc4p().bit(!polarity).cc4e().bit(state));
-                    block.cr2.modify(|_, w| w.ois2n().bit(idle))
-                }
-                (Channel::CH1, ChannelOutput::N) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc1np().bit(!polarity).cc1ne().bit(state));
-                    block.cr2.modify(|_, w| w.ois3().bit(idle))
-                }
-                (Channel::CH2, ChannelOutput::N) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc2np().bit(!polarity).cc2ne().bit(state));
-                    block.cr2.modify(|_, w| w.ois3n().bit(idle))
-                }
-                (Channel::CH3, ChannelOutput::N) => {
-                    block
-                        .ccer
-                        .modify(|_, w| w.cc3np().bit(!polarity).cc3ne().bit(state));
-                    block.cr2.modify(|_, w| w.ois4().bit(idle))
-                }
-                (Channel::CH4, ChannelOutput::N) => {}
-            }
-        }
-
         /// 使能 P 通道
-        fn set_enable_channel(channel: Channel, channel_output: ChannelOutput, en: bool) {
+        fn set_enable_channel(channel: Channel, en: bool) {
             let block = Self::block();
-            match (channel, channel_output) {
-                (Channel::CH1, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc1e().bit(en)),
-                (Channel::CH2, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc2e().bit(en)),
-                (Channel::CH3, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc3e().bit(en)),
-                (Channel::CH4, ChannelOutput::P) => block.ccer.modify(|_, w| w.cc4e().bit(en)),
-                (Channel::CH1, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
-                (Channel::CH2, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
-                (Channel::CH3, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
-                (Channel::CH4, ChannelOutput::N) => {}
+            match channel {
+                Channel::CH1 => block.ccer.modify(|_, w| w.cc1e().bit(en)),
+                Channel::CH2 => block.ccer.modify(|_, w| w.cc2e().bit(en)),
+                Channel::CH3 => block.ccer.modify(|_, w| w.cc3e().bit(en)),
+                Channel::CH4 => block.ccer.modify(|_, w| w.cc4e().bit(en)),
             }
         }
 
@@ -305,9 +232,7 @@ pub(crate) mod sealed {
                 Triggle::CC2G => egr.write(|w| w.cc2g().set_bit()),
                 Triggle::CC3G => egr.write(|w| w.cc3g().set_bit()),
                 Triggle::CC4G => egr.write(|w| w.cc4g().set_bit()),
-                Triggle::COMG => egr.write(|w| w.comg().set_bit()),
                 Triggle::TG => egr.write(|w| w.tg().set_bit()),
-                Triggle::BG => egr.write(|w| w.bg().set_bit()),
             }
         }
 
@@ -321,9 +246,7 @@ pub(crate) mod sealed {
                 Event::CC2IF => sr.cc2if().bit(),
                 Event::CC3IF => sr.cc3if().bit(),
                 Event::CC4IF => sr.cc4if().bit(),
-                Event::COMIF => sr.comif().bit(),
                 Event::TIF => sr.tif().bit(),
-                Event::BIF => sr.bif().bit(),
                 Event::CC1OF => sr.cc1of().bit(),
                 Event::CC2OF => sr.cc2of().bit(),
                 Event::CC3OF => sr.cc3of().bit(),
@@ -340,9 +263,7 @@ pub(crate) mod sealed {
                 Event::CC2IF => w.cc2ie().bit(en),
                 Event::CC3IF => w.cc3ie().bit(en),
                 Event::CC4IF => w.cc4ie().bit(en),
-                Event::COMIF => w.comie().bit(en),
                 Event::TIF => w.tie().bit(en),
-                Event::BIF => w.bie().bit(en),
                 Event::CC1OF => w.cc1de().bit(en),
                 Event::CC2OF => w.cc2de().bit(en),
                 Event::CC3OF => w.cc3de().bit(en),
@@ -359,9 +280,7 @@ pub(crate) mod sealed {
                 Event::CC2IF => w.cc2if().clear_bit(),
                 Event::CC3IF => w.cc3if().clear_bit(),
                 Event::CC4IF => w.cc4if().clear_bit(),
-                Event::COMIF => w.comif().clear_bit(),
                 Event::TIF => w.tif().clear_bit(),
-                Event::BIF => w.bif().clear_bit(),
                 Event::CC1OF => w.cc1of().clear_bit(),
                 Event::CC2OF => w.cc2of().clear_bit(),
                 Event::CC3OF => w.cc3of().clear_bit(),
@@ -370,29 +289,27 @@ pub(crate) mod sealed {
         }
 
         /// 根据需要定时的ticks数计算出分频、重复、计数寄存器的值
-        fn micros_to_compute_with_rep(micros: u64) -> (u16, u8, u16) {
+        fn micros_to_compute_with_rep(micros: u64) -> (u16, u16) {
             let ticks = micros * Self::get_time_pclk() as u64 / 1_000_000;
 
-            let psc = ticks / (1u64 << 24);
+            let psc = ticks / (1u64 << 16);
             let count = ticks / (psc + 1);
 
-            let rep = count / (1u64 << 16);
-            let arr = count / (rep + 1);
+            assert!(count < u16::MAX as u64);
 
-            (psc as u16, rep as u8, arr as u16)
+            (psc as u16, count as u16)
         }
 
         /// 根据给定的纳秒计算分频和重复、计数寄存器的值
-        fn nanosecond_to_compute_with_rep(nano: u64) -> (u16, u8, u16) {
+        fn nanosecond_to_compute_with_rep(nano: u64) -> (u16, u16) {
             let ticks = nano * Self::get_time_pclk() as u64 / 1_000_000_000;
 
-            let psc = ticks / (1u64 << 24);
+            let psc = ticks / (1u64 << 16);
             let count = ticks / (psc + 1);
 
-            let rep = count / (1u64 << 16);
-            let arr = count / (rep + 1);
+            assert!(count < u16::MAX as u64);
 
-            (psc as u16, rep as u8, arr as u16)
+            (psc as u16, count as u16)
         }
     }
 }

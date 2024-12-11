@@ -225,12 +225,14 @@ impl<'d> Input<'d> {
         Self { pin }
     }
 
+    /// 读取引脚状态
     pub fn read(&self) -> PinLevel {
         self.pin.read()
     }
 }
 
 impl<'d> Output<'d> {
+    /// 创建对象
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         io_type: PinIoType,
@@ -243,16 +245,19 @@ impl<'d> Output<'d> {
         Self { pin }
     }
 
+    /// 读取引脚电平
     pub fn read(&self) -> PinLevel {
         self.pin.read()
     }
 
+    /// 设置引脚电平
     pub fn write(&self, level: PinLevel) {
         self.pin.write(level)
     }
 }
 
 impl<'d> Af<'d> {
+    /// 新建 AF 引脚
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         af: impl Into<PinAF>,
@@ -268,6 +273,7 @@ impl<'d> Af<'d> {
 }
 
 impl<'d> Analog<'d> {
+    /// 新建模拟引脚
     pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
         let pin = Flex::new(pin);
 
@@ -405,6 +411,7 @@ macro_rules! gpio_pin_def {
 
             impl peripherals::$gpio_port {
                 pub fn split(self) -> Pins {
+                    // 开启电平
                     self.enable();
                     Pins {
                         $(

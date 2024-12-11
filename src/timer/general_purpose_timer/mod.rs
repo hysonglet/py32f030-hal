@@ -7,7 +7,6 @@ mod pwm;
 mod types;
 
 use core::marker::PhantomData;
-
 pub use counter::Counter;
 pub use pwm::Pwm;
 pub use types::*;
@@ -20,16 +19,14 @@ use embassy_hal_internal::{into_ref, Peripheral};
 
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
-/// 高级定时器
-#[derive(PartialEq)]
 pub enum Timer {
-    TIM1,
+    TIM3,
 }
 
 impl PeripheralIdToClockIndex for Timer {
     fn clock(&self) -> PeripheralClockIndex {
         match *self {
-            Self::TIM1 => PeripheralClockIndex::TIM1,
+            Self::TIM3 => PeripheralClockIndex::TIM3,
         }
     }
 }
@@ -37,7 +34,7 @@ impl PeripheralIdToClockIndex for Timer {
 impl PeripheralInterrupt for Timer {
     fn interrupt(&self) -> crate::pac::interrupt {
         match *self {
-            Self::TIM1 => crate::pac::interrupt::TIM1_BRK_UP_TRG_COM,
+            Self::TIM3 => crate::pac::interrupt::TIM3,
         }
     }
 }
@@ -56,9 +53,6 @@ pub struct ChannelConfig {
     pub preload: bool,
     /// Specifies the TIM Output Compare state.
     pub compare: u16,
-
-    pub ch: Option<ChannelOutputConfig>,
-    pub n_ch: Option<ChannelOutputConfig>,
 }
 
 impl Default for ChannelConfig {
@@ -69,8 +63,6 @@ impl Default for ChannelConfig {
             fast: false,
             preload: false,
             compare: 0,
-            ch: None,
-            n_ch: None,
         }
     }
 }
@@ -82,20 +74,6 @@ impl ChannelConfig {
 
     pub fn compare(self, compare: u16) -> Self {
         Self { compare, ..self }
-    }
-
-    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
-        Self {
-            ch: Some(ch),
-            ..self
-        }
-    }
-
-    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
-        Self {
-            n_ch: Some(n_ch),
-            ..self
-        }
     }
 }
 
@@ -121,7 +99,7 @@ pub struct AnyTimer<'d, T: Instance, M: Mode> {
     _m: PhantomData<M>,
 }
 
-impl_sealed_timer!(TIM1, TIM1);
+impl_sealed_timer!(TIM3, TIM3);
 
 impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     /// 新建一个 timer
@@ -155,11 +133,6 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
 
 // 定义一个 定时器引脚 的trait
 pin_af_for_instance_def!(TimerChannel1Pin, Instance);
-pin_af_for_instance_def!(TimerChannel1NPin, Instance);
 pin_af_for_instance_def!(TimerChannel2Pin, Instance);
-pin_af_for_instance_def!(TimerChannel2NPin, Instance);
 pin_af_for_instance_def!(TimerChannel3Pin, Instance);
-pin_af_for_instance_def!(TimerChannel3NPin, Instance);
 pin_af_for_instance_def!(TimerChannel4Pin, Instance);
-pin_af_for_instance_def!(TimerBkInPin, Instance);
-pin_af_for_instance_def!(TimerEtrPin, Instance);

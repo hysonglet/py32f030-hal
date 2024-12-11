@@ -1,6 +1,5 @@
 #[cfg(feature = "embassy")]
 use super::future::EventFuture;
-use super::types::{CenterAlignedMode, CountDirection};
 use super::{Event, Instance};
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
@@ -11,6 +10,8 @@ use crate::{
 use core::marker::PhantomData;
 #[cfg(feature = "embassy")]
 use enumset::EnumSet;
+
+use super::types::{CenterAlignedMode, CountDirection};
 
 use fugit::MicrosDurationU32;
 
@@ -46,20 +47,18 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
     }
 
     fn start_us(&mut self, us: u64) {
-        let (div, rep, arr) = T::micros_to_compute_with_rep(us);
+        let (div, arr) = T::micros_to_compute_with_rep(us);
         T::stop();
         T::set_prescaler(div);
-        T::set_repetition(rep);
         T::set_auto_reload(arr);
         T::event_clear(Event::UIF);
         T::start();
     }
 
     pub fn start_ns(&mut self, nano: u64) {
-        let (div, rep, arr) = T::nanosecond_to_compute_with_rep(nano);
+        let (div, arr) = T::nanosecond_to_compute_with_rep(nano);
         T::stop();
         T::set_prescaler(div);
-        T::set_repetition(rep);
         T::set_auto_reload(arr);
         T::event_clear(Event::UIF);
         T::start();

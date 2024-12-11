@@ -14,6 +14,7 @@ fn main() -> ! {
     defmt::info!("Led blinky testing...");
 
     let gpioa = p.GPIOA.split();
+    // LED: RX led
     let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, PinSpeed::Low);
 
     loop {

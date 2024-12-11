@@ -3,6 +3,7 @@
 
 use hal::adc::{temperature, vrefence_internal, AdcChannel, AnyAdc, ChannelConfig, Config};
 use hal::delay;
+use py32f030_hal::adc::ConversionMode;
 use py32f030_hal::{self as hal, mode::Blocking};
 
 // use panic_halt as _;
@@ -15,16 +16,20 @@ fn main() -> ! {
     let adc: AnyAdc<_, Blocking> = AnyAdc::new(
         p.ADC,
         Config::default(),
-        ChannelConfig::new_multiple_channel_perferred(),
+        ChannelConfig::default()
+            .over_write(false)
+            .mode(ConversionMode::Discontinuous),
         &[AdcChannel::Channel11, AdcChannel::Channel12],
     )
     .unwrap();
 
     loop {
-        // adc.start();
+        adc.start();
         let temp = adc.read_block(1000000).unwrap();
-        // adc.start();
+        defmt::info!("temp: {}", temp);
+        adc.start();
         let vol = adc.read_block(1000000).unwrap();
+
         defmt::info!(
             "temp: {}: {}, vol: {}: {}",
             temp,

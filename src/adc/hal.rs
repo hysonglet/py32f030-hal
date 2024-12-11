@@ -175,6 +175,8 @@ pub mod sealed {
             } else if channel == AdcChannel::Channel12 {
                 Self::block().ccr.modify(|_, w| w.vrefen().bit(en))
             }
+
+            defmt::info!("chselr: {:b}", Self::block().chselr.read().bits());
         }
 
         #[allow(dead_code)]

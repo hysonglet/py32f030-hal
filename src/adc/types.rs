@@ -4,6 +4,7 @@ use enumset::EnumSetType;
 pub enum Error {
     Busy,
     Timeout,
+    Over,
     Calibrate,
 }
 

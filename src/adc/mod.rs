@@ -15,6 +15,7 @@ use core::marker::PhantomData;
 use crate::mcu::peripherals::ADC;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
+use enumset::EnumSet;
 #[cfg(feature = "embassy")]
 use future::ChannelInputFuture;
 
@@ -79,6 +80,8 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
     ) -> Result<Self, Error> {
         T::id().clock().open();
 
+        T::stop();
+
         Self::new_inner(config, channel_config, channels)?;
 
         T::enable();
@@ -111,6 +114,9 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 
     #[inline]
     pub fn start(&self) {
+        for e in EnumSet::all() {
+            T::event_clear(e);
+        }
         T::start();
     }
 
@@ -130,7 +136,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::set_clock_mode(config.clock);
         T::set_resolution(config.resolution);
         T::set_sample_cycle(config.sample_cycle);
-        // 上点后硬件会自动校准一次
+        // 上电后硬件会自动校准一次
         if config.calibration {
             // 必须先校准再开启时钟
             Self::calibration(Default::default(), CALIBRATE_TIMEOUT)?
@@ -143,6 +149,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         for channel in channels {
             T::channel_enable(*channel, true)
         }
+
         Ok(())
     }
 
@@ -177,9 +184,8 @@ impl<'d, T: Instance, M: Mode> Drop for AnyAdc<'d, T, M> {
 
 impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     pub fn read_block(&self, timeout: usize) -> Result<u16, Error> {
-        // 软件触发，则先触发一次
-        if T::is_soft_trigle() {
-            T::start();
+        if T::event_flag(Event::OVR) {
+            return Err(Error::Over);
         }
         wait_for_true_timeout_block(timeout, || T::event_flag(Event::EOC))
             .map_err(|_| Error::Timeout)?;
@@ -241,7 +247,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             calibration: true,
-            sample_cycle: SampleCycles::Cycle_7_5,
+            sample_cycle: SampleCycles::Cycle_3_5,
             resolution: Resolution::Bit12,
             align: Align::Right,
             clock: ClockMode::PCLK,
@@ -319,7 +325,7 @@ impl ChannelConfig {
         Self {
             mode: ConversionMode::Single,
             scan_dir: ScanDir::Up,
-            over_write: true,
+            over_write: false,
             signal: TrigleSignal::Soft,
         }
     }
@@ -348,8 +354,11 @@ pub fn temperature(dr: u16) -> f32 {
     let ts_cal2 = unsafe { core::ptr::read(TS_CAL2_ADDR as *const u32) } as f32;
     let ts_cal1 = unsafe { core::ptr::read(TS_CAL1_ADDR as *const u32) } as f32;
 
+    defmt::info!("{} {} {}", ts_cal1, ts_cal2, dr);
+    // let temp_k = (85.0 - 30.0) / (ts_cal2 - ts_cal1);
+    // temp_k * (dr as f32 - ts_cal1) + ts_cal1
     // dr as f32 / 4095.0 * 3.3
-    (((85.0 - 30.0) / (ts_cal2 - ts_cal1)) * (dr as f32 - ts_cal1)) + 30.0
+    ((85.0 - 30.0) * (dr as f32 - ts_cal1) / (ts_cal2 - ts_cal1)) + 30.0
 }
 
 pub fn vrefence_internal(dr: u16) -> f32 {

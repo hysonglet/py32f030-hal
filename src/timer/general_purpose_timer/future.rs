@@ -1,5 +1,5 @@
 use super::{Error, Event, Instance, Timer};
-use crate::{mcu::peripherals::TIM1, pac::interrupt};
+use crate::{mcu::peripherals::TIM3, pac::interrupt};
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 use embassy_sync::waitqueue::AtomicWaker;
@@ -61,8 +61,8 @@ impl<T: Instance> Future for EventFuture<T> {
 }
 
 #[interrupt]
-fn TIM1_BRK_UP_TRG_COM() {
+fn TIM3() {
     critical_section::with(|cs| unsafe {
-        EventFuture::<TIM1>::on_interrupt(cs, Timer::TIM1 as usize)
+        EventFuture::<TIM3>::on_interrupt(cs, Timer::TIM3 as usize)
     })
 }

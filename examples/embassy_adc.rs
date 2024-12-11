@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use py32f030_hal::adc::{TemperatureChannel, VRrefChannel};
+use py32f030_hal::adc::{temperature, vrefence_internal, TemperatureChannel, VRrefChannel};
 use py32f030_hal::mode::Async;
 use py32f030_hal::{self as hal};
 
@@ -34,8 +34,8 @@ async fn main(_spawner: Spawner) {
     _spawner.spawn(run()).unwrap();
 
     loop {
-        defmt::info!("temp {}", adc.read(TemperatureChannel).await,);
-        defmt::info!("vref {}", adc.read(VRrefChannel).await);
+        defmt::info!("temp {}", temperature(adc.read(TemperatureChannel).await));
+        defmt::info!("vref {}", vrefence_internal(adc.read(VRrefChannel).await));
         Timer::after_secs(2).await;
     }
 }

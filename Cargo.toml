@@ -76,12 +76,18 @@ name = "blinky"
 
 [[example]]
 name = "embassy_uart"
+required-features = ["embassy"]
 
 [[example]]
 name = "embassy_delay"
+required-features = ["embassy"]
 
 [[example]]
 name = "crc"
+
+[[example]]
+name = "embassy_adc"
+required-features = ["embassy"]
 
 [profile.dev]
 codegen-units = 1
