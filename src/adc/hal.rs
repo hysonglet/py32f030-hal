@@ -100,10 +100,16 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.exten().bits(exten).extsel().bits(extsel) });
         }
 
-        /// 配置为软件触发
+        // /// 配置为软件触发
+        // #[inline]
+        // fn is_soft_trigle() -> bool {
+        //     Self::block().cfgr1.read().exten().bits() == 0
+        // }
+
+        /// 阻塞事件时是否等待消除阻塞
         #[inline]
-        fn is_soft_trigle() -> bool {
-            Self::block().cfgr1.read().exten().bits() == 0
+        fn set_wait(wait: bool) {
+            Self::block().cfgr1.modify(|_, w| w.wait().bit(wait));
         }
 
         /// 设置对齐格式
@@ -175,8 +181,6 @@ pub mod sealed {
             } else if channel == AdcChannel::Channel12 {
                 Self::block().ccr.modify(|_, w| w.vrefen().bit(en))
             }
-
-            defmt::info!("chselr: {:b}", Self::block().chselr.read().bits());
         }
 
         #[allow(dead_code)]

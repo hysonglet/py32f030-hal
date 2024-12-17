@@ -60,10 +60,13 @@ pub enum AdcChannel {
 #[derive(PartialEq)]
 pub enum ConversionMode {
     /// 单次转换模式 (CONT=0, DISCEN=0)
+    /// ﻿可以转换 1 个单通道或者可以扫描一系列通道
     Single,
     /// 连续转换模式 (CONT=1)
+    /// ﻿连续模式(continuous mode)： 连续转换被选择的通道
     Continuous,
     /// 非连续转换模式 (DISCEN=1)
+    /// ﻿不连续模式(discontinuous mode)： 每次触发， 转换被选择的通道 1 次
     Discontinuous,
 }
 

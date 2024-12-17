@@ -93,19 +93,31 @@ impl PeripheralClockIndex {
             }
             Rcc::block()
                 .ahbrstr
-                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx, r.bits())) })
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx, r.bits())) });
+            Rcc::block()
+                .ahbrstr
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_clear::<1>(idx, r.bits())) })
         } else if idx < 64 {
             Rcc::block()
                 .apbrstr1
-                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 32, r.bits())) })
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 32, r.bits())) });
+            Rcc::block()
+                .apbrstr1
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_clear::<1>(idx - 32, r.bits())) })
         } else if idx < 96 {
             Rcc::block()
                 .apbrstr2
-                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 64, r.bits())) })
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 64, r.bits())) });
+            Rcc::block()
+                .apbrstr2
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_clear::<1>(idx - 64, r.bits())) })
         } else {
             Rcc::block()
                 .ioprstr
-                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 96, r.bits())) })
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(idx - 96, r.bits())) });
+            Rcc::block()
+                .ioprstr
+                .modify(|r, w| unsafe { w.bits(bit_mask_idx_clear::<1>(idx - 96, r.bits())) })
         }
     }
 }

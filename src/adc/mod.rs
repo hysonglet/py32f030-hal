@@ -6,6 +6,12 @@ mod hal;
 mod pins;
 mod types;
 
+#[cfg(not(feature = "embassy"))]
+mod interrupt;
+
+#[cfg(not(feature = "embassy"))]
+pub use interrupt::*;
+
 #[cfg(feature = "embassy")]
 use core::{future::Future, task::Poll};
 
@@ -44,7 +50,7 @@ static ADC_INT_WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 #[derive(PartialEq)]
-pub(crate) enum Id {
+pub enum Id {
     ADC1 = 0,
 }
 
@@ -78,6 +84,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         channel_config: ChannelConfig,
         channels: &[AdcChannel],
     ) -> Result<Self, Error> {
+        T::id().clock().reset();
         T::id().clock().open();
 
         T::stop();
@@ -113,10 +120,16 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
     }
 
     #[inline]
+    pub fn id(&self) -> Id {
+        T::id()
+    }
+
+    #[inline]
     pub fn start(&self) {
         for e in EnumSet::all() {
             T::event_clear(e);
         }
+
         T::start();
     }
 
@@ -160,6 +173,18 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         }
     }
 
+    pub fn event_config(&mut self, event: Event, en: bool) {
+        T::event_config(event, en);
+    }
+
+    pub fn event_clear(&mut self, event: Event) {
+        T::event_clear(event);
+    }
+
+    pub fn event_flag(&self, event: Event) -> bool {
+        T::event_flag(event)
+    }
+
     pub fn set_watchdog(config: Option<WatchDogConfig>) {
         if let Some(config) = config {
             T::set_watch_dog_threshold(config.high, config.low)
@@ -171,6 +196,29 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::set_scan_dir(config.scan_dir);
         T::set_overwrite(config.over_write);
         T::trigle_signal(config.signal);
+        T::set_wait(config.wait);
+    }
+
+    pub fn on_interrupt(
+        &mut self,
+        events: EnumSet<Event>,
+        callback: alloc::boxed::Box<dyn Fn(u16)>,
+    ) {
+        crate::interrupt::register(
+            #[allow(static_mut_refs)]
+            unsafe {
+                &mut CLOSURE
+            },
+            alloc::boxed::Box::new(move || {
+                callback(T::data_read());
+                for e in events {
+                    T::event_flag(e);
+                }
+            }),
+        );
+        for e in events {
+            self.event_config(e, true);
+        }
     }
 }
 
@@ -184,9 +232,6 @@ impl<'d, T: Instance, M: Mode> Drop for AnyAdc<'d, T, M> {
 
 impl<'d, T: Instance> AnyAdc<'d, T, Blocking> {
     pub fn read_block(&self, timeout: usize) -> Result<u16, Error> {
-        if T::event_flag(Event::OVR) {
-            return Err(Error::Over);
-        }
         wait_for_true_timeout_block(timeout, || T::event_flag(Event::EOC))
             .map_err(|_| Error::Timeout)?;
         Ok(T::data_read())
@@ -271,13 +316,43 @@ impl Config {
             clock,
         }
     }
+
+    pub fn sample(self, sample: SampleCycles) -> Self {
+        Self {
+            sample_cycle: sample,
+            ..self
+        }
+    }
+
+    pub fn calibration(self, calibration: bool) -> Self {
+        Self {
+            calibration,
+            ..self
+        }
+    }
+
+    pub fn resolution(self, resolution: Resolution) -> Self {
+        Self { resolution, ..self }
+    }
+
+    pub fn align(self, align: Align) -> Self {
+        Self { align, ..self }
+    }
+
+    pub fn clock(self, clock: ClockMode) -> Self {
+        Self { clock, ..self }
+    }
 }
 
 pub struct ChannelConfig {
-    /* 转换模式 */
+    /// 转换模式
     mode: ConversionMode,
+    /// 扫描方向
     scan_dir: ScanDir,
+    /// 过写使能
     over_write: bool,
+    /// 等待读取再开始下一个通道转换
+    wait: bool,
     /// 触发信号类型
     signal: TrigleSignal,
 }
@@ -295,6 +370,10 @@ impl ChannelConfig {
         Self { scan_dir, ..self }
     }
 
+    pub fn wait(self, wait: bool) -> Self {
+        Self { wait, ..self }
+    }
+
     pub fn over_write(self, over_write: bool) -> Self {
         Self { over_write, ..self }
     }
@@ -305,6 +384,7 @@ impl ChannelConfig {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: false,
+            wait: false,
             signal: TrigleSignal::Soft,
         }
     }
@@ -316,6 +396,7 @@ impl ChannelConfig {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: true,
+            wait: true,
             signal: TrigleSignal::Soft,
         }
     }
@@ -326,6 +407,7 @@ impl ChannelConfig {
             mode: ConversionMode::Single,
             scan_dir: ScanDir::Up,
             over_write: false,
+            wait: true,
             signal: TrigleSignal::Soft,
         }
     }
@@ -337,6 +419,7 @@ impl Default for ChannelConfig {
             mode: ConversionMode::Continuous,
             scan_dir: ScanDir::Up,
             over_write: true,
+            wait: true,
             signal: TrigleSignal::Soft,
         }
     }
@@ -353,8 +436,6 @@ pub fn temperature(dr: u16) -> f32 {
 
     let ts_cal2 = unsafe { core::ptr::read(TS_CAL2_ADDR as *const u32) } as f32;
     let ts_cal1 = unsafe { core::ptr::read(TS_CAL1_ADDR as *const u32) } as f32;
-
-    defmt::info!("{} {} {}", ts_cal1, ts_cal2, dr);
     // let temp_k = (85.0 - 30.0) / (ts_cal2 - ts_cal1);
     // temp_k * (dr as f32 - ts_cal1) + ts_cal1
     // dr as f32 / 4095.0 * 3.3

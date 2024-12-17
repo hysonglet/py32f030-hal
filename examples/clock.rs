@@ -24,22 +24,23 @@ fn main() -> ! {
     );
     Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);
 
-    let mut led = Output::new(gpioa.PA11, PinIoType::PullUp, PinSpeed::VeryHigh);
+    let mut led = Output::new(gpioa.PA10, PinIoType::PullUp, PinSpeed::VeryHigh);
 
     cortex_m::asm::delay(1000 * 1000 * 5);
     // let _sysclk = clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
-    let _sysclk = clock::SysClock::<clock::HSE>::config().unwrap();
+    // let _sysclk = clock::SysClock::<clock::HSE>::config().unwrap();
 
-    // let _sysclk = clock::SysClock::<clock::PLL<HSE>>::config().unwrap();
+    // let _sysclk = clock::SysClock::<clock::PLL<clock::HSE>>::config().unwrap();
 
     // PA1 输出 16M
-    // let _sysclk = clock::SysClock::<clock::PLL<HSI>>::config().unwrap();
+    let _sysclk = clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
 
-    cortex_m::asm::delay(1000 * 1000 * 5);
+    cortex_m::asm::delay(1000 * 5);
     defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
 
     loop {
-        cortex_m::asm::delay(1000 * 1000 * 5);
+        cortex_m::asm::delay(1000 * 1000 * 10);
+        defmt::info!("8888");
 
         let _ = led.toggle();
     }

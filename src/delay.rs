@@ -1,9 +1,22 @@
 use cortex_m::asm::delay;
 
+use crate::clock::sys_core_clock;
+
 pub fn delay_us(us: usize) {
+    let sys_clock = sys_core_clock();
+    let cnt = if sys_clock > 24_000_000 {
+        8
+    } else if sys_clock > 18_000_000 {
+        6
+    } else if sys_clock > 8_000_000 {
+        4
+    } else {
+        1
+    };
+
     for _ in 0..us {
         // 16M： 4
-        delay(4);
+        delay(cnt);
     }
 }
 
@@ -15,7 +28,7 @@ pub fn delay_ms(ms: usize) {
 
 pub fn delay_s(s: usize) {
     for _ in 0..s {
-        delay_us(1000_1000);
+        delay_us(1_000_000);
     }
 }
 
