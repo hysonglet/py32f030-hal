@@ -45,7 +45,8 @@ curl --proto '=https' --tlsv1.2 -LsSf \
 ```
 #### Windows
 ```bash
-irm https://github.com/probe-rs/probe-rs/releases/latest/download/probe-rs-tools-installer.ps1 | iex
+cargo install cargo-binstall
+cargo binstall probe-rs-tools
 ```
 
 ## 其他工具（暂时可不用安装）

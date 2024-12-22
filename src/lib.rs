@@ -10,8 +10,6 @@ use config::SysClockSource;
 use mcu::Peripherals;
 pub use PY32f030xx_pac as pac;
 
-extern crate alloc;
-
 pub mod adc;
 pub mod bit;
 pub mod clock;
@@ -25,6 +23,7 @@ pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+#[cfg(not(feature = "embassy"))]
 pub mod interrupt;
 pub mod iwdg;
 mod macro_def;

@@ -199,6 +199,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::set_wait(config.wait);
     }
 
+    #[cfg(not(feature = "embassy"))]
     pub fn on_interrupt(
         &mut self,
         events: EnumSet<Event>,

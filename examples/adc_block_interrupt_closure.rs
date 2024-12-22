@@ -6,7 +6,7 @@ extern crate alloc;
 use defmt::Debug2Format;
 use hal::adc::{AdcChannel, AnyAdc, ChannelConfig, Config, Event, SampleCycles, TrigleSignal};
 
-use py32f030_hal::adc::{dispatch, ConversionMode};
+use py32f030_hal::adc::ConversionMode;
 use py32f030_hal::clock::peripheral::PeripheralInterrupt;
 use py32f030_hal::clock::sys_core_clock;
 use py32f030_hal::{self as hal, mode::Blocking};
