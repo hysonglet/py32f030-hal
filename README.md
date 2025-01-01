@@ -57,16 +57,25 @@ brew install llvm
 ```
 
 ### 串口烧录工具
-1. 工具安装
+1. python工具 puyaisp 安装
 ```
 pip install puyaisp
 pip install pyusb pyserial hid
 ```
-2. 烧录
+烧录：
 ```bash
 # 同时按下 boot 和 RST 按键，然后先释放 RST，然后释放 Boot 即可，然后执行以下命令
 puyaisp -f blink.bin
 ```
+2. rust 工具 pyisp
+使用 pyisp rust 串口工具烧录 bin 文件 [pyisp](https://github.com/hysonglet/pyisp.git)
+``` bash
+# 单次下载
+pyisp -s tty.usbserial-130 -g -f test.bin
+# 多次下载
+pyisp -s COM4 -g -c -f test.bin
+```
+
 
 ### Jlink 连接运行并查看日志
 1. 使用cargo run命令
@@ -141,6 +150,9 @@ Available examples:
    rtc_block
    uart
 ```
+
+## 测试开发板
+<img src="https://s.imgkb.xyz/i/abcdocker/2025/01/01/67752f84dc98a.png" alt="Py32_Rust_Dev 1.2" title="Py32_Rust_Dev 1.2" />
 
 
 ##  关于
