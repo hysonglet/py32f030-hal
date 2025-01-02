@@ -110,14 +110,15 @@ pub enum PinLock {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum PinLevel {
     Low = 0,
-    Hight = 1,
+    High = 1,
 }
 
 impl Not for PinLevel {
     type Output = Self;
+    #[inline]
     fn not(self) -> Self::Output {
         if self == Self::Low {
-            Self::Hight
+            Self::High
         } else {
             Self::Low
         }
@@ -125,18 +126,20 @@ impl Not for PinLevel {
 }
 
 impl From<u32> for PinLevel {
+    #[inline]
     fn from(value: u32) -> Self {
         match value {
             0 => Self::Low,
-            1 => Self::Hight,
+            1 => Self::High,
             _ => unreachable!(),
         }
     }
 }
 
 impl From<PinLevel> for bool {
+    #[inline]
     fn from(value: PinLevel) -> Self {
-        PinLevel::Hight == value
+        PinLevel::High == value
     }
 }
 

@@ -57,7 +57,7 @@ impl<'d> ExtiInput<'d, Blocking> {
     /// 等待引脚电平变低
     #[inline]
     pub fn wait_for_low(&self) {
-        while self.get_level() == PinLevel::Hight {}
+        while self.get_level() == PinLevel::High {}
     }
 
     /// 等待引脚电平变高
@@ -101,7 +101,7 @@ impl<'d> ExtiInput<'d, Async> {
 
     /// 等待引脚电平变高
     pub async fn wait_for_high(&self) {
-        if self.get_level() == PinLevel::Hight {
+        if self.get_level() == PinLevel::High {
             return;
         }
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising).await

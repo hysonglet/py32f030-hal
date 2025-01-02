@@ -308,7 +308,107 @@ impl<'d> Analog<'d> {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-mod v2 {
+impl<'d> embedded_hal::digital::ErrorType for Input<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::InputPin for Input<'d> {
+    #[inline]
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::High)
+    }
+
+    #[inline]
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::Low)
+    }
+}
+
+impl<'d> embedded_hal::digital::ErrorType for Output<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::OutputPin for Output<'d> {
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.write(PinLevel::Low);
+        Ok(())
+    }
+
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.write(PinLevel::High);
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::StatefulOutputPin for Output<'d> {
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::Low)
+    }
+
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::High)
+    }
+
+    #[inline]
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.write(!(self.read()));
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::ErrorType for Flex<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::InputPin for Flex<'d> {
+    #[inline]
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::Low)
+    }
+
+    #[inline]
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::High)
+    }
+}
+
+impl<'d> embedded_hal::digital::OutputPin for Flex<'d> {
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.write(PinLevel::Low);
+        Ok(())
+    }
+
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.write(PinLevel::High);
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::StatefulOutputPin for Flex<'d> {
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::Low)
+    }
+
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinLevel::High)
+    }
+
+    #[inline]
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.write(!(self.read()));
+        Ok(())
+    }
+}
+
+mod v027 {
     use super::{Flex, Input, Output, PinLevel};
     use core::convert::Infallible;
 
@@ -319,7 +419,7 @@ mod v2 {
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinLevel::High)
         }
     }
 
@@ -332,7 +432,7 @@ mod v2 {
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Hight);
+            self.write(PinLevel::High);
             Ok(())
         }
     }
@@ -343,7 +443,7 @@ mod v2 {
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinLevel::High)
         }
     }
 
@@ -362,7 +462,7 @@ mod v2 {
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinLevel::High)
         }
     }
 
@@ -375,7 +475,7 @@ mod v2 {
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Hight);
+            self.write(PinLevel::High);
             Ok(())
         }
     }
@@ -386,7 +486,7 @@ mod v2 {
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinLevel::High)
         }
     }
 
