@@ -78,13 +78,16 @@ pub(crate) mod sealed {
         }
 
         #[inline]
-        fn read(&self) -> PinLevel {
+        fn read(&self) -> PinState {
             let r = self.block().idr.read().bits();
-            bit_mask_idx_get::<1>(self.pin(), r).into()
+            match bit_mask_idx_get::<1>(self.pin(), r) {
+                0 => PinState::Low,
+                _ => PinState::High,
+            }
         }
 
         #[inline]
-        fn write(&self, level: PinLevel) {
+        fn write(&self, level: PinState) {
             self.block().odr.modify(|r, w| unsafe {
                 w.bits(bit_mask_idx_modify::<1>(self.pin(), r.bits(), level as u32))
             })

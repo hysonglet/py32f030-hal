@@ -30,6 +30,7 @@
 pub(crate) mod hal;
 mod types;
 
+use embedded_hal::digital::PinState;
 use hal::*;
 
 pub use types::*;
@@ -85,6 +86,8 @@ impl Pin for AnyPin {
     }
 }
 
+/// Flexible GPIO pin.
+///
 /// Flex 接口的 pin
 /// 该结构体不对 api 调用做任何保护，例如引脚调用输出配置后，再读取，也许硬件不支持这种使用，但
 /// 这个对象依旧不阻止调用，如果希望更强的保护，推荐使用 `Input,Output,Analog` 等对象，保证
@@ -94,6 +97,7 @@ pub struct Flex<'d> {
 }
 
 pub trait Pin: Peripheral<P = Self> + Into<AnyPin> + sealed::Pin + Sized + 'static {
+    #[inline]
     fn degrade(self) -> AnyPin {
         AnyPin {
             port_pin: self.port_pin(),
@@ -112,15 +116,18 @@ impl<'d> Flex<'d> {
         }
     }
 
+    #[inline]
     pub fn port(&self) -> GpioPort {
         self.pin.port()
     }
 
+    #[inline]
     pub fn pin(&self) -> usize {
         self.pin.pin()
     }
 
-    /// 重新设置引脚为输入模式
+    /// Put the pin into input mode.
+    #[inline]
     pub fn set_as_input(&self, pull: PinPullUpDown, speed: PinSpeed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Input);
@@ -129,7 +136,8 @@ impl<'d> Flex<'d> {
         });
     }
 
-    /// 重新设置引脚为输出模式
+    /// Put the pin into output mode.
+    #[inline]
     pub fn set_as_output(&self, io_type: PinIoType, speed: PinSpeed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Output);
@@ -138,14 +146,16 @@ impl<'d> Flex<'d> {
         });
     }
 
-    /// 设置引脚为模拟引脚
+    /// Put the pin into analog mode.
+    #[inline]
     pub fn set_as_analog(&self) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Analog);
         });
     }
 
-    /// 设置引脚为外设功能模式
+    /// Put the pin into alternate function mode.
+    #[inline]
     pub fn set_as_af(&self, af: PinAF, speed: PinSpeed, io_type: PinIoType) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Af);
@@ -155,28 +165,33 @@ impl<'d> Flex<'d> {
         });
     }
 
-    /// 设置引脚上下拉配置
+    /// Set internal pull-up or pull-down configuration for this pin.
+    #[inline]
     pub fn set_push_pull(&self, push_pull: PinPullUpDown) {
         self.pin.set_push_pull(push_pull);
     }
 
-    /// 设置引脚的输出开漏配置
+    /// Set open-drain or push-pull output type for this pin.
+    #[inline]
     pub fn set_open_drain(&self, open_drain: PinOutputType) {
         self.pin.set_output_type(open_drain);
     }
 
-    /// 设置引脚的输入输出配置
+    /// Set the I/O type of current pin.
+    #[inline]
     pub fn set_io_type(&self, io_type: PinIoType) {
         self.pin.set_io_type(io_type)
     }
 
-    /// 引脚状态读取
-    pub fn read(&self) -> PinLevel {
+    /// Read the input electrical level of the current pin.
+    #[inline]
+    fn read(&self) -> PinState {
         self.pin.read()
     }
 
-    /// 引脚状态写
-    pub fn write(&self, level: PinLevel) {
+    /// Write an output electrical level into the current pin.
+    #[inline]
+    fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
@@ -192,27 +207,29 @@ impl AnyPin {
     }
 }
 
-/// 输入类型的引脚
+/// Input-mode driver for a GPIO pin.
 pub struct Input<'d> {
     pub(crate) pin: Flex<'d>,
 }
 
-/// 输出类型的引脚
+/// Output-mode driver for a GPIO pin.
 pub struct Output<'d> {
     pub(crate) pin: Flex<'d>,
 }
 
-/// 功能复用类型的引脚
+/// Alternate function mode driver for a GPIO pin.
 pub struct Af<'d> {
     pub(crate) _pin: Flex<'d>,
 }
 
-/// 模拟引脚
+/// Analog-mode driver for a GPIO pin.
 pub struct Analog<'d> {
     pub(crate) _pin: Flex<'d>,
 }
 
 impl<'d> Input<'d> {
+    /// Create a GPIO input driver for a pin with the provided pull configuration.
+    #[inline]
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         pull: PinPullUpDown,
@@ -225,14 +242,16 @@ impl<'d> Input<'d> {
         Self { pin }
     }
 
-    /// 读取引脚状态
-    pub fn read(&self) -> PinLevel {
+    /// Read the input electrical level of the current pin.
+    #[inline]
+    pub(crate) fn read(&self) -> PinState {
         self.pin.read()
     }
 }
 
 impl<'d> Output<'d> {
-    /// 创建对象
+    /// Create a GPIO output driver for a pin with the provided I/O type and speed configurations.
+    #[inline]
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         io_type: PinIoType,
@@ -245,19 +264,23 @@ impl<'d> Output<'d> {
         Self { pin }
     }
 
-    /// 读取引脚电平
-    pub fn read(&self) -> PinLevel {
+    /// Read the input electrical level of the current pin.
+    #[inline]
+    fn read(&self) -> PinState {
         self.pin.read()
     }
 
-    /// 设置引脚电平
-    pub fn write(&self, level: PinLevel) {
+    /// Write an output electrical level into the current pin.
+    #[inline]
+    fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
 
 impl<'d> Af<'d> {
-    /// 新建 AF 引脚
+    /// Create a GPIO alternate function driver for a pin with the provided alternate function,
+    /// I/O type and speed configurations.
+    #[inline]
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         af: impl Into<PinAF>,
@@ -273,7 +296,8 @@ impl<'d> Af<'d> {
 }
 
 impl<'d> Analog<'d> {
-    /// 新建模拟引脚
+    /// Create a GPIO analog function driver for a pin.
+    #[inline]
     pub fn new(pin: impl Peripheral<P = impl Pin> + 'd) -> Self {
         let pin = Flex::new(pin);
 
@@ -285,46 +309,146 @@ impl<'d> Analog<'d> {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub mod v2 {
-    use super::{Flex, Input, Output, PinLevel};
+impl<'d> embedded_hal::digital::ErrorType for Input<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::InputPin for Input<'d> {
+    #[inline]
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::High)
+    }
+
+    #[inline]
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::Low)
+    }
+}
+
+impl<'d> embedded_hal::digital::ErrorType for Output<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::OutputPin for Output<'d> {
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.write(PinState::Low);
+        Ok(())
+    }
+
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.write(PinState::High);
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::StatefulOutputPin for Output<'d> {
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::Low)
+    }
+
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::High)
+    }
+
+    #[inline]
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.write(!(self.read()));
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::ErrorType for Flex<'d> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'d> embedded_hal::digital::InputPin for Flex<'d> {
+    #[inline]
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::Low)
+    }
+
+    #[inline]
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::High)
+    }
+}
+
+impl<'d> embedded_hal::digital::OutputPin for Flex<'d> {
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.write(PinState::Low);
+        Ok(())
+    }
+
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.write(PinState::High);
+        Ok(())
+    }
+}
+
+impl<'d> embedded_hal::digital::StatefulOutputPin for Flex<'d> {
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::Low)
+    }
+
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.read() == PinState::High)
+    }
+
+    #[inline]
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.write(!(self.read()));
+        Ok(())
+    }
+}
+
+mod v027 {
+    use super::{Flex, Input, Output, PinState};
     use core::convert::Infallible;
 
-    impl<'d> embedded_hal::digital::v2::InputPin for Input<'d> {
+    impl<'d> embedded_hal_027::digital::v2::InputPin for Input<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinState::High)
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::OutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::OutputPin for Output<'d> {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Low);
+            self.write(PinState::Low);
             Ok(())
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Hight);
+            self.write(PinState::High);
             Ok(())
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::StatefulOutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Output<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinState::High)
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::ToggleableOutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::ToggleableOutputPin for Output<'d> {
         type Error = Infallible;
         fn toggle(&mut self) -> Result<(), Self::Error> {
             self.write(!(self.read()));
@@ -332,42 +456,42 @@ pub mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::InputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::InputPin for Flex<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinState::High)
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::OutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::OutputPin for Flex<'d> {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Low);
+            self.write(PinState::Low);
             Ok(())
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Hight);
+            self.write(PinState::High);
             Ok(())
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::StatefulOutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Flex<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Hight)
+            Ok(self.read() == PinState::High)
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::ToggleableOutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::ToggleableOutputPin for Flex<'d> {
         type Error = Infallible;
         fn toggle(&mut self) -> Result<(), Self::Error> {
             self.write(!(self.read()));

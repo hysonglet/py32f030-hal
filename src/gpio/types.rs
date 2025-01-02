@@ -1,5 +1,3 @@
-use core::ops::Not;
-
 /// Gpio Pin mode
 #[derive(Clone, Copy)]
 pub enum PinMode {
@@ -104,40 +102,6 @@ impl PinIoType {
 pub enum PinLock {
     Unlock = 0,
     Lock = 1,
-}
-
-/// Gpio io 电平
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum PinLevel {
-    Low = 0,
-    Hight = 1,
-}
-
-impl Not for PinLevel {
-    type Output = Self;
-    fn not(self) -> Self::Output {
-        if self == Self::Low {
-            Self::Hight
-        } else {
-            Self::Low
-        }
-    }
-}
-
-impl From<u32> for PinLevel {
-    fn from(value: u32) -> Self {
-        match value {
-            0 => Self::Low,
-            1 => Self::Hight,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl From<PinLevel> for bool {
-    fn from(value: PinLevel) -> Self {
-        PinLevel::Hight == value
-    }
 }
 
 #[derive(Debug)]

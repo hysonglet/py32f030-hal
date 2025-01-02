@@ -3,7 +3,7 @@
 
 use {defmt_rtt as _, panic_probe as _};
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
 use hal::delay;
 use hal::gpio::{Input, PinPullUpDown, PinSpeed};
 use py32f030_hal as hal;
@@ -16,7 +16,7 @@ fn main() -> ! {
 
     let gpioa = p.GPIOF.split();
 
-    let key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
+    let mut key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
 
     loop {
         defmt::info!("key: {}", key.is_low());

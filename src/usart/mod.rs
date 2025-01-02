@@ -510,15 +510,15 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
     }
 }
 
-/// embedded_hal::serial for AnyUsart<'d, T, Blocking>
-impl<'d, T: Instance> embedded_hal::serial::Read<u8> for AnyUsart<'d, T, Blocking> {
+/// embedded_hal_027::serial for AnyUsart<'d, T, Blocking>
+impl<'d, T: Instance> embedded_hal_027::serial::Read<u8> for AnyUsart<'d, T, Blocking> {
     type Error = Error;
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         self.rx.nb_read()
     }
 }
 
-impl<'d, T: Instance> embedded_hal::serial::Write<u8> for AnyUsart<'d, T, Blocking> {
+impl<'d, T: Instance> embedded_hal_027::serial::Write<u8> for AnyUsart<'d, T, Blocking> {
     type Error = Error;
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
         self.tx.flush()
@@ -529,16 +529,16 @@ impl<'d, T: Instance> embedded_hal::serial::Write<u8> for AnyUsart<'d, T, Blocki
     }
 }
 
-/// embedded_hal::serial for UsartRx<'d, T, Blocking>
-impl<'d, T: Instance> embedded_hal::serial::Read<u8> for UsartRx<'d, T, Blocking> {
+/// embedded_hal_027::serial for UsartRx<'d, T, Blocking>
+impl<'d, T: Instance> embedded_hal_027::serial::Read<u8> for UsartRx<'d, T, Blocking> {
     type Error = Error;
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         self.nb_read()
     }
 }
 
-/// embedded_hal::serial for UsartTx<'d, T, Blocking>
-impl<'d, T: Instance> embedded_hal::serial::Write<u8> for UsartTx<'d, T, Blocking> {
+/// embedded_hal_027::serial for UsartTx<'d, T, Blocking>
+impl<'d, T: Instance> embedded_hal_027::serial::Write<u8> for UsartTx<'d, T, Blocking> {
     type Error = Error;
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
         T::tx_flush();

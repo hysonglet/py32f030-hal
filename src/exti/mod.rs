@@ -5,12 +5,13 @@ mod pins;
 mod types;
 
 use core::convert::Infallible;
+use embedded_hal::digital::PinState;
 
 pub use types::*;
 
 // use self::hal::sealed::Instance;
 use crate::gpio::Pin;
-use crate::gpio::{Input, PinLevel, PinPullUpDown, PinSpeed};
+use crate::gpio::{Input, PinPullUpDown, PinSpeed};
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
@@ -48,7 +49,7 @@ impl<'d, M: Mode> ExtiInput<'d, M> {
 
     /// 返回引脚的电平
     #[inline]
-    fn get_level(&self) -> PinLevel {
+    fn get_level(&self) -> PinState {
         self.pin.read()
     }
 }
@@ -57,13 +58,13 @@ impl<'d> ExtiInput<'d, Blocking> {
     /// 等待引脚电平变低
     #[inline]
     pub fn wait_for_low(&self) {
-        while self.get_level() == PinLevel::Hight {}
+        while self.get_level() == PinState::High {}
     }
 
     /// 等待引脚电平变高
     #[inline]
     pub fn wait_for_high(&self) {
-        while self.get_level() == PinLevel::Low {}
+        while self.get_level() == PinState::Low {}
     }
 
     /// 等待上升沿信号
@@ -92,7 +93,7 @@ impl<'d> ExtiInput<'d, Blocking> {
 impl<'d> ExtiInput<'d, Async> {
     /// 等待引脚电平变低
     pub async fn wait_for_low(&self) {
-        if self.get_level() == PinLevel::Low {
+        if self.get_level() == PinState::Low {
             return;
         }
 
@@ -101,7 +102,7 @@ impl<'d> ExtiInput<'d, Async> {
 
     /// 等待引脚电平变高
     pub async fn wait_for_high(&self) {
-        if self.get_level() == PinLevel::Hight {
+        if self.get_level() == PinState::High {
             return;
         }
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising).await
@@ -124,7 +125,23 @@ impl<'d> ExtiInput<'d, Async> {
     }
 }
 
-impl<'a, M: Mode> embedded_hal::digital::v2::InputPin for ExtiInput<'a, M> {
+impl<'a, M: Mode> embedded_hal::digital::ErrorType for ExtiInput<'a, M> {
+    type Error = core::convert::Infallible;
+}
+
+impl<'a, M: Mode> embedded_hal::digital::InputPin for ExtiInput<'a, M> {
+    #[inline]
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        self.pin.is_low()
+    }
+
+    #[inline]
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        self.pin.is_high()
+    }
+}
+
+impl<'a, M: Mode> embedded_hal_027::digital::v2::InputPin for ExtiInput<'a, M> {
     type Error = Infallible;
     fn is_low(&self) -> Result<bool, Self::Error> {
         self.pin.is_low()

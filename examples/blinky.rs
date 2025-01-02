@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::digital::v2::ToggleableOutputPin;
+use embedded_hal::digital::StatefulOutputPin;
 use hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal as hal;
 

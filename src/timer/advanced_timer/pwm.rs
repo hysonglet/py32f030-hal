@@ -275,7 +275,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-impl<'d, T: Instance> embedded_hal::Pwm for Pwm<'d, T> {
+impl<'d, T: Instance> embedded_hal_027::Pwm for Pwm<'d, T> {
     type Channel = Channel;
     type Duty = u16;
     type Time = u16;
@@ -312,7 +312,7 @@ impl<'d, T: Instance> embedded_hal::Pwm for Pwm<'d, T> {
     }
 }
 
-// impl<'d, T: Instance> embedded_hal::PwmPin for PwmChannel<'d, T> {
+// impl<'d, T: Instance> embedded_hal_027::PwmPin for PwmChannel<'d, T> {
 //     type Duty = u16;
 //     fn enable(&mut self) {
 //         todo!()

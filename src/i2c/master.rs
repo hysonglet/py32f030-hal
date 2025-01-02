@@ -118,7 +118,7 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-impl<'d, T: Instance> embedded_hal::blocking::i2c::Write for Master<'d, T, Blocking> {
+impl<'d, T: Instance> embedded_hal_027::blocking::i2c::Write for Master<'d, T, Blocking> {
     type Error = Error;
     fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
         self.write_block(address, bytes)
@@ -126,7 +126,7 @@ impl<'d, T: Instance> embedded_hal::blocking::i2c::Write for Master<'d, T, Block
     }
 }
 
-impl<'d, T: Instance> embedded_hal::blocking::i2c::Read for Master<'d, T, Blocking> {
+impl<'d, T: Instance> embedded_hal_027::blocking::i2c::Read for Master<'d, T, Blocking> {
     type Error = Error;
     fn read(&mut self, address: u8, buffer: &mut [u8]) -> Result<(), Self::Error> {
         self.read_block(address, buffer)
@@ -134,7 +134,7 @@ impl<'d, T: Instance> embedded_hal::blocking::i2c::Read for Master<'d, T, Blocki
     }
 }
 
-impl<'d, T: Instance> embedded_hal::blocking::i2c::WriteRead for Master<'d, T, Blocking> {
+impl<'d, T: Instance> embedded_hal_027::blocking::i2c::WriteRead for Master<'d, T, Blocking> {
     type Error = Error;
     fn write_read(
         &mut self,

@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::timer::CountDown;
+use embedded_hal_027::timer::CountDown;
 use fugit::ExtU32;
 use hal::mode::Blocking;
 use hal::timer::general_purpose_timer::AnyTimer;

@@ -10,7 +10,7 @@ use py32f030_hal::{self as hal, mode::Blocking, timer::advanced_timer::Channel};
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 // use hal::mcu::peripherals::TIM1;
-use embedded_hal::Pwm;
+use embedded_hal_027::Pwm;
 
 use {defmt_rtt as _, panic_probe as _};
 

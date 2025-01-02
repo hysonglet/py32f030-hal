@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
 use hal::exti::ExtiInput;
 use hal::gpio::{PinPullUpDown, PinSpeed};
 use hal::mode::Async;
@@ -12,7 +12,7 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 
 #[embassy_executor::task]
-async fn run(key: ExtiInput<'static, Async>) {
+async fn run(mut key: ExtiInput<'static, Async>) {
     loop {
         defmt::info!("wating for key push...");
         key.wait_for_low().await;

@@ -3,7 +3,7 @@
 
 use defmt::Debug2Format;
 // use embedded_io::Write;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::OutputPin;
 use hal::delay;
 use hal::i2c::{AnyI2c, Config};
 use py32f030_hal::delay::delay_ms;
