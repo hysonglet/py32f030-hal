@@ -2,7 +2,7 @@
 #![no_main]
 
 use defmt_rtt as _;
-use embedded_hal_027::digital::v2::ToggleableOutputPin;
+use embedded_hal::digital::StatefulOutputPin;
 use panic_probe as _;
 
 use hal::clock::{self, Mco};

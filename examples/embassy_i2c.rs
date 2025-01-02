@@ -2,7 +2,7 @@
 #![no_main]
 
 use defmt::Debug2Format;
-use embedded_hal_027::digital::v2::OutputPin;
+use embedded_hal::digital::OutputPin;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::mode::Async;
 use py32f030_hal::{self as hal};
