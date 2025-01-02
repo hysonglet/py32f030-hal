@@ -12,7 +12,7 @@ use crate::mode::Mode;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
-use embedded_hal::spi;
+use embedded_hal_027::spi;
 use types::*;
 
 pub use master::Master;

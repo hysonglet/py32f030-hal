@@ -6,7 +6,7 @@
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
-use embedded_hal::digital::v2::ToggleableOutputPin;
+use embedded_hal_027::digital::v2::ToggleableOutputPin;
 use hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::{
     self as hal,

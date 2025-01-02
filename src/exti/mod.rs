@@ -124,7 +124,7 @@ impl<'d> ExtiInput<'d, Async> {
     }
 }
 
-impl<'a, M: Mode> embedded_hal::digital::v2::InputPin for ExtiInput<'a, M> {
+impl<'a, M: Mode> embedded_hal_027::digital::v2::InputPin for ExtiInput<'a, M> {
     type Error = Infallible;
     fn is_low(&self) -> Result<bool, Self::Error> {
         self.pin.is_low()

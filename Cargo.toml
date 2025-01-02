@@ -17,7 +17,9 @@ bare-metal = { version = "1.0.0" }
 cast = "0.3"
 cortex-m-rt = "0.7"
 critical-section = { version = "1.1.2" }
-embedded-hal = { version = "0.2", features = ["unproven"] }
+embedded-hal = "1.0.0"
+# For backward compatibility only. 
+embedded-hal-027 = { package = "embedded-hal", version = "0.2.7", features = ["unproven"] }
 embedded-hal-async = { version = "1.0" }
 embedded-io = "0.6.1"
 embedded-io-async = { version = "0.6.1", option = true }

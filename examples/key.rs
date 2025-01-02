@@ -3,7 +3,7 @@
 
 use {defmt_rtt as _, panic_probe as _};
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal_027::digital::v2::InputPin;
 use hal::delay;
 use hal::gpio::{Input, PinPullUpDown, PinSpeed};
 use py32f030_hal as hal;

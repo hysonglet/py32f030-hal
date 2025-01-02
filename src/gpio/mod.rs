@@ -312,7 +312,7 @@ mod v2 {
     use super::{Flex, Input, Output, PinLevel};
     use core::convert::Infallible;
 
-    impl<'d> embedded_hal::digital::v2::InputPin for Input<'d> {
+    impl<'d> embedded_hal_027::digital::v2::InputPin for Input<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
             Ok(self.read() == PinLevel::Low)
@@ -323,7 +323,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::OutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::OutputPin for Output<'d> {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -337,7 +337,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::StatefulOutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Output<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
             Ok(self.read() == PinLevel::Low)
         }
@@ -347,7 +347,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::ToggleableOutputPin for Output<'d> {
+    impl<'d> embedded_hal_027::digital::v2::ToggleableOutputPin for Output<'d> {
         type Error = Infallible;
         fn toggle(&mut self) -> Result<(), Self::Error> {
             self.write(!(self.read()));
@@ -355,7 +355,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::InputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::InputPin for Flex<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
             Ok(self.read() == PinLevel::Low)
@@ -366,7 +366,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::OutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::OutputPin for Flex<'d> {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -380,7 +380,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::StatefulOutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Flex<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
             Ok(self.read() == PinLevel::Low)
         }
@@ -390,7 +390,7 @@ mod v2 {
         }
     }
 
-    impl<'d> embedded_hal::digital::v2::ToggleableOutputPin for Flex<'d> {
+    impl<'d> embedded_hal_027::digital::v2::ToggleableOutputPin for Flex<'d> {
         type Error = Infallible;
         fn toggle(&mut self) -> Result<(), Self::Error> {
             self.write(!(self.read()));

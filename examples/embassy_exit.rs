@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal_027::digital::v2::InputPin;
 use hal::exti::ExtiInput;
 use hal::gpio::{PinPullUpDown, PinSpeed};
 use hal::mode::Async;
