@@ -1,5 +1,5 @@
-///! #  RTC demo 
-///  该代码实现了一个RTC定时的功能
+//! #  RTC demo
+//!  该代码实现了一个RTC定时的功能
 #![no_std]
 #![no_main]
 
