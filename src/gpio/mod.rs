@@ -185,13 +185,13 @@ impl<'d> Flex<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinState {
+    fn read(&self) -> PinState {
         self.pin.read()
     }
 
     /// Write an output electrical level into the current pin.
     #[inline]
-    pub fn write(&self, level: PinState) {
+    fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
@@ -244,7 +244,7 @@ impl<'d> Input<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinState {
+    pub(crate) fn read(&self) -> PinState {
         self.pin.read()
     }
 }
@@ -266,13 +266,13 @@ impl<'d> Output<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinState {
+    fn read(&self) -> PinState {
         self.pin.read()
     }
 
     /// Write an output electrical level into the current pin.
     #[inline]
-    pub fn write(&self, level: PinState) {
+    fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
