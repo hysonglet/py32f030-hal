@@ -30,6 +30,7 @@
 pub(crate) mod hal;
 mod types;
 
+use embedded_hal::digital::PinState;
 use hal::*;
 
 pub use types::*;
@@ -184,13 +185,13 @@ impl<'d> Flex<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinLevel {
+    pub fn read(&self) -> PinState {
         self.pin.read()
     }
 
     /// Write an output electrical level into the current pin.
     #[inline]
-    pub fn write(&self, level: PinLevel) {
+    pub fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
@@ -243,7 +244,7 @@ impl<'d> Input<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinLevel {
+    pub fn read(&self) -> PinState {
         self.pin.read()
     }
 }
@@ -265,13 +266,13 @@ impl<'d> Output<'d> {
 
     /// Read the input electrical level of the current pin.
     #[inline]
-    pub fn read(&self) -> PinLevel {
+    pub fn read(&self) -> PinState {
         self.pin.read()
     }
 
     /// Write an output electrical level into the current pin.
     #[inline]
-    pub fn write(&self, level: PinLevel) {
+    pub fn write(&self, level: PinState) {
         self.pin.write(level)
     }
 }
@@ -315,12 +316,12 @@ impl<'d> embedded_hal::digital::ErrorType for Input<'d> {
 impl<'d> embedded_hal::digital::InputPin for Input<'d> {
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::High)
+        Ok(self.read() == PinState::High)
     }
 
     #[inline]
     fn is_low(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::Low)
+        Ok(self.read() == PinState::Low)
     }
 }
 
@@ -331,13 +332,13 @@ impl<'d> embedded_hal::digital::ErrorType for Output<'d> {
 impl<'d> embedded_hal::digital::OutputPin for Output<'d> {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        self.write(PinLevel::Low);
+        self.write(PinState::Low);
         Ok(())
     }
 
     #[inline]
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        self.write(PinLevel::High);
+        self.write(PinState::High);
         Ok(())
     }
 }
@@ -345,12 +346,12 @@ impl<'d> embedded_hal::digital::OutputPin for Output<'d> {
 impl<'d> embedded_hal::digital::StatefulOutputPin for Output<'d> {
     #[inline]
     fn is_set_low(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::Low)
+        Ok(self.read() == PinState::Low)
     }
 
     #[inline]
     fn is_set_high(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::High)
+        Ok(self.read() == PinState::High)
     }
 
     #[inline]
@@ -367,25 +368,25 @@ impl<'d> embedded_hal::digital::ErrorType for Flex<'d> {
 impl<'d> embedded_hal::digital::InputPin for Flex<'d> {
     #[inline]
     fn is_low(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::Low)
+        Ok(self.read() == PinState::Low)
     }
 
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::High)
+        Ok(self.read() == PinState::High)
     }
 }
 
 impl<'d> embedded_hal::digital::OutputPin for Flex<'d> {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        self.write(PinLevel::Low);
+        self.write(PinState::Low);
         Ok(())
     }
 
     #[inline]
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        self.write(PinLevel::High);
+        self.write(PinState::High);
         Ok(())
     }
 }
@@ -393,12 +394,12 @@ impl<'d> embedded_hal::digital::OutputPin for Flex<'d> {
 impl<'d> embedded_hal::digital::StatefulOutputPin for Flex<'d> {
     #[inline]
     fn is_set_low(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::Low)
+        Ok(self.read() == PinState::Low)
     }
 
     #[inline]
     fn is_set_high(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.read() == PinLevel::High)
+        Ok(self.read() == PinState::High)
     }
 
     #[inline]
@@ -409,17 +410,17 @@ impl<'d> embedded_hal::digital::StatefulOutputPin for Flex<'d> {
 }
 
 mod v027 {
-    use super::{Flex, Input, Output, PinLevel};
+    use super::{Flex, Input, Output, PinState};
     use core::convert::Infallible;
 
     impl<'d> embedded_hal_027::digital::v2::InputPin for Input<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::High)
+            Ok(self.read() == PinState::High)
         }
     }
 
@@ -427,23 +428,23 @@ mod v027 {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Low);
+            self.write(PinState::Low);
             Ok(())
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::High);
+            self.write(PinState::High);
             Ok(())
         }
     }
 
     impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Output<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::High)
+            Ok(self.read() == PinState::High)
         }
     }
 
@@ -458,11 +459,11 @@ mod v027 {
     impl<'d> embedded_hal_027::digital::v2::InputPin for Flex<'d> {
         type Error = Infallible;
         fn is_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::High)
+            Ok(self.read() == PinState::High)
         }
     }
 
@@ -470,23 +471,23 @@ mod v027 {
         type Error = Infallible;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::Low);
+            self.write(PinState::Low);
             Ok(())
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            self.write(PinLevel::High);
+            self.write(PinState::High);
             Ok(())
         }
     }
 
     impl<'d> embedded_hal_027::digital::v2::StatefulOutputPin for Flex<'d> {
         fn is_set_low(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::Low)
+            Ok(self.read() == PinState::Low)
         }
 
         fn is_set_high(&self) -> Result<bool, Self::Error> {
-            Ok(self.read() == PinLevel::High)
+            Ok(self.read() == PinState::High)
         }
     }
 
