@@ -14,7 +14,7 @@ macro_rules! pin_af_for_instance_def {
 
             fn set_instance_af(
                 &self,
-                speed: $crate::gpio::PinSpeed,
+                speed: $crate::gpio::Speed,
                 io_type: $crate::gpio::PinIoType,
             ) {
                 self.set_mode($crate::gpio::PinMode::Af);

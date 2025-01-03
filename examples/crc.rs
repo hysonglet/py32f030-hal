@@ -2,10 +2,8 @@
 #![no_main]
 
 use embassy_executor::Spawner;
-use py32f030_hal::crc::Crc;
-use py32f030_hal::{self as hal};
-
-use {defmt_rtt as _, panic_probe as _};
+use py32f030_hal::{self as hal, crc::Crc};
+use {defmt::info, defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -35,12 +33,12 @@ async fn main(_spawner: Spawner) {
 
     assert_eq!(crc.calculate(&buf1), 0x379E9F06);
 
-    defmt::info!("{:x}", crc.calculate(&buf1));
+    info!("{:x}", crc.calculate(&buf1));
     crc.reset();
 
     crc.accumulat(&buf1[0..10]);
     let rst = crc.accumulat(&buf1[10..]);
-    defmt::info!("{:x}", rst);
+    info!("{:x}", rst);
 
     loop {
         cortex_m::asm::wfe();

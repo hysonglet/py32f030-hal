@@ -2,15 +2,12 @@
 #![no_main]
 
 // use embedded_io::Write;
-use defmt::Debug2Format;
-use hal::usart::AnyUsart;
-use heapless::String;
-use py32f030_hal::{self as hal, mode::Async};
-
-use {defmt_rtt as _, panic_probe as _};
-
+use defmt::{info, Debug2Format};
 use embassy_executor::Spawner;
 use embassy_time::Timer;
+use heapless::String;
+use py32f030_hal::{self as hal, usart::AnyUsart};
+use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -20,12 +17,11 @@ async fn main(_spawner: Spawner) {
     let rx = gpioa.PA10;
     let tx = gpioa.PA9;
 
-    let usart: AnyUsart<_, Async> =
-        AnyUsart::new(p.USART1, Some(rx), Some(tx), None, None, Default::default());
+    let usart = AnyUsart::new(p.USART1, Some(rx), Some(tx), None, None, Default::default());
 
     let (mut rx, mut tx) = usart.split();
 
-    defmt::info!("usart start...");
+    info!("usart start...");
     let buf: String<20> = "hello rust\r\n".into();
 
     let mut rx_buf: [u8; 10] = [0; 10];

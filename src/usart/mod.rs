@@ -37,19 +37,6 @@ pin_af_for_instance_def!(RxPin, Instance);
 pin_af_for_instance_def!(RtsPin, Instance);
 pin_af_for_instance_def!(CtsPin, Instance);
 
-/// 串口的综合配置结构体
-#[derive(Default)]
-pub struct Config {
-    pub baud_rate: BaudRate,
-    pub stop_bit: StopBits,
-    pub word_len: WordLen,
-    pub parity: Parity,
-    // pub hw_flow_ctrl: HwFlowCtrl,
-    pub data_bits: DataBits,
-    pub over_sampling: OverSampling,
-    // pub mode: T,
-}
-
 /// 串口号定义
 #[derive(Clone, Copy, PartialEq)]
 pub enum Id {
@@ -160,7 +147,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             || None,
             |rxd| {
                 into_ref!(rxd);
-                rxd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
+                rxd.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
                 Some(rxd.map_into())
             },
         );
@@ -169,7 +156,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             || None,
             |txd| {
                 into_ref!(txd);
-                txd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
+                txd.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
                 Some(txd.map_into())
             },
         );

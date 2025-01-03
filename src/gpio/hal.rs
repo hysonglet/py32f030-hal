@@ -67,7 +67,7 @@ pub(crate) mod sealed {
         }
 
         #[inline]
-        fn set_push_pull(&self, push_pull: PinPullUpDown) {
+        fn set_push_pull(&self, push_pull: Pull) {
             self.block().pupdr.modify(|r, w| unsafe {
                 w.bits(bit_mask_idx_modify::<2>(
                     self.pin() * 2,
@@ -143,7 +143,7 @@ pub(crate) mod sealed {
         }
 
         #[inline]
-        fn set_speed(&self, speed: PinSpeed) {
+        fn set_speed(&self, speed: Speed) {
             self.block().ospeedr.modify(|r, w| unsafe {
                 w.bits(bit_mask_idx_modify::<2>(
                     self.pin() * 2,

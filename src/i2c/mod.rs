@@ -103,8 +103,8 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
 
         // od + pullup
         // 配置引脚功能为AF功能，开漏模式
-        scl.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
-        sda.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
+        scl.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
+        sda.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
 
         // 初始化
         Self::new_inner(config)?;

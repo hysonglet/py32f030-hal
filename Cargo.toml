@@ -68,6 +68,7 @@ fugit-timer = "0.1.3"
 drop-move = "0.1.0"
 defmt-serial = "0.10.0"
 static_cell = "1"
+embedded-time = "0.12.1"
 
 [features]
 default = ["example", "embassy"] # "embassy"

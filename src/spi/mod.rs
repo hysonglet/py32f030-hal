@@ -7,7 +7,7 @@ use crate::clock::peripheral::{
     PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
 };
 use crate::gpio::AnyPin;
-use crate::gpio::{PinIoType, PinSpeed};
+use crate::gpio::{PinIoType, Speed};
 use crate::mode::Mode;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
@@ -104,7 +104,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         into_ref!(sck);
 
         sck.set_instance_af(
-            PinSpeed::VeryHigh,
+            Speed::VeryHigh,
             if config.mode.polarity == spi::Polarity::IdleLow {
                 PinIoType::PullDown
             } else {
@@ -116,7 +116,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
             || None,
             |mosi| {
                 into_ref!(mosi);
-                mosi.set_instance_af(PinSpeed::VeryHigh, PinIoType::PullUp);
+                mosi.set_instance_af(Speed::VeryHigh, PinIoType::PullUp);
                 Some(mosi.map_into())
             },
         );
@@ -125,7 +125,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
             || None,
             |miso| {
                 into_ref!(miso);
-                miso.set_instance_af(PinSpeed::VeryHigh, PinIoType::OpenDrain);
+                miso.set_instance_af(Speed::VeryHigh, PinIoType::OpenDrain);
                 Some(miso.map_into())
             },
         );
@@ -139,7 +139,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
             },
             |nss| {
                 into_ref!(nss);
-                nss.set_instance_af(PinSpeed::VeryHigh, PinIoType::Floating);
+                nss.set_instance_af(Speed::VeryHigh, PinIoType::Floating);
                 Some(nss.map_into())
             },
         );

@@ -35,6 +35,13 @@ pub mod syscfg;
 pub mod timer;
 pub mod usart;
 
+#[doc(hidden)]
+pub mod prelude {
+    pub use crate::gpio::Pin as _;
+    pub use embedded_hal::digital::{InputPin as _, OutputPin as _, StatefulOutputPin as _};
+    pub use embedded_io::{Read as _, Write as _};
+}
+
 pub mod config {
 
     /// 系统时钟选择

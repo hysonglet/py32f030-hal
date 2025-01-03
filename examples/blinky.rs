@@ -1,21 +1,19 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::digital::StatefulOutputPin;
-use hal::gpio::{Output, PinIoType, PinSpeed};
-use py32f030_hal as hal;
-
-use {defmt_rtt as _, panic_probe as _};
+use hal::gpio::{Output, PinIoType, Speed};
+use py32f030_hal::{self as hal, prelude::*};
+use {defmt::info, defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = hal::init(Default::default());
 
-    defmt::info!("Led blinky testing...");
+    info!("Led blinky testing...");
 
     let gpioa = p.GPIOA.split();
     // LED: RX led
-    let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, PinSpeed::Low);
+    let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, Speed::Low);
 
     loop {
         // 翻转led
