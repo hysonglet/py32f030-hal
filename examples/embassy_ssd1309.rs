@@ -1,10 +1,9 @@
 #![no_std]
 #![no_main]
-use embedded_hal::digital::OutputPin;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
 use py32f030_hal::mode::Blocking;
 
-use py32f030_hal::{self as hal, clock};
+use py32f030_hal::{self as hal, clock, prelude::*};
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;

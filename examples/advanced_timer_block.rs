@@ -1,11 +1,10 @@
 #![no_std]
 #![no_main]
 
-use embedded_hal::digital::StatefulOutputPin;
 use hal::gpio::{Output, PinIoType, PinSpeed};
 use hal::mode::Blocking;
 use hal::timer::advanced_timer::AnyTimer;
-use py32f030_hal as hal;
+use py32f030_hal::{self as hal, prelude::*};
 
 use {defmt_rtt as _, panic_probe as _};
 

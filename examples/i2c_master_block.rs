@@ -3,12 +3,11 @@
 
 use defmt::Debug2Format;
 // use embedded_io::Write;
-use embedded_hal::digital::OutputPin;
 use hal::delay;
 use hal::i2c::{AnyI2c, Config};
 use py32f030_hal::delay::delay_ms;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
-use py32f030_hal::{self as hal, mode::Blocking};
+use py32f030_hal::{self as hal, mode::Blocking, prelude::*};
 
 use {defmt_rtt as _, panic_probe as _};
 

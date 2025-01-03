@@ -2,13 +2,12 @@
 #![no_main]
 
 use defmt_rtt as _;
-use embedded_hal::digital::StatefulOutputPin;
 use panic_probe as _;
 
 use hal::clock::{self, Mco};
 use hal::gpio::{Af, PinAF};
-use py32f030_hal as hal;
 use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
+use py32f030_hal::{self as hal, prelude::*};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {

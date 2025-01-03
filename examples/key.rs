@@ -3,10 +3,9 @@
 
 use {defmt_rtt as _, panic_probe as _};
 
-use embedded_hal::digital::InputPin;
 use hal::delay;
 use hal::gpio::{Input, PinPullUpDown, PinSpeed};
-use py32f030_hal as hal;
+use py32f030_hal::{self as hal, prelude::*};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
