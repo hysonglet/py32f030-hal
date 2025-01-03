@@ -2,7 +2,7 @@ pub mod sealed {
     use super::super::*;
     use crate::pac;
     use core::f32;
-    use core::intrinsics::floorf32;
+    use num_traits::float::FloatCore;
 
     pub trait Instance {
         fn id() -> Id;
@@ -274,9 +274,9 @@ pub mod sealed {
 
             // 设置波特率
             let over_sampling: u32 = config.over_sampling.div();
-            let div: f32 =
-                clock::sys_pclk() as f32 / (config.baud_rate as u32 * over_sampling) as f32;
-            let mantissa: u16 = unsafe { floorf32(div) } as u16;
+            let baud = config.baud_rate.0;
+            let div: f32 = clock::sys_pclk() as f32 / (baud * over_sampling) as f32;
+            let mantissa: u16 = div.floor() as u16;
             let fraction: u8 = (16.0 * (div - mantissa as f32)) as u8;
             block.brr.modify(|_, w| unsafe {
                 w.div_mantissa()

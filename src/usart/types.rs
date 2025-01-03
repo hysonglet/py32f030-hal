@@ -1,3 +1,5 @@
+use embedded_time::rate::{Baud, Extensions};
+
 #[derive(Debug)]
 pub enum Error {
     StartTimeout,
@@ -11,28 +13,56 @@ pub enum Error {
     Others,
 }
 
-/// 串口停止位
-#[derive(Default)]
+/// Serial configuration structure.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Config {
+    /// Serial baudrate.
+    pub baud_rate: Baud,
+    /// Number of stop bits.
+    pub stop_bit: StopBits,
+    /// Parity settings.
+    pub parity: Parity,
+    // pub hw_flow_ctrl: HwFlowCtrl,
+    /// Number of data bits.
+    pub data_bits: DataBits,
+    /// Oversampling type.
+    pub over_sampling: OverSampling,
+    // pub mode: T,
+}
+
+impl Default for Config {
+    /// Serial configuration defaults to 115200 Bd, 8-bit data, no parity check, 1 stop bit, oversampling by 16.
+    #[inline]
+    fn default() -> Self {
+        Self {
+            baud_rate: 115200.Bd(),
+            stop_bit: StopBits::One,
+            parity: Parity::None,
+            data_bits: DataBits::Eight,
+            over_sampling: OverSampling::Sixteen,
+        }
+    }
+}
+
+/// Number of stop bits.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum StopBits {
+    /// 1 stop bit.
     #[default]
-    Stop1 = 0,
-    Stop2 = 1,
+    One = 0,
+    /// 2 stop bits.
+    Two = 1,
 }
 
-/// 串口数据长度
-#[derive(Default)]
-pub enum WordLen {
-    #[default]
-    WordLen8 = 0,
-    WordLen9 = 1,
-}
-
-/// 串口配置的校验位
-#[derive(Default, PartialEq)]
+/// Parity check type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Parity {
+    /// No parity checks.
     #[default]
     None = 0,
+    /// Even parity check bit.
     Even = 1,
+    /// Odd parity check bit.
     Odd = 2,
 }
 
@@ -46,37 +76,19 @@ pub enum Parity {
 //     RtsCts = 3,
 // }
 
-/// 串口的波特率定义
-#[derive(Default)]
-pub enum BaudRate {
-    // Auto = 0,
-    Bps300 = 300,
-    Bps1200 = 1200,
-    Bps2400 = 2400,
-    Bps4800 = 4800,
-    Bps9600 = 9600,
-    Bps1440 = 1440,
-    Bps19200 = 19200,
-    Bps28800 = 28800,
-    Bps38400 = 38400,
-    Bps57600 = 57600,
-    Bps74880 = 74880,
-    #[default]
-    Bps115200 = 115200,
-    Bps230400 = 230400,
-}
-
-/// 串口时钟过采样配置
-#[derive(Default, Clone, Copy, PartialEq)]
+/// Clock oversampling settings.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum OverSampling {
+    /// Oversampling by 16.
     #[default]
-    OverSampling16 = 0,
-    OverSampling8 = 1,
+    Sixteen = 0,
+    /// Oversampling by 8.
+    Eight = 1,
 }
 
 impl OverSampling {
     pub(crate) fn div(&self) -> u32 {
-        if *self == Self::OverSampling16 {
+        if *self == Self::Sixteen {
             16
         } else {
             8
@@ -86,20 +98,23 @@ impl OverSampling {
 
 impl From<OverSampling> for bool {
     fn from(value: OverSampling) -> Self {
-        value == OverSampling::OverSampling8
+        value == OverSampling::Eight
     }
 }
 
-/// 串口数据位定义
-#[derive(Default, PartialEq)]
+/// Number of data bits.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum DataBits {
+    /// 8-bit data word.
     #[default]
-    DataBits8 = 0,
-    DataBits9 = 1,
+    Eight = 0,
+    /// 9-bit data word.
+    Nine = 1,
 }
 
 impl From<DataBits> for bool {
+    #[inline]
     fn from(value: DataBits) -> Self {
-        value == DataBits::DataBits9
+        value == DataBits::Nine
     }
 }
