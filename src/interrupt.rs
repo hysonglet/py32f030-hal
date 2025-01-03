@@ -1,3 +1,4 @@
+extern crate alloc;
 use alloc::boxed::Box;
 
 pub fn register(closure: &'static mut Option<*const dyn Fn()>, f: Box<dyn Fn()>) {

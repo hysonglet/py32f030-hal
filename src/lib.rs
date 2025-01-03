@@ -25,6 +25,8 @@ pub mod gpio;
 pub mod i2c;
 #[cfg(not(feature = "embassy"))]
 pub mod interrupt;
+#[cfg(not(feature = "embassy"))]
+extern crate alloc;
 pub mod iwdg;
 mod macro_def;
 pub mod mcu;

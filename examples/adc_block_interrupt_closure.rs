@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+use core::ptr::addr_of_mut;
+
 use defmt::Debug2Format;
 use hal::adc::{AdcChannel, AnyAdc, ChannelConfig, Config, Event, SampleCycles, TrigleSignal};
 
@@ -21,10 +23,8 @@ fn main() -> ! {
     #[global_allocator]
     static ALLOCATOR: alloc_cortex_m::CortexMHeap = alloc_cortex_m::CortexMHeap::empty();
     unsafe {
-        ALLOCATOR.init(
-            &mut HEAP as *const u8 as usize,
-            core::mem::size_of_val(&HEAP),
-        )
+        #[allow(static_mut_refs)]
+        ALLOCATOR.init(addr_of_mut!(HEAP) as usize, core::mem::size_of_val(&HEAP))
     }
     let p = hal::init(Default::default());
 
