@@ -2,7 +2,7 @@
 #![no_main]
 
 use defmt::Debug2Format;
-use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
+use py32f030_hal::gpio::{Output, PinIoType, Speed};
 use py32f030_hal::mode::Async;
 use py32f030_hal::{self as hal, prelude::*};
 
@@ -27,7 +27,7 @@ async fn main(_spawner: Spawner) {
 
     let gpioa = p.GPIOA.split();
 
-    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, PinSpeed::Low);
+    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, Speed::Low);
     let _ = lcd_rst.set_low();
 
     Timer::after_millis(1000).await;

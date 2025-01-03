@@ -11,7 +11,7 @@ pub use types::*;
 
 // use self::hal::sealed::Instance;
 use crate::gpio::Pin;
-use crate::gpio::{Input, PinPullUpDown, PinSpeed};
+use crate::gpio::{Input, Pull, Speed};
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
@@ -34,11 +34,7 @@ pub struct ExtiInput<'d, M: Mode> {
 impl<'d, M: Mode> Unpin for ExtiInput<'d, M> {}
 
 impl<'d, M: Mode> ExtiInput<'d, M> {
-    pub fn new(
-        pin: impl Peripheral<P = impl Pin> + 'd,
-        pull: PinPullUpDown,
-        speed: PinSpeed,
-    ) -> Self {
+    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, pull: Pull, speed: Speed) -> Self {
         into_ref!(pin);
 
         Self {

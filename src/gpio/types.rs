@@ -9,7 +9,7 @@ pub enum PinMode {
 
 /// Gpio Pin speed
 #[derive(Clone, Copy)]
-pub enum PinSpeed {
+pub enum Speed {
     VeryLow = 0,
     Low = 1,
     High = 2,
@@ -63,10 +63,10 @@ impl From<u32> for PinAF {
 
 /// Gpio pin 上下拉
 #[derive(Clone, Copy)]
-pub enum PinPullUpDown {
-    No = 0,
-    PullUp = 1,
-    PullDown = 2,
+pub enum Pull {
+    None = 0,
+    Up = 1,
+    Down = 2,
 }
 
 /// Gpio pin 输出类型
@@ -86,12 +86,12 @@ pub enum PinIoType {
 }
 
 impl PinIoType {
-    pub(crate) fn split(self) -> (PinPullUpDown, PinOutputType) {
+    pub(crate) fn split(self) -> (Pull, PinOutputType) {
         let (push_pull, output_type) = match self {
-            PinIoType::PullUp => (PinPullUpDown::PullUp, PinOutputType::PushPull),
-            PinIoType::PullDown => (PinPullUpDown::PullDown, PinOutputType::PushPull),
-            PinIoType::Floating => (PinPullUpDown::No, PinOutputType::PushPull),
-            PinIoType::OpenDrain => (PinPullUpDown::No, PinOutputType::OpenDrain),
+            PinIoType::PullUp => (Pull::Up, PinOutputType::PushPull),
+            PinIoType::PullDown => (Pull::Down, PinOutputType::PushPull),
+            PinIoType::Floating => (Pull::None, PinOutputType::PushPull),
+            PinIoType::OpenDrain => (Pull::None, PinOutputType::OpenDrain),
         };
         (push_pull, output_type)
     }

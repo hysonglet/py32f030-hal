@@ -2,7 +2,7 @@
 #![no_main]
 
 use hal::exti::ExtiInput;
-use hal::gpio::{PinPullUpDown, PinSpeed};
+use hal::gpio::{Pull, Speed};
 use hal::mode::Async;
 use py32f030_hal::{self as hal, prelude::*};
 use {defmt_rtt as _, panic_probe as _};
@@ -28,7 +28,7 @@ async fn main(_spawner: Spawner) {
 
     defmt::info!("Example: embassy exti!");
 
-    let key: ExtiInput<_> = ExtiInput::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
+    let key: ExtiInput<_> = ExtiInput::new(gpioa.PF4_BOOT0, Pull::None, Speed::Low);
     _spawner.spawn(run(key)).unwrap();
 
     let mut cnt: u32 = 0;

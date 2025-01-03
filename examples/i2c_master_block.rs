@@ -6,7 +6,7 @@ use defmt::Debug2Format;
 use hal::delay;
 use hal::i2c::{AnyI2c, Config};
 use py32f030_hal::delay::delay_ms;
-use py32f030_hal::gpio::{Output, PinIoType, PinSpeed};
+use py32f030_hal::gpio::{Output, PinIoType, Speed};
 use py32f030_hal::{self as hal, mode::Blocking, prelude::*};
 
 use {defmt_rtt as _, panic_probe as _};
@@ -18,7 +18,7 @@ fn main() -> ! {
 
     let gpioa = p.GPIOA.split();
 
-    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, PinSpeed::Low);
+    let mut lcd_rst = Output::new(gpioa.PA4, PinIoType::PullUp, Speed::Low);
     let _ = lcd_rst.set_low();
     delay_ms(200);
     let _ = lcd_rst.set_high();

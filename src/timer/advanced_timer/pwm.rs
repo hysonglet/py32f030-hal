@@ -119,7 +119,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -128,7 +128,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -149,7 +149,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -158,7 +158,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -179,7 +179,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -188,7 +188,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );
@@ -205,7 +205,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
             || None,
             |pin| {
                 into_ref!(pin);
-                pin.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::PullUp);
+                pin.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::PullUp);
                 Some(pin.map_into())
             },
         );

@@ -128,7 +128,7 @@ impl<'d> Flex<'d> {
 
     /// Put the pin into input mode.
     #[inline]
-    pub fn set_as_input(&self, pull: PinPullUpDown, speed: PinSpeed) {
+    pub fn set_as_input(&self, pull: Pull, speed: Speed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Input);
             self.pin.set_push_pull(pull);
@@ -138,7 +138,7 @@ impl<'d> Flex<'d> {
 
     /// Put the pin into output mode.
     #[inline]
-    pub fn set_as_output(&self, io_type: PinIoType, speed: PinSpeed) {
+    pub fn set_as_output(&self, io_type: PinIoType, speed: Speed) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Output);
             self.pin.set_io_type(io_type);
@@ -156,7 +156,7 @@ impl<'d> Flex<'d> {
 
     /// Put the pin into alternate function mode.
     #[inline]
-    pub fn set_as_af(&self, af: PinAF, speed: PinSpeed, io_type: PinIoType) {
+    pub fn set_as_af(&self, af: PinAF, speed: Speed, io_type: PinIoType) {
         critical_section::with(|_| {
             self.pin.set_mode(PinMode::Af);
             self.pin.set_af(af);
@@ -167,7 +167,7 @@ impl<'d> Flex<'d> {
 
     /// Set internal pull-up or pull-down configuration for this pin.
     #[inline]
-    pub fn set_push_pull(&self, push_pull: PinPullUpDown) {
+    pub fn set_push_pull(&self, push_pull: Pull) {
         self.pin.set_push_pull(push_pull);
     }
 
@@ -230,11 +230,7 @@ pub struct Analog<'d> {
 impl<'d> Input<'d> {
     /// Create a GPIO input driver for a pin with the provided pull configuration.
     #[inline]
-    pub fn new(
-        pin: impl Peripheral<P = impl Pin> + 'd,
-        pull: PinPullUpDown,
-        speed: PinSpeed,
-    ) -> Self {
+    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, pull: Pull, speed: Speed) -> Self {
         let pin = Flex::new(pin);
 
         pin.set_as_input(pull, speed);
@@ -252,11 +248,7 @@ impl<'d> Input<'d> {
 impl<'d> Output<'d> {
     /// Create a GPIO output driver for a pin with the provided I/O type and speed configurations.
     #[inline]
-    pub fn new(
-        pin: impl Peripheral<P = impl Pin> + 'd,
-        io_type: PinIoType,
-        speed: PinSpeed,
-    ) -> Self {
+    pub fn new(pin: impl Peripheral<P = impl Pin> + 'd, io_type: PinIoType, speed: Speed) -> Self {
         let pin = Flex::new(pin);
 
         pin.set_as_output(io_type, speed);
@@ -284,7 +276,7 @@ impl<'d> Af<'d> {
     pub fn new(
         pin: impl Peripheral<P = impl Pin> + 'd,
         af: impl Into<PinAF>,
-        speed: PinSpeed,
+        speed: Speed,
         io_type: PinIoType,
     ) -> Self {
         let pin = Flex::new(pin);

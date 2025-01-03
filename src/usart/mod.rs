@@ -147,7 +147,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             || None,
             |rxd| {
                 into_ref!(rxd);
-                rxd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
+                rxd.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
                 Some(rxd.map_into())
             },
         );
@@ -156,7 +156,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
             || None,
             |txd| {
                 into_ref!(txd);
-                txd.set_instance_af(gpio::PinSpeed::VeryHigh, gpio::PinIoType::OpenDrain);
+                txd.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
                 Some(txd.map_into())
             },
         );

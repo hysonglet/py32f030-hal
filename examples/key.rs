@@ -4,7 +4,7 @@
 use {defmt_rtt as _, panic_probe as _};
 
 use hal::delay;
-use hal::gpio::{Input, PinPullUpDown, PinSpeed};
+use hal::gpio::{Input, Pull, Speed};
 use py32f030_hal::{self as hal, prelude::*};
 
 #[cortex_m_rt::entry]
@@ -15,7 +15,7 @@ fn main() -> ! {
 
     let gpioa = p.GPIOF.split();
 
-    let mut key = Input::new(gpioa.PF4_BOOT0, PinPullUpDown::No, PinSpeed::Low);
+    let mut key = Input::new(gpioa.PF4_BOOT0, Pull::None, Speed::Low);
 
     loop {
         defmt::info!("key: {}", key.is_low());
