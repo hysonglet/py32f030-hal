@@ -1,12 +1,9 @@
 #![no_std]
 #![no_main]
 
-use embedded_io::Write;
-use hal::usart::AnyUsart;
 use heapless::String;
-use py32f030_hal as hal;
-
-use {defmt_rtt as _, panic_probe as _};
+use py32f030_hal::{self as hal, prelude::*, usart::AnyUsart};
+use {defmt::info, defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
@@ -20,7 +17,7 @@ fn main() -> ! {
 
     let (_, mut tx) = usart.split();
 
-    defmt::info!("usart start...");
+    info!("usart start...");
     let buf: String<20> = "hello rust\r\n".into();
     loop {
         // 使用标准接口来发送串口数据
@@ -29,7 +26,7 @@ fn main() -> ! {
         // 使用自定义的驱动接口发送串口数据
         let _ = tx.write(buf.as_bytes());
 
-        defmt::info!("send: {} ", buf.as_bytes());
+        info!("send: {} ", buf.as_bytes());
         cortex_m::asm::delay(1000 * 1000 * 10);
     }
 }

@@ -6,13 +6,11 @@
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
-use hal::gpio::{Output, PinIoType, Speed};
 use py32f030_hal::{
     self as hal,
-    gpio::{AnyPin, Pin},
+    gpio::{AnyPin, Output, PinIoType, Speed},
     prelude::*,
 };
-
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::task(pool_size = 2)]

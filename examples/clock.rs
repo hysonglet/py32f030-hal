@@ -1,17 +1,14 @@
 #![no_std]
 #![no_main]
 
-use defmt_rtt as _;
-use panic_probe as _;
-
 use hal::clock::{self, Mco};
-use hal::gpio::{Af, PinAF};
-use py32f030_hal::gpio::{Output, PinIoType, Speed};
+use py32f030_hal::gpio::{Af, Output, PinAF, PinIoType, Speed};
 use py32f030_hal::{self as hal, prelude::*};
+use {defmt::*, defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    defmt::println!("examples: clock");
+    println!("examples: clock");
     let p = hal::init(Default::default());
     let gpioa = p.GPIOA.split();
 
@@ -30,11 +27,11 @@ fn main() -> ! {
     let _sysclk = clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
 
     cortex_m::asm::delay(1000 * 5);
-    defmt::info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
+    info!("freq: {}MHZ", clock::sys_core_clock() / 1000 / 1000);
 
     loop {
         cortex_m::asm::delay(1000 * 1000 * 10);
-        defmt::info!("8888");
+        info!("8888");
 
         let _ = led.toggle();
     }

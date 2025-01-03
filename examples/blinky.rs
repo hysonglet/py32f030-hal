@@ -3,14 +3,13 @@
 
 use hal::gpio::{Output, PinIoType, Speed};
 use py32f030_hal::{self as hal, prelude::*};
-
-use {defmt_rtt as _, panic_probe as _};
+use {defmt::info, defmt_rtt as _, panic_probe as _};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     let p = hal::init(Default::default());
 
-    defmt::info!("Led blinky testing...");
+    info!("Led blinky testing...");
 
     let gpioa = p.GPIOA.split();
     // LED: RX led
