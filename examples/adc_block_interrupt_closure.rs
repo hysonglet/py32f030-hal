@@ -46,6 +46,8 @@ fn main() -> ! {
     // 使用闭包的方式在中断中调用闭包处理函数
     // 兼顾友好型 api
     static mut QUEUE: [u16; 16] = [0; 16];
+    // Ensure this example builds under compile configurations with embassy feature
+    #[cfg(not(feature = "embassy"))]
     adc.on_interrupt(
         Event::EOC.into(), /* EOC 中断 */
         alloc::boxed::Box::new(move |adc| {

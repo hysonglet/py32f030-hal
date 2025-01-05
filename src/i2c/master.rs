@@ -13,6 +13,7 @@ use crate::{
     mode::{Blocking, Mode},
 };
 use core::marker::PhantomData;
+use embedded_hal::i2c::Operation;
 
 /// Master 角色
 pub struct Master<'d, T: Instance, M: Mode> {
@@ -118,6 +119,32 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+impl<'d, T: Instance> embedded_hal::i2c::ErrorType for Master<'d, T, Blocking> {
+    type Error = Error;
+}
+
+impl<'d, T: Instance> embedded_hal::i2c::I2c for Master<'d, T, Blocking> {
+    #[inline]
+    fn transaction(
+        &mut self,
+        address: u8,
+        operations: &mut [embedded_hal::i2c::Operation<'_>],
+    ) -> Result<(), Self::Error> {
+        for op in operations {
+            match op {
+                Operation::Write(buf) => {
+                    self.write_block(address, buf)?;
+                }
+                Operation::Read(buf) => {
+                    self.read_block(address, buf)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<'d, T: Instance> embedded_hal_027::blocking::i2c::Write for Master<'d, T, Blocking> {
     type Error = Error;
     fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), Self::Error> {
