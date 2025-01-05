@@ -19,27 +19,17 @@ jobs:
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
 
-  build-py32f030-hal:
-    name: Build
+  build:
+    name: Build examples
     needs: fmt
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        TARGET: [thumbv6m-none-eabi]
-        TOOLCHAIN: [nightly]
-        EXAMPLES: [adc_block, # adc_block_interrupt_closure,
-          advanced_timer_block,
-          advanced_timer_block_2, bit_test, blinky, block_uart, clock, crc,
-          dma_mem2mem, embassy_adc, embassy_allpin, embassy_blinky, embassy_delay,
-          embassy_dma_mem2mem, embassy_exit, embassy_i2c, embassy_iwdg, embassy_pwm,
-          embassy_rtc, embassy_ssd1309, embassy_uart, flash, hello_world,
-          i2c_master_block, key, rtc_block, timer3_block, timer3_pwm_block, uart,
-          uart_defmt]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: ${{ MATRIX.TARGET }}
-          toolchain: ${{ MATRIX.TOOLCHAIN }}
-      - name: Run build
-        run: cargo build --target ${{ MATRIX.TARGET }} --release --example ${{ MATRIX.EXAMPLES }}
+          target: thumbv6m-none-eabi
+          toolchain: nightly
+      - name: Build under default features
+        run: cargo build --examples --target thumbv6m-none-eabi
+      # - name: Build under no embassy feature
+      #   run: cargo build --examples --no-default-features --target thumbv6m-none-eabi
