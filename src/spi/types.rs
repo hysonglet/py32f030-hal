@@ -83,24 +83,6 @@ pub enum Rule {
     Master = 1,
 }
 
-/// Clock polarity
-#[derive(PartialEq, Clone, Copy)]
-pub enum ClockPolarity {
-    /// 0: CK to 0 when idle
-    Low = 0,
-    /// 1: CK to 1 when idle
-    Hight = 1,
-}
-
-/// Clock phase
-#[derive(PartialEq, Clone, Copy)]
-pub enum ClockPhase {
-    /// 0: The first clock transition is the first data capture edge
-    Low = 0,
-    /// 1: The second clock transition is the first data capture edge
-    Hight = 1,
-}
-
 /// Slave fast mode enable
 #[derive(PartialEq)]
 pub enum SlaveSpeedMode {
@@ -114,7 +96,7 @@ pub enum SlaveSpeedMode {
 #[derive(PartialEq)]
 pub enum DataLength {
     /// 0: 8-bit data frame transmission
-    Lenght8 = 0,
+    Length8 = 0,
     /// 1: 16-bit data frame transmission
     Length16 = 1,
 }

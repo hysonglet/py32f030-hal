@@ -12,7 +12,7 @@ use crate::mode::Mode;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
-use embedded_hal_027::spi;
+use embedded_hal::spi::{Phase, Polarity};
 use types::*;
 
 pub use master::Master;
@@ -67,19 +67,8 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         nss: Option<PeripheralRef<'d, AnyPin>>,
         config: Config,
     ) -> Result<Self, Error> {
-        let phase = if config.mode.phase == spi::Phase::CaptureOnFirstTransition {
-            ClockPhase::Low
-        } else {
-            ClockPhase::Hight
-        };
-        let polarity = if config.mode.polarity == spi::Polarity::IdleLow {
-            ClockPolarity::Low
-        } else {
-            ClockPolarity::Hight
-        };
-
-        T::set_clock_phase(phase);
-        T::set_clock_polarity(polarity);
+        T::set_clock_phase(config.mode.phase);
+        T::set_clock_polarity(config.mode.polarity);
         T::set_frame_format(config.bit_order);
         T::set_baud_rate_div(config.baud_rate_div);
 
@@ -105,7 +94,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
 
         sck.set_instance_af(
             Speed::VeryHigh,
-            if config.mode.polarity == spi::Polarity::IdleLow {
+            if config.mode.polarity == Polarity::IdleLow {
                 PinIoType::PullDown
             } else {
                 PinIoType::PullUp
@@ -169,7 +158,7 @@ pub struct Rx<'d, T: Instance, M: Mode> {
 }
 
 pub struct Config {
-    pub mode: spi::Mode,
+    pub mode: embedded_hal::spi::Mode,
     pub bit_order: BitOrder,
     pub baud_rate_div: BaudRateDiv,
     pub data_len: DataLength,

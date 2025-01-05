@@ -87,19 +87,19 @@ pub(super) mod sealed {
 
         /// Clock polarity
         #[inline]
-        fn set_clock_polarity(polarity: ClockPolarity) {
+        fn set_clock_polarity(polarity: embedded_hal::spi::Polarity) {
             // This bit should not be changed when communication is ongoing
             Self::block()
                 .cr1
-                .modify(|_, w| w.cpol().bit(polarity == ClockPolarity::Hight))
+                .modify(|_, w| w.cpol().bit(polarity == Polarity::IdleHigh))
         }
 
         /// Clock phase
         #[inline]
-        fn set_clock_phase(phase: ClockPhase) {
+        fn set_clock_phase(phase: embedded_hal::spi::Phase) {
             Self::block()
                 .cr1
-                .modify(|_, w| w.cpha().bit(phase == ClockPhase::Hight))
+                .modify(|_, w| w.cpha().bit(phase == Phase::CaptureOnSecondTransition))
         }
 
         /// Slave fast mode enable
