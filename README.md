@@ -156,7 +156,7 @@ Available examples:
    uart
 ```
 
-## Evaluation Board
+## [Evaluation Board](https://github.com/hysonglet/Py32F030_CrabBoard_Hardware)
 <img src="https://s.imgkb.xyz/i/abcdocker/2025/01/01/67752f84dc98a.png" alt="Py32_Rust_Dev 1.2" title="Py32_Rust_Dev 1.2" />
 
 ## Wechat blog
