@@ -12,8 +12,8 @@ fn main() -> ! {
     info!("Led blinky testing...");
 
     let gpioa = p.GPIOA.split();
-    // LED: RX led
-    let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, Speed::Low);
+    // LED: TX led
+    let mut led = Output::new(gpioa.PA9, PinIoType::PullDown, Speed::Low);
 
     loop {
         // 翻转led
