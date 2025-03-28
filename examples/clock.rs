@@ -15,7 +15,7 @@ fn main() -> ! {
     let _mco_pin = Af::new(gpioa.PA1, PinAF::AF15, Speed::VeryHigh, PinIoType::PullUp);
     Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);
 
-    let mut led = Output::new(gpioa.PA10, PinIoType::PullUp, Speed::VeryHigh);
+    let mut led = Output::new(gpioa.PA9, PinIoType::PullUp, Speed::VeryHigh);
 
     cortex_m::asm::delay(1000 * 1000 * 5);
     // let _sysclk = clock::SysClock::<clock::HSIDiv<1>>::config().unwrap();
