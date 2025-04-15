@@ -1,6 +1,6 @@
 [package]
 name = "py32f030_hal"
-version = "0.1.0"
+version = "0.2.0"
 description = "Peripheral Hal Crate for Puya's PY32F030 microcontroller"
 edition = "2021"
 keywords = ["no-std", "arm", "cortex-m", "Puya", "py32f030"]
