@@ -1,7 +1,7 @@
 #[cfg(feature = "embassy")]
 use super::future::EventFuture;
 use super::types::{CenterAlignedMode, CountDirection};
-use super::{Event, Instance};
+use super::{Error, Event, Instance};
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::{
@@ -23,7 +23,7 @@ pub struct Counter<'d, T: Instance, M: Mode> {
 }
 
 impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
-    pub(super) fn new() -> Self {
+    pub(super) fn new() -> Result<Self, Error> {
         T::enable_auto_reload_buff(false);
         T::enable_single_mode(false);
         T::set_cms(CenterAlignedMode::EdgeAligned);
@@ -33,10 +33,10 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
             T::id().enable_interrupt();
         }
 
-        Counter {
+        Ok(Counter {
             _t: PhantomData,
             _m: PhantomData,
-        }
+        })
     }
 
     /// 获取当前定时器的计数频率

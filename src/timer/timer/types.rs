@@ -1,7 +1,13 @@
 use enumset::EnumSetType;
 
 #[derive(Debug)]
-pub enum Error {}
+pub enum Error {
+    Overflow,       /* 超出可配置的范围 */
+    Frequency,      /* 频率超出可配置的范围 */
+    Config,         /* 配置错误 */
+    InvalidChannel, /* 无效的通道 */
+    Unsupported,    /* 不支持 */
+}
 
 /// 输入捕获和输出pwm通道
 #[derive(PartialEq, Clone, Copy)]

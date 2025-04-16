@@ -54,63 +54,6 @@ impl PeripheralInterrupt for Timer {
     }
 }
 
-#[derive(Default)]
-pub struct ChannelOutputConfig {
-    pub state: bool,
-    pub polarity: bool,
-    pub idle_state: bool,
-}
-
-pub struct ChannelConfig {
-    pub mode: ChannelMode,
-    pub clear: bool,
-    pub fast: bool,
-    pub preload: bool,
-    /// Specifies the TIM Output Compare state.
-    pub compare: u16,
-
-    pub ch: Option<ChannelOutputConfig>,
-    pub n_ch: Option<ChannelOutputConfig>,
-}
-
-impl Default for ChannelConfig {
-    fn default() -> Self {
-        Self {
-            mode: ChannelMode::PWM1,
-            clear: false,
-            fast: false,
-            preload: false,
-            compare: 0,
-            ch: None,
-            n_ch: None,
-        }
-    }
-}
-
-impl ChannelConfig {
-    pub fn mode(self, mode: ChannelMode) -> Self {
-        Self { mode, ..self }
-    }
-
-    pub fn compare(self, compare: u16) -> Self {
-        Self { compare, ..self }
-    }
-
-    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
-        Self {
-            ch: Some(ch),
-            ..self
-        }
-    }
-
-    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
-        Self {
-            n_ch: Some(n_ch),
-            ..self
-        }
-    }
-}
-
 pub struct Capture;
 pub struct Hall;
 pub struct Motor;
@@ -164,7 +107,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     }
 
     /// 转换成pwm模式
-    pub fn as_pwm(self) -> Pwm<'d, T> {
+    pub fn as_pwm(self) -> Result<Pwm<'d, T>, Error> {
         Pwm::new()
     }
 }
@@ -179,28 +122,3 @@ pin_af_for_instance_def!(TimerChannel3NPin, Instance);
 pin_af_for_instance_def!(TimerChannel4Pin, Instance);
 pin_af_for_instance_def!(TimerBkInPin, Instance);
 pin_af_for_instance_def!(TimerEtrPin, Instance);
-
-use embedded_time::{rate::Fraction, Clock};
-
-impl<'d, T: Instance, M: Mode> Clock for AnyTimer<'d, T, M> {
-    type T = u32;
-    const SCALING_FACTOR: Fraction = Fraction::new(1, 1);
-    fn new_timer<Dur: embedded_time::duration::Duration>(
-        &self,
-        duration: Dur,
-    ) -> embedded_time::Timer<
-        embedded_time::timer::param::OneShot,
-        embedded_time::timer::param::Armed,
-        Self,
-        Dur,
-    >
-    where
-        Dur: embedded_time::fixed_point::FixedPoint,
-    {
-        todo!()
-    }
-
-    fn try_now(&self) -> Result<embedded_time::Instant<Self>, embedded_time::clock::Error> {
-        todo!()
-    }
-}

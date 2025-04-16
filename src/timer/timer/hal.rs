@@ -3,6 +3,9 @@ pub(crate) mod sealed {
     use crate::clock::timer_pclk;
     use crate::pac;
 
+    pub trait AdvancedTimerInstance {}
+    pub trait BasicTimerInstance {}
+
     pub trait Instance {
         /// 考虑以后其他单片机可能有多个相同外设
         /// 高级定时器的索引
@@ -63,6 +66,11 @@ pub(crate) mod sealed {
             Self::block()
                 .psc
                 .write(|w| unsafe { w.psc().bits(prescaler) })
+        }
+
+        #[inline]
+        fn get_prescaler() -> u16 {
+            Self::block().psc.read().psc().bits()
         }
 
         /// 设置计数周期值

@@ -39,36 +39,102 @@ impl<'d, T: Instance> Default for Pwm<'d, T> {
 //     ch_pin: Option<PeripheralRef<'d, AnyPin>>,
 // }
 
+#[derive(Default)]
+pub struct ChannelOutputConfig {
+    pub state: bool,
+    pub polarity: bool,
+    pub idle_state: bool,
+}
+
+pub struct ChannelConfig {
+    pub mode: ChannelMode,
+    pub clear: bool,
+    pub fast: bool,
+    pub preload: bool,
+    /// Specifies the TIM Output Compare state.
+    pub compare: u16,
+
+    pub ch: Option<ChannelOutputConfig>,
+    pub n_ch: Option<ChannelOutputConfig>,
+}
+
+impl Default for ChannelConfig {
+    fn default() -> Self {
+        Self {
+            mode: ChannelMode::PWM1,
+            clear: false,
+            fast: false,
+            preload: false,
+            compare: 0,
+            ch: None,
+            n_ch: None,
+        }
+    }
+}
+
+impl ChannelConfig {
+    pub fn mode(self, mode: ChannelMode) -> Self {
+        Self { mode, ..self }
+    }
+
+    pub fn compare(self, compare: u16) -> Self {
+        Self { compare, ..self }
+    }
+
+    pub fn ch(self, ch: ChannelOutputConfig) -> Self {
+        Self {
+            ch: Some(ch),
+            ..self
+        }
+    }
+
+    pub fn n_ch(self, n_ch: ChannelOutputConfig) -> Self {
+        Self {
+            n_ch: Some(n_ch),
+            ..self
+        }
+    }
+}
+
 impl<'d, T: Instance> Pwm<'d, T> {
+    // 配置函数，用于配置四个通道的参数
     pub fn config(
         &mut self,
         channel_1_config: Option<ChannelConfig>,
         channel_2_config: Option<ChannelConfig>,
         channel_3_config: Option<ChannelConfig>,
         channel_4_config: Option<ChannelConfig>,
-    ) -> Self {
+    ) -> Result<(), Error> {
         if let Some(config) = channel_1_config {
-            Self::channel_config(Channel::CH1, config)
+            Self::channel_config(Channel::CH1, config)?
         }
 
         if let Some(config) = channel_2_config {
-            Self::channel_config(Channel::CH2, config)
+            Self::channel_config(Channel::CH2, config)?
         }
 
         if let Some(config) = channel_3_config {
-            Self::channel_config(Channel::CH3, config)
+            Self::channel_config(Channel::CH3, config)?
         }
 
         if let Some(config) = channel_4_config {
-            Self::channel_config(Channel::CH4, config)
+            Self::channel_config(Channel::CH4, config)?
         }
 
         T::enable_auto_reload_buff(true);
 
-        Default::default()
+        Ok(())
     }
 
-    fn channel_config(channel: Channel, config: ChannelConfig) {
+    fn channel_config(channel: Channel, config: ChannelConfig) -> Result<(), Error> {
+        if T::id() == Timer::TIM14 || T::id() == Timer::TIM16 || T::id() == Timer::TIM17 {
+            if channel != Channel::CH1 {
+                return Err(Error::InvalidChannel);
+            }
+
+            // only for edge align mode
+        }
+
         T::set_enable_channel(channel, ChannelOutput::P, false);
         T::set_enable_channel(channel, ChannelOutput::N, false);
         T::set_channel_output_config(
@@ -99,10 +165,12 @@ impl<'d, T: Instance> Pwm<'d, T> {
                 ch.idle_state,
             );
         }
+
+        Ok(())
     }
 
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new() -> Result<Self, Error> {
+        Ok(Default::default())
     }
 }
 
@@ -111,7 +179,8 @@ impl<'d, T: Instance> Pwm<'d, T> {
         &mut self,
         oc_pin: Option<OC_PIN>,
         oc_n_pin: Option<OC_N_PIN>,
-    ) where
+    ) -> Result<(), Error>
+    where
         OC_PIN: TimerChannel1Pin<T> + 'd,
         OC_N_PIN: TimerChannel1NPin<T>,
     {
@@ -135,13 +204,16 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
         self._channel_1_pin = oc_pin;
         self._channel_1_n_pin = oc_n_pin;
+
+        Ok(())
     }
 
     pub fn set_channel_2_pin<OC_PIN, OC_N_PIN>(
         &mut self,
         oc_pin: Option<OC_PIN>,
         oc_n_pin: Option<OC_N_PIN>,
-    ) where
+    ) -> Result<(), Error>
+    where
         OC_PIN: TimerChannel2Pin<T> + 'd,
         OC_N_PIN: TimerChannel2NPin<T> + 'd,
     {
@@ -165,13 +237,16 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
         self._channel_2_pin = oc_pin;
         self._channel_2_n_pin = oc_n_pin;
+
+        Ok(())
     }
 
     pub fn set_channel_3_pin<OC_PIN, OC_N_PIN>(
         &mut self,
         oc_pin: Option<OC_PIN>,
         oc_n_pin: Option<OC_N_PIN>,
-    ) where
+    ) -> Result<(), Error>
+    where
         OC_PIN: TimerChannel3Pin<T> + 'd,
         OC_N_PIN: TimerChannel3NPin<T> + 'd,
     {
@@ -195,9 +270,14 @@ impl<'d, T: Instance> Pwm<'d, T> {
 
         self._channel_3_pin = oc_pin;
         self._channel_3_n_pin = oc_n_pin;
+
+        Ok(())
     }
 
-    pub fn set_channel_4_pin<OC_PIN, OC_N_PIN>(&mut self, oc_pin: Option<OC_PIN>)
+    pub fn set_channel_4_pin<OC_PIN, OC_N_PIN>(
+        &mut self,
+        oc_pin: Option<OC_PIN>,
+    ) -> Result<(), Error>
     where
         OC_PIN: TimerChannel4Pin<T> + 'd,
     {
@@ -211,6 +291,8 @@ impl<'d, T: Instance> Pwm<'d, T> {
         );
 
         self._channel_4_pin = oc_pin;
+
+        Ok(())
     }
 }
 
@@ -234,18 +316,28 @@ impl<'d, T: Instance> Pwm<'d, T> {
     }
 
     /// 设置计数频率（该频率为计数器的频率，并非波形的频率）
-    pub fn set_frequency(&mut self, freq: u32) {
-        let freq = if T::get_time_pclk() <= freq {
-            T::get_time_pclk()
-        } else {
-            freq
-        };
+    pub fn set_frequency(&mut self, freq: fugit::HertzU32) -> Result<(), Error> {
+        let freq = freq.to_Hz();
+
+        if T::get_time_pclk() % freq != 0 {
+            // defmt::info!(
+            //     "The frequency({}) is not a multiple of pclk({})",
+            //     freq,
+            //     T::get_time_pclk()
+            // );
+            return Err(Error::Frequency);
+        }
 
         let pre = T::get_time_pclk() / freq;
         T::set_prescaler(pre as u16 - 1);
+        Ok(())
     }
 
-    fn get_period(&self) -> u16 {
+    pub fn get_frequency(&self) -> fugit::HertzU32 {
+        fugit::HertzU32::from_raw(T::get_time_pclk() / (T::get_prescaler() + 1) as u32)
+    }
+
+    fn get_reload(&self) -> u16 {
         T::get_reload()
     }
 
@@ -258,7 +350,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_channel_compare(channel, duty);
     }
 
-    fn set_period(&mut self, period: u16) {
+    fn set_auto_reload(&mut self, period: u16) {
         T::set_auto_reload(period)
     }
 
@@ -278,7 +370,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
 impl<'d, T: Instance> embedded_hal_027::Pwm for Pwm<'d, T> {
     type Channel = Channel;
     type Duty = u16;
-    type Time = u16;
+    type Time = fugit::MillisDurationU64;
 
     fn enable(&mut self, channel: Self::Channel) {
         self.enable(channel)
@@ -297,7 +389,10 @@ impl<'d, T: Instance> embedded_hal_027::Pwm for Pwm<'d, T> {
     }
 
     fn get_period(&self) -> Self::Time {
-        self.get_period()
+        let freq = self.get_frequency();
+        let period =
+            fugit::MillisDurationU64::from_ticks(freq.to_Hz() as u64 / self.get_reload() as u64);
+        period
     }
 
     fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
@@ -308,29 +403,10 @@ impl<'d, T: Instance> embedded_hal_027::Pwm for Pwm<'d, T> {
     where
         P: Into<Self::Time>,
     {
-        self.set_period(period.into())
+        let auto_reload = period.into().ticks() as u64 / self.get_frequency().to_Hz() as u64;
+        if auto_reload > u16::MAX as u64 {
+            panic!("The period is too long");
+        }
+        self.set_auto_reload(auto_reload as u16);
     }
 }
-
-// impl<'d, T: Instance> embedded_hal_027::PwmPin for PwmChannel<'d, T> {
-//     type Duty = u16;
-//     fn enable(&mut self) {
-//         todo!()
-//     }
-
-//     fn disable(&mut self) {
-//         todo!()
-//     }
-
-//     fn get_duty(&self) -> Self::Duty {
-//         todo!()
-//     }
-
-//     fn set_duty(&mut self, duty: Self::Duty) {
-//         todo!()
-//     }
-
-//     fn get_max_duty(&self) -> Self::Duty {
-//         todo!()
-//     }
-// }

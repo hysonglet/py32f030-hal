@@ -46,7 +46,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         channel_2_config: Option<ChannelConfig>,
         channel_3_config: Option<ChannelConfig>,
         channel_4_config: Option<ChannelConfig>,
-    ) -> Self {
+    ) {
         if let Some(config) = channel_1_config {
             Self::channel_config(Channel::CH1, config)
         }
@@ -64,8 +64,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         }
 
         T::enable_auto_reload_buff(true);
-
-        Default::default()
     }
 
     fn channel_config(channel: Channel, config: ChannelConfig) {
