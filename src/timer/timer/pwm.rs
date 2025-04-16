@@ -127,11 +127,11 @@ impl<'d, T: Instance> Pwm<'d, T> {
     }
 
     fn channel_config(channel: Channel, config: ChannelConfig) -> Result<(), Error> {
-        if T::id() == Timer::TIM14 || T::id() == Timer::TIM16 || T::id() == Timer::TIM17 {
+        /* 14, 16, 17只有一个通道 */
+        if T::id().is_general_14() || T::id().is_general_16_17() {
             if channel != Channel::CH1 {
                 return Err(Error::InvalidChannel);
             }
-
             // only for edge align mode
         }
 
@@ -217,6 +217,12 @@ impl<'d, T: Instance> Pwm<'d, T> {
         OC_PIN: TimerChannel2Pin<T> + 'd,
         OC_N_PIN: TimerChannel2NPin<T> + 'd,
     {
+        /* 14, 16, 17只有一个通道 */
+        if T::id().is_general_14() || T::id().is_general_16_17() {
+            return Err(Error::InvalidChannel);
+
+            // only for edge align mode
+        }
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {
@@ -250,6 +256,11 @@ impl<'d, T: Instance> Pwm<'d, T> {
         OC_PIN: TimerChannel3Pin<T> + 'd,
         OC_N_PIN: TimerChannel3NPin<T> + 'd,
     {
+        /* 14, 16, 17只有一个通道 */
+        if T::id().is_general_14() || T::id().is_general_16_17() {
+            return Err(Error::InvalidChannel);
+            // only for edge align mode
+        }
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {
@@ -281,6 +292,13 @@ impl<'d, T: Instance> Pwm<'d, T> {
     where
         OC_PIN: TimerChannel4Pin<T> + 'd,
     {
+        /* 14, 16, 17只有一个通道 */
+        if T::id().is_general_14() || T::id().is_general_16_17() {
+            return Err(Error::InvalidChannel);
+
+            // only for edge align mode
+        }
+
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {

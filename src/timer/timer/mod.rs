@@ -30,6 +30,48 @@ pub enum Timer {
     TIM17,
 }
 
+impl Timer {
+    #[inline]
+    pub(crate) fn is_advanced(&self) -> bool {
+        match *self {
+            Self::TIM1 => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_general(&self) -> bool {
+        match *self {
+            Self::TIM1 => false,
+            _ => true,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_general_3(&self) -> bool {
+        match *self {
+            Self::TIM3 => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_general_14(&self) -> bool {
+        match *self {
+            Self::TIM14 => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_general_16_17(&self) -> bool {
+        match *self {
+            Self::TIM16 | Self::TIM17 => true,
+            _ => false,
+        }
+    }
+}
+
 impl PeripheralIdToClockIndex for Timer {
     fn clock(&self) -> PeripheralClockIndex {
         match *self {
@@ -63,6 +105,7 @@ macro_rules! impl_sealed_timer {
         $peripheral: ident, $timer_id: ident
     ) => {
         impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
+            #[inline]
             fn id() -> Timer {
                 Timer::$timer_id
             }
@@ -102,7 +145,7 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     }
 
     /// 转换成计数模式
-    pub fn as_counter(self) -> Counter<'d, T, M> {
+    pub fn as_counter(self) -> Result<Counter<'d, T, M>, Error> {
         Counter::new()
     }
 
