@@ -38,7 +38,7 @@ pub enum ChannelType {
 }
 
 #[derive(Default, PartialEq, Eq)]
-pub enum ChannelMode {
+pub enum OutputChannelRefMode {
     /// 输出比较 1 模式
     /// 该位定义了输出参考信号 OC1REF 的动作，而 OC1REF决定了 OC1、 OC1N 的值。 OC1REF 是高电平有效，
     /// 而OC1、 OC1N 的有效电平取决于 CC1P、 CC1NP 位。000：冻结。输出比较寄存器 TIM1_CCR1 与计数器
@@ -65,7 +65,8 @@ pub enum ChannelMode {
     PWM2 = 7,
 }
 
-/// 记数模式
+/// 记数模式,
+/// 当CMS = 0时， 设置有效，否则该标志由硬件自动修改
 #[derive(PartialEq, Clone, Copy)]
 pub enum CountDirection {
     /// 向上计数模式，是从 0 到自动装载值的计数器，然后又从 0 重新开始计数，并产生一个计数的溢出事件。
@@ -93,18 +94,31 @@ pub enum CountDirection {
 /// 选择中央对齐模式
 ///     注：在计数器开启时(CEN=1)，不允许从边沿对齐模式转换到中央对齐模式
 #[derive(Clone, Copy, PartialEq)]
-pub enum CenterAlignedMode {
+pub(crate) enum CenterAlignedMode {
     /// 边沿对齐模式。计数器依据方向位(DIR)向上或向下计数。
     EdgeAligned = 0,
     /// 中央对齐模式 1。计数器交替地向上和向下计数。配置为输出的通道(TIM3_CCMRx 寄存器中 CCxS=00)的输出比较中断标
-    /// 志位，只在计数器向下计数时被设置。
+    /// 志位，只在计数器*向上*计数时被设置。
     CenterAligned1 = 1,
-    /// 中央对齐模式 2。计数器交替地向上和向下计数。计数器交替地向上和向下计数。配置为输出的通道(TIM3_CCMRx 寄存器
-    /// 中 CCxS=00)的输出比较中断标志位，只在计数器向上计数时被设置。
+    /// 中央对齐模式 2。计数器交替地向上和向下计数。配置为输出的通道(TIM3_CCMRx 寄存器
+    /// 中 CCxS=00)的输出比较中断标志位，只在计数器*向下*计数时被设置。
     CenterAligned2 = 2,
-    /// 央对齐模式 3。计数器交替地向上和向下计数。计数器交替地向上和向下计数。配置为输出的通道(TIM3_CCMRx 寄存器中
-    ///  CCxS=00)的输出比较中断标志位，在计数器向上和向下计数时均被设置。
+    /// 央对齐模式 3。计数器交替地向上和向下计数。配置为输出的通道(TIM3_CCMRx 寄存器中
+    ///  CCxS=00)的输出比较中断标志位，在计数器*向上*和*向下*计数时均被设置。
     CenterAligned3 = 3,
+}
+
+/// 计数模式
+#[derive(PartialEq)]
+pub enum CounterMode {
+    /// 上升计数或者下降计数
+    EdgeAligned(CountDirection),
+    /// 交替向上和向下计数，比较中断在向上计数时候产生
+    CounterAligned1,
+    /// 交替向上和向下计数，比较中断在向下计数时候产生
+    CounterAligned2,
+    /// 交替向上和向下计数，比较中断在向上和向下计数时候都会产生
+    CounterAligned3,
 }
 
 #[derive(PartialEq)]

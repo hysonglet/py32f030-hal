@@ -1,5 +1,4 @@
-use super::{Error, Event, Instance, Timer};
-use crate::{mcu::peripherals::TIM1, pac::interrupt};
+use super::{Error, Event, Instance};
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 use embassy_sync::waitqueue::AtomicWaker;

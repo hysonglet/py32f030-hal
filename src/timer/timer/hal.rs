@@ -3,9 +3,6 @@ pub(crate) mod sealed {
     use crate::clock::timer_pclk;
     use crate::pac;
 
-    pub trait AdvancedTimerInstance {}
-    pub trait BasicTimerInstance {}
-
     pub trait Instance {
         /// 考虑以后其他单片机可能有多个相同外设
         /// 高级定时器的索引
@@ -175,7 +172,7 @@ pub(crate) mod sealed {
         /// 设置通道输出模式
         fn set_channel_output_config(
             channel: Channel,
-            mode: ChannelMode,
+            mode: OutputChannelRefMode,
             clear: bool,
             fast: bool,
             preload: bool,
@@ -321,6 +318,10 @@ pub(crate) mod sealed {
                 (Channel::CH3, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
                 (Channel::CH4, ChannelOutput::N) => {}
             }
+        }
+
+        fn set_counter_mode(mode: CounterMode) {
+            todo!()
         }
 
         /// 软件方式触发信号

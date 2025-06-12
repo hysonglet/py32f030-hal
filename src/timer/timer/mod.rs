@@ -30,48 +30,6 @@ pub enum Timer {
     TIM17,
 }
 
-impl Timer {
-    #[inline]
-    pub(crate) fn is_advanced(&self) -> bool {
-        match *self {
-            Self::TIM1 => true,
-            _ => false,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn is_general(&self) -> bool {
-        match *self {
-            Self::TIM1 => false,
-            _ => true,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn is_general_3(&self) -> bool {
-        match *self {
-            Self::TIM3 => true,
-            _ => false,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn is_general_14(&self) -> bool {
-        match *self {
-            Self::TIM14 => true,
-            _ => false,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn is_general_16_17(&self) -> bool {
-        match *self {
-            Self::TIM16 | Self::TIM17 => true,
-            _ => false,
-        }
-    }
-}
-
 impl PeripheralIdToClockIndex for Timer {
     fn clock(&self) -> PeripheralClockIndex {
         match *self {
@@ -96,16 +54,11 @@ impl PeripheralInterrupt for Timer {
     }
 }
 
-pub struct Capture;
-pub struct Hall;
-pub struct Motor;
-
 macro_rules! impl_sealed_timer {
     (
         $peripheral: ident, $timer_id: ident
     ) => {
         impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
-            #[inline]
             fn id() -> Timer {
                 Timer::$timer_id
             }
@@ -114,16 +67,16 @@ macro_rules! impl_sealed_timer {
     };
 }
 
-pub struct AnyTimer<'d, T: Instance, M: Mode> {
-    _t: PhantomData<&'d T>,
-    _m: PhantomData<M>,
-}
-
 impl_sealed_timer!(TIM1, TIM1);
 impl_sealed_timer!(TIM3, TIM3);
 impl_sealed_timer!(TIM14, TIM14);
 impl_sealed_timer!(TIM16, TIM16);
 impl_sealed_timer!(TIM17, TIM17);
+
+pub struct AnyTimer<'d, T: Instance, M: Mode> {
+    _t: PhantomData<&'d T>,
+    _m: PhantomData<M>,
+}
 
 impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     /// 新建一个 timer

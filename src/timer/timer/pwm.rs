@@ -32,13 +32,6 @@ impl<'d, T: Instance> Default for Pwm<'d, T> {
     }
 }
 
-// pub struct PwmChannel<'d, T: Instance> {
-//     _id: Channel,
-//     _t: PhantomData<&'d T>,
-
-//     ch_pin: Option<PeripheralRef<'d, AnyPin>>,
-// }
-
 #[derive(Default)]
 pub struct ChannelOutputConfig {
     pub state: bool,
@@ -47,13 +40,15 @@ pub struct ChannelOutputConfig {
 }
 
 pub struct ChannelConfig {
-    pub mode: ChannelMode,
+    /// Specifies the channel reference mode.
+    pub mode: OutputChannelRefMode,
     pub clear: bool,
     pub fast: bool,
     pub preload: bool,
     /// Specifies the TIM Output Compare state.
     pub compare: u16,
 
+    // Channel Config
     pub ch: Option<ChannelOutputConfig>,
     pub n_ch: Option<ChannelOutputConfig>,
 }
@@ -61,7 +56,7 @@ pub struct ChannelConfig {
 impl Default for ChannelConfig {
     fn default() -> Self {
         Self {
-            mode: ChannelMode::PWM1,
+            mode: OutputChannelRefMode::PWM1,
             clear: false,
             fast: false,
             preload: false,
@@ -73,7 +68,7 @@ impl Default for ChannelConfig {
 }
 
 impl ChannelConfig {
-    pub fn mode(self, mode: ChannelMode) -> Self {
+    pub fn mode(self, mode: OutputChannelRefMode) -> Self {
         Self { mode, ..self }
     }
 
@@ -98,7 +93,7 @@ impl ChannelConfig {
 
 impl<'d, T: Instance> Pwm<'d, T> {
     // 配置函数，用于配置四个通道的参数
-    pub fn config(
+    pub fn config_all_channel(
         &mut self,
         channel_1_config: Option<ChannelConfig>,
         channel_2_config: Option<ChannelConfig>,
@@ -121,20 +116,42 @@ impl<'d, T: Instance> Pwm<'d, T> {
             Self::channel_config(Channel::CH4, config)?
         }
 
-        T::enable_auto_reload_buff(true);
-
         Ok(())
     }
 
-    fn channel_config(channel: Channel, config: ChannelConfig) -> Result<(), Error> {
-        /* 14, 16, 17只有一个通道 */
-        if T::id().is_general_14() || T::id().is_general_16_17() {
-            if channel != Channel::CH1 {
-                return Err(Error::InvalidChannel);
-            }
-            // only for edge align mode
+    /// 设置计数模式，将会影响计数的周期和信号的占空比
+    pub fn set_counter_mode(mode: CounterMode) -> Result<(), Error> {
+        if (T::id() == Timer::TIM14 || T::id() == Timer::TIM17)
+            && (mode != CounterMode::EdgeAligned(CountDirection::Up))
+        {
+            return Err(Error::Unsupported);
         }
+        T::set_counter_mode(mode);
+        Ok(())
+    }
 
+    pub fn enable_auto_reload_buff(autoload_buff: bool) {
+        T::enable_auto_reload_buff(autoload_buff);
+    }
+
+    /// 返回是否支持指定通道的输出
+    fn has_channel_output(channel: Channel, p: ChannelOutput) -> bool {
+        let id = T::id();
+        match (id, channel, p) {
+            (Timer::TIM1, _, _) => true,
+            (
+                Timer::TIM3,
+                Channel::CH1 | Channel::CH2 | Channel::CH3 | Channel::CH4,
+                ChannelOutput::P,
+            ) => true,
+            (Timer::TIM14, Channel::CH1, ChannelOutput::P) => true,
+            (Timer::TIM16 | Timer::TIM17, Channel::CH1, _) => true,
+            (_, _, _) => false,
+        }
+    }
+
+    /// Config a channel
+    pub fn channel_config(channel: Channel, config: ChannelConfig) -> Result<(), Error> {
         T::set_enable_channel(channel, ChannelOutput::P, false);
         T::set_enable_channel(channel, ChannelOutput::N, false);
         T::set_channel_output_config(
@@ -147,6 +164,10 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_channel_type(channel, ChannelType::Pwm);
 
         if let Some(ch) = config.ch {
+            if Self::has_channel_output(channel, ChannelOutput::P) == false {
+                return Err(Error::Unsupported);
+            }
+
             T::set_channel_output_effective_level(
                 channel,
                 ChannelOutput::P,
@@ -157,6 +178,10 @@ impl<'d, T: Instance> Pwm<'d, T> {
         }
 
         if let Some(ch) = config.n_ch {
+            if Self::has_channel_output(channel, ChannelOutput::P) == false {
+                return Err(Error::Unsupported);
+            }
+
             T::set_channel_output_effective_level(
                 channel,
                 ChannelOutput::N,
@@ -217,12 +242,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         OC_PIN: TimerChannel2Pin<T> + 'd,
         OC_N_PIN: TimerChannel2NPin<T> + 'd,
     {
-        /* 14, 16, 17只有一个通道 */
-        if T::id().is_general_14() || T::id().is_general_16_17() {
-            return Err(Error::InvalidChannel);
-
-            // only for edge align mode
-        }
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {
@@ -256,11 +275,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         OC_PIN: TimerChannel3Pin<T> + 'd,
         OC_N_PIN: TimerChannel3NPin<T> + 'd,
     {
-        /* 14, 16, 17只有一个通道 */
-        if T::id().is_general_14() || T::id().is_general_16_17() {
-            return Err(Error::InvalidChannel);
-            // only for edge align mode
-        }
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {
@@ -292,13 +306,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
     where
         OC_PIN: TimerChannel4Pin<T> + 'd,
     {
-        /* 14, 16, 17只有一个通道 */
-        if T::id().is_general_14() || T::id().is_general_16_17() {
-            return Err(Error::InvalidChannel);
-
-            // only for edge align mode
-        }
-
         let oc_pin = oc_pin.map_or_else(
             || None,
             |pin| {
@@ -325,6 +332,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_enable_channel(channel, ChannelOutput::N, false);
     }
 
+    // 获取指定通道的占空比
     pub fn get_duty(&self, channel: Channel) -> u16 {
         T::get_channel_capture(channel)
     }
@@ -338,11 +346,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         let freq = freq.to_Hz();
 
         if T::get_time_pclk() % freq != 0 {
-            // defmt::info!(
-            //     "The frequency({}) is not a multiple of pclk({})",
-            //     freq,
-            //     T::get_time_pclk()
-            // );
             return Err(Error::Frequency);
         }
 
