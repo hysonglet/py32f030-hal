@@ -319,7 +319,9 @@ pub(crate) mod sealed {
                 (Channel::CH1, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc1ne().bit(en)),
                 (Channel::CH2, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc2ne().bit(en)),
                 (Channel::CH3, ChannelOutput::N) => block.ccer.modify(|_, w| w.cc3ne().bit(en)),
-                (Channel::CH4, ChannelOutput::N) => {}
+                (Channel::CH4, ChannelOutput::N) => {
+                    unreachable!()
+                }
             }
         }
 
