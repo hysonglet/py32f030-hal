@@ -190,7 +190,7 @@ impl<'d, T: Instance, M: Mode> AnyDma<'d, T, M> {
         }
     }
 
-    pub fn split(&mut self) -> [DmaChannel<T, M>; 3] {
+    pub fn split(&'_ self) -> [DmaChannel<'_, T, M>; 3] {
         [
             DmaChannel::new(Channel::Channel1),
             DmaChannel::new(Channel::Channel2),

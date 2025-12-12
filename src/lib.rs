@@ -4,7 +4,6 @@
 #![allow(internal_features)]
 #![feature(core_intrinsics)]
 #![allow(non_snake_case)]
-#![feature(async_closure)]
 
 use config::SysClockSource;
 use mcu::Peripherals;
