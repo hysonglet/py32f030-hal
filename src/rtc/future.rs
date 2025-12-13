@@ -1,6 +1,4 @@
 use super::*;
-use crate::mcu::peripherals::RTC;
-use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
 use embassy_sync::waitqueue::AtomicWaker;
 
@@ -20,7 +18,7 @@ impl<T: Instance> WakeFuture<T> {
     }
 
     #[inline]
-    fn on_interrupt() {
+    pub(super) fn on_interrupt() {
         EnumSet::all().iter().for_each(|event| {
             if T::event_flag(event) && T::is_enable_interrupt(event) {
                 T::event_config(event, false);
@@ -58,9 +56,4 @@ impl<T: Instance> Future for WakeFuture<T> {
 
 impl<T: Instance> Drop for WakeFuture<T> {
     fn drop(&mut self) {}
-}
-
-#[interrupt]
-fn RTC() {
-    critical_section::with(|_cs| WakeFuture::<RTC>::on_interrupt())
 }

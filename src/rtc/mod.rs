@@ -5,14 +5,11 @@ mod types;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::{
-    clock::peripheral::PeripheralInterrupt,
-    macro_def::impl_sealed_peripheral_id,
-    // mcu::peripherals::RTC,
-    mode::Blocking,
-
-    pwr::pwr,
+    interrupt::BindInterrupt, macro_def::impl_sealed_peripheral_id, mode::Blocking, pwr::pwr,
+    rtc::future::WakeFuture,
 };
 use core::marker::PhantomData;
+use cortex_m::interrupt::InterruptNumber;
 use embassy_hal_internal::Peripheral;
 use enumset::EnumSet;
 pub use types::*;
@@ -26,7 +23,7 @@ use crate::{
 #[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub(crate) enum Id {
     Rtc1 = 0,
 }
@@ -34,18 +31,29 @@ pub(crate) enum Id {
 // 根据ID匹配外设实体
 impl_sealed_peripheral_id!(RTC, Rtc1);
 
-impl PeripheralIdToClockIndex for Id {
-    fn clock(&self) -> PeripheralClockIndex {
-        match *self {
-            Self::Rtc1 => PeripheralClockIndex::RTCAPB,
+unsafe impl InterruptNumber for Id {
+    fn number(self) -> u16 {
+        match self {
+            Self::Rtc1 => crate::pac::Interrupt::RTC as u16,
         }
     }
 }
 
-impl PeripheralInterrupt for Id {
-    fn interrupt(&self) -> crate::pac::interrupt {
+impl BindInterrupt for Id {
+    #[cfg(feature = "embassy")]
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
         match *self {
-            Self::Rtc1 => crate::pac::interrupt::RTC,
+            Self::Rtc1 => Self::bind(self, &|| {
+                WakeFuture::<crate::mcu::peripherals::RTC>::on_interrupt()
+            }),
+        }
+    }
+}
+
+impl PeripheralIdToClockIndex for Id {
+    fn clock(&self) -> PeripheralClockIndex {
+        match *self {
+            Self::Rtc1 => PeripheralClockIndex::RTCAPB,
         }
     }
 }
@@ -153,7 +161,7 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
             T::clear_interrupt(event);
             T::event_config(event, true);
         });
-        T::id().enable_interrupt();
+        T::id().enable();
         future::WakeFuture::<T>::new(event).await
     }
 
@@ -167,7 +175,7 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
             T::clear_interrupt(event);
             T::event_config(event, true);
         });
-        T::id().enable_interrupt();
+        T::id().enable();
         future::WakeFuture::<T>::new(event).await
     }
 }

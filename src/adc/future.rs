@@ -1,7 +1,6 @@
 use enumset::EnumSet;
 
 use super::*;
-use crate::pac::interrupt;
 
 pub struct ChannelInputFuture<T: Instance> {
     _channel: AdcChannel,
@@ -28,7 +27,7 @@ impl<T: Instance> ChannelInputFuture<T> {
         }
     }
     #[inline]
-    unsafe fn on_interrupt() {
+    pub(super) unsafe fn on_interrupt() {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
@@ -67,12 +66,12 @@ impl<T: Instance> Drop for ChannelInputFuture<T> {
 
 // impl<T: Instance> Unpin for ChannelInput<T> {}
 
-#[interrupt]
-fn ADC_COMP() {
-    // ADC1 的中断 eoc
-    critical_section::with(|_cs| unsafe {
-        ChannelInputFuture::<ADC>::on_interrupt();
-    })
-    // TODO!
-    // comp 的中断
-}
+// #[interrupt]
+// fn ADC_COMP() {
+//     // ADC1 的中断 eoc
+//     critical_section::with(|_cs| unsafe {
+//         ChannelInputFuture::<ADC>::on_interrupt();
+//     })
+//     // TODO!
+//     // comp 的中断
+// }

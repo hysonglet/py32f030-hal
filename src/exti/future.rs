@@ -1,8 +1,7 @@
 use super::types::*;
-use crate::clock::peripheral::PeripheralInterrupt;
 use crate::exti::hal::sealed::Instance;
 use crate::gpio::{AnyPin, GpioPort};
-use crate::pac::interrupt;
+use crate::interrupt::BindInterrupt;
 
 use embassy_sync::waitqueue::AtomicWaker;
 
@@ -58,7 +57,7 @@ impl<'d> Future for ExtiInputFuture<'d> {
             Poll::Ready(())
         } else {
             EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
-            self.line.enable_interrupt();
+            self.line.enable();
             Poll::Pending
         }
     }
@@ -78,22 +77,21 @@ impl<'d> Drop for ExtiInputFuture<'d> {
     }
 }
 
-#[interrupt]
-fn EXTI0_1() {
-    critical_section::with(|_cs| unsafe { on_gpio_line_irq(0x03) })
-}
+// #[interrupt]
+// fn EXTI0_1() {
+//     critical_section::with(|_cs| unsafe { on_gpio_line_irq(0x03) })
+// }
 
-#[interrupt]
-fn EXTI2_3() {
-    critical_section::with(|_cs| unsafe { on_gpio_line_irq(0xc0) })
-}
+// #[interrupt]
+// fn EXTI2_3() {
+//     critical_section::with(|_cs| unsafe { on_gpio_line_irq(0xc0) })
+// }
 
-#[interrupt]
-fn EXTI4_15() {
-    critical_section::with(|_cs| unsafe { on_gpio_line_irq(0xfff0) })
-}
-
-unsafe fn on_gpio_line_irq(mask: u32) {
+// #[interrupt]
+// fn EXTI4_15() {
+//     critical_section::with(|_cs| unsafe { on_gpio_line_irq(0xfff0) })
+// }
+pub(super) unsafe fn on_gpio_line_irq(mask: u32) {
     let flag = Exti::block().pr.read().bits() & mask;
     for line in BitIter(flag) {
         Exti::line_pend_enable(Line::from(line as usize), false);

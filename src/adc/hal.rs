@@ -19,7 +19,7 @@ pub mod sealed {
             Self::block().cr.modify(|_, w| w.adcal().set_bit());
         }
 
-        /// 使能 adc 外设
+        /// 使能 adc 外设时钟
         #[inline]
         fn enable() {
             Self::block().cr.modify(|_, w| w.aden().set_bit())

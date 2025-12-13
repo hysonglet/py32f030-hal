@@ -2,12 +2,10 @@
 use super::future::EventFuture;
 use super::types::{CenterAlignedMode, CountDirection};
 use super::{Event, Instance};
+use crate::interrupt::BindInterrupt;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
-use crate::{
-    clock::peripheral::PeripheralInterrupt,
-    mode::{Blocking, Mode},
-};
+use crate::mode::{Blocking, Mode};
 use core::marker::PhantomData;
 #[cfg(feature = "embassy")]
 use enumset::EnumSet;
@@ -30,7 +28,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::set_dir(CountDirection::Up);
 
         if M::is_async() {
-            T::id().enable_interrupt();
+            T::id().enable();
         }
 
         Counter {
@@ -69,7 +67,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
 impl<'d, T: Instance, M: Mode> Drop for Counter<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable_interrupt();
+            T::id().disable();
         }
     }
 }

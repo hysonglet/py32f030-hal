@@ -3,15 +3,15 @@ mod future;
 mod hal;
 mod types;
 
-use crate::clock::peripheral::{
-    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
-};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
+use crate::interrupt::BindInterrupt;
 use crate::macro_def::impl_sealed_peripheral_id;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
 use crate::syscfg::{syscfg, DmaChannelMap};
 use core::marker::PhantomData;
+use cortex_m::interrupt::InterruptNumber;
 use embassy_hal_internal::{into_ref, Peripheral};
 use enumset::EnumSet;
 #[cfg(feature = "embassy")]
@@ -45,11 +45,34 @@ pub enum Channel {
     Channel3 = 2,
 }
 
-impl PeripheralInterrupt for Channel {
-    fn interrupt(&self) -> crate::pac::interrupt {
-        match *self {
-            Self::Channel1 => PY32f030xx_pac::interrupt::DMA_CHANNEL1,
-            Self::Channel2 | Self::Channel3 => PY32f030xx_pac::interrupt::DMA_CHANNEL2_3,
+impl BindInterrupt for Channel {
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
+        match self {
+            Self::Channel1 => Self::bind(&self, &|| unsafe {
+                EventFuture::<crate::mcu::peripherals::DMA>::on_interrupt(
+                    Channel::Channel1,
+                    EnumSet::all(),
+                )
+            }),
+            Self::Channel2 | Self::Channel3 => Self::bind(&self, &|| unsafe {
+                EventFuture::<crate::mcu::peripherals::DMA>::on_interrupt(
+                    Channel::Channel2,
+                    EnumSet::all(),
+                );
+                EventFuture::<crate::mcu::peripherals::DMA>::on_interrupt(
+                    Channel::Channel3,
+                    EnumSet::all(),
+                )
+            }),
+        }
+    }
+}
+
+unsafe impl InterruptNumber for Channel {
+    fn number(self) -> u16 {
+        match self {
+            Self::Channel1 => crate::pac::interrupt::DMA_CHANNEL1 as u16,
+            Self::Channel2 | Self::Channel3 => crate::pac::interrupt::DMA_CHANNEL2_3 as u16,
         }
     }
 }

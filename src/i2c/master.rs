@@ -6,12 +6,10 @@ use super::future::EventFuture;
 use super::hal::sealed::WAIT_FLAG_TIMEOUT;
 use super::{Error, Event, Instance};
 use crate::delay::wait_for_true_timeout_block;
+use crate::interrupt::BindInterrupt;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
-use crate::{
-    clock::peripheral::PeripheralInterrupt,
-    mode::{Blocking, Mode},
-};
+use crate::mode::{Blocking, Mode};
 use core::marker::PhantomData;
 use embedded_hal::i2c::Operation;
 
@@ -23,7 +21,7 @@ pub struct Master<'d, T: Instance, M: Mode> {
 impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
     pub(super) fn new() -> Self {
         if M::is_async() {
-            T::id().enable_interrupt();
+            T::id().enable();
         }
         Self { _t: PhantomData }
     }
@@ -32,7 +30,7 @@ impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
 impl<'d, T: Instance, M: Mode> Drop for Master<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable_interrupt();
+            T::id().disable();
         }
     }
 }

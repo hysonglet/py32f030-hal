@@ -1,8 +1,5 @@
 use super::{Event, Id, Instance};
-use crate::mcu::peripherals::{USART1, USART2};
-use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
-use critical_section::CriticalSection;
 
 #[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
@@ -35,7 +32,7 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
+    pub(super) unsafe fn on_interrupt(id: usize) {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
@@ -73,18 +70,4 @@ impl<T: Instance> Future for EventFuture<T> {
         // 没有任何事件
         Poll::Pending
     }
-}
-
-#[interrupt]
-fn USART1() {
-    critical_section::with(|cs| unsafe {
-        EventFuture::<USART1>::on_interrupt(cs, Id::USART1 as usize)
-    })
-}
-
-#[interrupt]
-fn USART2() {
-    critical_section::with(|cs| unsafe {
-        EventFuture::<USART2>::on_interrupt(cs, Id::USART2 as usize)
-    })
 }

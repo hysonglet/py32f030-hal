@@ -1,8 +1,7 @@
+use crate::interrupt::BindInterrupt;
+
 use super::{Channel, Event, Instance};
-use crate::pac::interrupt;
-use crate::{clock::peripheral::PeripheralInterrupt, mcu::peripherals::DMA};
 use core::{future::Future, marker::PhantomData, task::Poll};
-use critical_section::CriticalSection;
 
 #[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
@@ -27,7 +26,7 @@ impl<T: Instance> Unpin for EventFuture<T> {}
 impl<T: Instance> Drop for EventFuture<T> {
     fn drop(&mut self) {
         // 关闭通道中断
-        self.channel.disable_interrupt();
+        self.channel.disable();
     }
 }
 
@@ -47,7 +46,7 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt(_cs: CriticalSection, channel: Channel, events: EnumSet<Event>) {
+    pub(super) unsafe fn on_interrupt(channel: Channel, events: EnumSet<Event>) {
         // 关闭已经发生的中断事件
         events.iter().for_each(|event| {
             /* 中断开启了并且，匹配到中断了 */
@@ -86,24 +85,8 @@ impl<T: Instance> Future for EventFuture<T> {
             .iter()
             .for_each(|event| T::event_config(self.channel, event, true));
         // 开启通道的中断
-        self.channel.enable_interrupt();
+        self.channel.enable();
         // 没有任何事件
         Poll::Pending
     }
-}
-
-#[interrupt]
-fn DMA_CHANNEL1() {
-    critical_section::with(|cs| unsafe {
-        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel1, EnumSet::all())
-    })
-}
-
-#[interrupt]
-fn DMA_CHANNEL2_3() {
-    // 通道 2 和 通道 3可能会混，所以都遍历一遍
-    critical_section::with(|cs| unsafe {
-        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all());
-        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all())
-    })
 }

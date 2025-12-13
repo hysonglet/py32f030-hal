@@ -122,20 +122,6 @@ impl PeripheralClockIndex {
     }
 }
 
-pub trait PeripheralInterrupt {
-    fn interrupt(&self) -> crate::pac::interrupt;
-
-    #[inline]
-    fn enable_interrupt(&self) {
-        unsafe { cortex_m::peripheral::NVIC::unmask(self.interrupt()) }
-    }
-
-    #[inline]
-    fn disable_interrupt(&self) {
-        cortex_m::peripheral::NVIC::mask(self.interrupt())
-    }
-}
-
 pub trait PeripheralIdToClockIndex {
     fn clock(&self) -> PeripheralClockIndex;
 }

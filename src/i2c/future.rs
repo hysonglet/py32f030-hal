@@ -1,5 +1,4 @@
 use super::{Error, Event, Instance};
-use crate::{mcu::peripherals::I2C, pac::interrupt};
 use core::{future::Future, marker::PhantomData, task::Poll};
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
@@ -22,7 +21,7 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt() {
+    pub(super) unsafe fn on_interrupt() {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
@@ -56,7 +55,7 @@ impl<T: Instance> Future for EventFuture<T> {
     }
 }
 
-#[interrupt]
-fn I2C1() {
-    critical_section::with(|_cs| unsafe { EventFuture::<I2C>::on_interrupt() })
-}
+// #[interrupt]
+// fn I2C1() {
+//     critical_section::with(|_cs| unsafe { EventFuture::<I2C>::on_interrupt() })
+// }

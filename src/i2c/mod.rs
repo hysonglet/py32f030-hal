@@ -5,13 +5,13 @@ pub mod master;
 mod pins;
 pub mod slave;
 
-use crate::clock::peripheral::{
-    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
-};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
 use crate::gpio::{self, AnyPin};
+use crate::interrupt::BindInterrupt;
 use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
 use core::marker::PhantomData;
+use cortex_m::interrupt::InterruptNumber;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::EnumSetType;
 pub use master::Master;
@@ -20,23 +20,36 @@ pub use slave::Slave;
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 ///  mcu i2c 的索引
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Id {
     I2c1,
 }
 
-impl PeripheralIdToClockIndex for Id {
-    fn clock(&self) -> PeripheralClockIndex {
-        match *self {
-            Self::I2c1 => PeripheralClockIndex::I2C,
+unsafe impl InterruptNumber for Id {
+    fn number(self) -> u16 {
+        match self {
+            Self::I2c1 => crate::pac::interrupt::I2C1 as u16,
         }
     }
 }
 
-impl PeripheralInterrupt for Id {
-    fn interrupt(&self) -> crate::pac::interrupt {
+impl BindInterrupt for Id {
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
         match *self {
-            Self::I2c1 => crate::pac::interrupt::I2C1,
+            Self::I2c1 => Self::bind(&self, &|| unsafe {
+                future::EventFuture::<crate::mcu::peripherals::I2C>::on_interrupt()
+            }),
+        }
+    }
+}
+
+// 为 PeripheralIdToClockIndex trait 实现 Id 类型的转换方法
+impl PeripheralIdToClockIndex for Id {
+    // 获取外设对应的时钟索引
+    fn clock(&self) -> PeripheralClockIndex {
+        match *self {
+            // 当外设为 I2C1 时，返回 I2C 对应的时钟索引
+            Self::I2c1 => PeripheralClockIndex::I2C,
         }
     }
 }

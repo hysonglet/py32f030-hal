@@ -22,7 +22,7 @@ pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
-#[cfg(not(feature = "embassy"))]
+// #[cfg(not(feature = "embassy"))]
 pub mod interrupt;
 #[cfg(not(feature = "embassy"))]
 extern crate alloc;

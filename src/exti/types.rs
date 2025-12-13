@@ -1,6 +1,9 @@
+use super::future;
 use crate::bit::*;
-use crate::clock::peripheral::PeripheralInterrupt;
 use crate::gpio::{self, GpioPort};
+use crate::interrupt::{self, BindInterrupt};
+use crate::pac;
+use cortex_m::interrupt::InterruptNumber;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Line {
@@ -48,6 +51,26 @@ pub enum Line {
     // Line29 = 29,
 }
 
+impl BindInterrupt for Line {
+    fn bind_default(&self) -> Result<(), interrupt::Error> {
+        match *self {
+            Self::Line0 | Self::Line1 => {
+                interrupt::bind(Self::Line0.number() as usize, &|| unsafe {
+                    future::on_gpio_line_irq(0x03);
+                })
+            }
+            Self::Line2 | Self::Line3 => {
+                interrupt::bind(Self::Line2.number() as usize, &|| unsafe {
+                    future::on_gpio_line_irq(0xc0);
+                })
+            }
+            _ => interrupt::bind(Self::Line4.number() as usize, &|| unsafe {
+                future::on_gpio_line_irq(0xfff0);
+            }),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum ExitPinSource {
     PA = 0,
@@ -65,12 +88,12 @@ impl From<gpio::GpioPort> for ExitPinSource {
     }
 }
 
-impl PeripheralInterrupt for Line {
-    fn interrupt(&self) -> crate::pac::interrupt {
-        match *self {
-            Line::Line0 | Line::Line1 => PY32f030xx_pac::interrupt::EXTI0_1,
-            Line::Line2 | Line::Line3 => PY32f030xx_pac::interrupt::EXTI2_3,
-            _ => PY32f030xx_pac::interrupt::EXTI4_15,
+unsafe impl InterruptNumber for Line {
+    fn number(self) -> u16 {
+        match self {
+            Line::Line0 | Line::Line1 => pac::interrupt::EXTI0_1 as u16,
+            Line::Line2 | Line::Line3 => pac::interrupt::EXTI2_3 as u16,
+            _ => pac::interrupt::EXTI4_15 as u16,
         }
     }
 }

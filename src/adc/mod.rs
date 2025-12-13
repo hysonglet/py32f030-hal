@@ -6,19 +6,14 @@ mod hal;
 mod pins;
 mod types;
 
-#[cfg(not(feature = "embassy"))]
-mod interrupt;
-
-#[cfg(not(feature = "embassy"))]
-pub use interrupt::*;
+use crate::pac;
+use cortex_m::interrupt::InterruptNumber;
 
 #[cfg(feature = "embassy")]
 use core::{future::Future, task::Poll};
 
 use core::marker::PhantomData;
 
-#[cfg(feature = "embassy")]
-use crate::mcu::peripherals::ADC;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use enumset::EnumSet;
@@ -27,9 +22,7 @@ use future::ChannelInputFuture;
 
 pub use types::*;
 
-use crate::{
-    clock::peripheral::PeripheralInterrupt, macro_def::impl_sealed_peripheral_id, mode::Blocking,
-};
+use crate::{interrupt::BindInterrupt, macro_def::impl_sealed_peripheral_id, mode::Blocking};
 
 use embassy_hal_internal::Peripheral;
 pub use pins::{TemperatureChannel, VRrefChannel};
@@ -49,9 +42,18 @@ static ADC_INT_WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 #[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Id {
     ADC1 = 0,
+}
+
+impl BindInterrupt for Id {
+    #[cfg(feature = "embassy")]
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
+        Self::bind(self, &|| unsafe {
+            ChannelInputFuture::<crate::mcu::peripherals::ADC>::on_interrupt();
+        })
+    }
 }
 
 impl_sealed_peripheral_id!(ADC, ADC1);
@@ -64,10 +66,10 @@ impl PeripheralIdToClockIndex for Id {
     }
 }
 
-impl PeripheralInterrupt for Id {
-    fn interrupt(&self) -> crate::pac::interrupt {
-        match *self {
-            Self::ADC1 => crate::pac::interrupt::ADC_COMP,
+unsafe impl InterruptNumber for Id {
+    fn number(self) -> u16 {
+        match self {
+            Self::ADC1 => pac::interrupt::ADC_COMP.number(),
         }
     }
 }
@@ -95,7 +97,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 
         // 异步方式需要打开外设中断
         if M::is_async() {
-            T::id().enable_interrupt();
+            T::id().enable();
         }
 
         Ok(Self {
@@ -199,34 +201,15 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         T::set_wait(config.wait);
     }
 
-    #[cfg(not(feature = "embassy"))]
-    pub fn on_interrupt(
-        &mut self,
-        events: EnumSet<Event>,
-        callback: alloc::boxed::Box<dyn Fn(u16)>,
-    ) {
-        crate::interrupt::register(
-            #[allow(static_mut_refs)]
-            unsafe {
-                &mut CLOSURE
-            },
-            alloc::boxed::Box::new(move || {
-                callback(T::data_read());
-                for e in events {
-                    T::event_flag(e);
-                }
-            }),
-        );
-        for e in events {
-            self.event_config(e, true);
-        }
+    pub fn read_once(&mut self) -> u16 {
+        T::data_read()
     }
 }
 
 impl<'d, T: Instance, M: Mode> Drop for AnyAdc<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable_interrupt();
+            T::id().disable();
         }
     }
 }

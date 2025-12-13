@@ -9,7 +9,6 @@ use embedded_hal::digital::PinState;
 
 pub use types::*;
 
-// use self::hal::sealed::Instance;
 use crate::gpio::Pin;
 use crate::gpio::{Input, Pull, Speed};
 #[cfg(feature = "embassy")]
@@ -17,14 +16,6 @@ use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
-
-// pub trait ExitPin:
-//     Peripheral<P = Self> + sealed::Instance + crate::gpio::Pin + 'static + Send
-// {
-//     fn set_pin_select(&self) {
-//         Self::exit_channle_select(self.pin().into(), self.port().into());
-//     }
-// }
 
 pub struct ExtiInput<'d, M: Mode> {
     pin: Input<'d>,

@@ -3,13 +3,12 @@ pub mod master;
 mod pins;
 mod types;
 
-use crate::clock::peripheral::{
-    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
-};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
 use crate::gpio::AnyPin;
 use crate::gpio::{PinIoType, Speed};
 use crate::mode::Mode;
 use core::marker::PhantomData;
+use cortex_m::interrupt::InterruptNumber;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
 use embedded_hal::spi::{Phase, Polarity};
@@ -17,11 +16,31 @@ use types::*;
 
 pub use master::Master;
 
+use crate::interrupt::BindInterrupt;
+
 /// spi 的 索引
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Id {
     SPI1,
     SPI2,
+}
+
+unsafe impl InterruptNumber for Id {
+    fn number(self) -> u16 {
+        match self {
+            Self::SPI1 => crate::pac::Interrupt::SPI1.number(),
+            Self::SPI2 => crate::pac::Interrupt::SPI2.number(),
+        }
+    }
+}
+
+impl BindInterrupt for Id {
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
+        match self {
+            Self::SPI1 => Self::bind(self, &|| todo!()),
+            Self::SPI2 => Self::bind(self, &|| todo!()),
+        }
+    }
 }
 
 impl PeripheralIdToClockIndex for Id {
@@ -29,15 +48,6 @@ impl PeripheralIdToClockIndex for Id {
         match *self {
             Self::SPI1 => PeripheralClockIndex::SPI1,
             Self::SPI2 => PeripheralClockIndex::SPI2,
-        }
-    }
-}
-
-impl PeripheralInterrupt for Id {
-    fn interrupt(&self) -> crate::pac::interrupt {
-        match *self {
-            Self::SPI1 => crate::pac::interrupt::SPI1,
-            Self::SPI2 => crate::pac::interrupt::SPI2,
         }
     }
 }

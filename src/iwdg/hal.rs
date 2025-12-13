@@ -14,9 +14,6 @@ pub(super) mod sealed {
 
         #[inline]
         fn feed() {
-            // Self::block()
-            //     .kr
-            //     .write(|w| unsafe { w.key().bits(FEED_KEY) })
             Self::block()
                 .kr
                 .write(|w| unsafe { w.bits(FEED_KEY as u32) })
@@ -24,9 +21,6 @@ pub(super) mod sealed {
 
         #[inline]
         fn start() {
-            // Self::block()
-            //     .kr
-            //     .write(|w| unsafe { w.key().bits(START_KEY) })
             Self::block()
                 .kr
                 .write(|w| unsafe { w.bits(START_KEY as u32) })

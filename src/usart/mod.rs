@@ -5,12 +5,12 @@ mod pins;
 mod types;
 
 use crate::clock;
-use crate::clock::peripheral::{
-    PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt,
-};
+use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
 use crate::dma::{self, DmaChannel};
 use crate::gpio::{self, AnyPin};
+use crate::interrupt::BindInterrupt;
 use crate::macro_def::pin_af_for_instance_def;
+use crate::mcu::peripherals;
 use crate::mcu::peripherals::DMA;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
@@ -21,6 +21,7 @@ use core::future::poll_fn;
 use core::marker::PhantomData;
 #[cfg(feature = "embassy")]
 use core::task::Poll;
+use cortex_m::interrupt::InterruptNumber;
 use drop_move::DropGuard;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
@@ -44,6 +45,28 @@ pub enum Id {
     USART2,
 }
 
+unsafe impl InterruptNumber for Id {
+    fn number(self) -> u16 {
+        match self {
+            Self::USART1 => PY32f030xx_pac::Interrupt::USART1.number(),
+            Self::USART2 => PY32f030xx_pac::Interrupt::USART2.number(),
+        }
+    }
+}
+
+impl BindInterrupt for Id {
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
+        match self {
+            Self::USART1 => Self::bind(self, &|| unsafe {
+                future::EventFuture::<peripherals::USART1>::on_interrupt(Id::USART1 as usize)
+            }),
+            Self::USART2 => Self::bind(self, &|| unsafe {
+                future::EventFuture::<peripherals::USART2>::on_interrupt(Id::USART2 as usize)
+            }),
+        }
+    }
+}
+
 // 为 usart1/2 实现 Instance 和 sealed::Instance trait
 impl_sealed_peripheral_id!(USART1, USART1);
 impl_sealed_peripheral_id!(USART2, USART2);
@@ -53,15 +76,6 @@ impl PeripheralIdToClockIndex for Id {
         match *self {
             Self::USART1 => PeripheralClockIndex::USART1,
             Self::USART2 => PeripheralClockIndex::UART2,
-        }
-    }
-}
-
-impl PeripheralInterrupt for Id {
-    fn interrupt(&self) -> PY32f030xx_pac::interrupt {
-        match *self {
-            Self::USART1 => PY32f030xx_pac::interrupt::USART1,
-            Self::USART2 => PY32f030xx_pac::interrupt::USART2,
         }
     }
 }
@@ -181,7 +195,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         T::config(config);
 
         if M::is_async() {
-            T::id().enable_interrupt();
+            T::id().enable();
         }
 
         Self {

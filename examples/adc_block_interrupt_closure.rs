@@ -1,33 +1,28 @@
 #![no_std]
 #![no_main]
 
-extern crate alloc;
+use core::cell::RefCell;
 
-use core::ptr::addr_of_mut;
+use cortex_m::interrupt::{self, Mutex};
+use PY32f030xx_pac::{adc, ADC};
 
-use defmt::Debug2Format;
-use hal::adc::{AdcChannel, AnyAdc, ChannelConfig, Config, Event, SampleCycles, TrigleSignal};
+use defmt::info;
+use hal::adc::{AdcChannel, AnyAdc, ChannelConfig, Config, SampleCycles, TrigleSignal};
+use heapless::spsc::Queue;
 
-use py32f030_hal::adc::ConversionMode;
-use py32f030_hal::clock::peripheral::PeripheralInterrupt;
+use py32f030_hal::adc::{ConversionMode, Event};
 use py32f030_hal::clock::sys_core_clock;
+use py32f030_hal::interrupt::BindInterrupt;
 use py32f030_hal::{self as hal, mode::Blocking};
 
 use {defmt_rtt as _, panic_probe as _};
 
+static ADC_INSTANCE: Mutex<RefCell<Option<AnyAdc<hal::mcu::peripherals::ADC, Blocking>>>> =
+    Mutex::new(RefCell::new(None));
+
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    // -------- Setup Allocator --------
-    const HEAP_SIZE: usize = 128;
-    static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
-    #[global_allocator]
-    static ALLOCATOR: alloc_cortex_m::CortexMHeap = alloc_cortex_m::CortexMHeap::empty();
-    unsafe {
-        #[allow(static_mut_refs)]
-        ALLOCATOR.init(addr_of_mut!(HEAP) as usize, core::mem::size_of_val(&HEAP))
-    }
     let p = hal::init(Default::default());
-
     defmt::info!("{}", sys_core_clock());
 
     let mut adc: AnyAdc<_, Blocking> = AnyAdc::new(
@@ -43,41 +38,29 @@ fn main() -> ! {
     )
     .unwrap();
 
+    let _ = interrupt::free(|cs| {
+        adc.event_config(Event::EOC, true);
+        ADC_INSTANCE.borrow(cs).replace(Some(adc));
+
+        let mut adc_bind = ADC_INSTANCE.borrow(cs).borrow_mut();
+        let adc = adc_bind.as_mut().unwrap();
+        let _ = adc.id().bind(&|| {
+            interrupt::free(|cs| {
+                let mut adc_bind = ADC_INSTANCE.borrow(cs).borrow_mut();
+                let adc = adc_bind.as_mut().unwrap();
+                let _ = adc.read_once();
+            })
+        });
+        adc.id().enable();
+        adc.start();
+    });
+
     // 使用闭包的方式在中断中调用闭包处理函数
     // 兼顾友好型 api
-    static mut QUEUE: [u16; 16] = [0; 16];
-    // Ensure this example builds under compile configurations with embassy feature
-    #[cfg(not(feature = "embassy"))]
-    adc.on_interrupt(
-        Event::EOC.into(), /* EOC 中断 */
-        alloc::boxed::Box::new(move |adc| {
-            /* 中断自动调用的闭包 */
-            static mut CNT: usize = 0;
-            unsafe {
-                QUEUE[CNT] = adc;
-                CNT += 1;
-                if QUEUE.len() == CNT {
-                    CNT = 0;
-                }
-            }
-
-            // 打印转换成功的adc, 打印耗时会导致打印完毕后直接再次进入中断哦
-            // defmt::info!("adc: {}", adc);
-        }),
-    );
-
-    // 开启 EOC 中断
-    adc.event_config(Event::EOC, true);
-    adc.id().enable_interrupt();
-    adc.start();
+    static mut ADC_QUEUE: Queue<u16, 128> = Queue::new();
     loop {
         cortex_m::asm::wfi();
 
-        defmt::info!(
-            "adc {:?} sum: {} avrage: {}",
-            Debug2Format(unsafe { &QUEUE }),
-            unsafe { QUEUE.iter().sum::<u16>() },
-            unsafe { QUEUE.iter().sum::<u16>() / QUEUE.len() as u16 }
-        );
+        defmt::info!("adc value: {}", unsafe { ADC_QUEUE.dequeue().unwrap() });
     }
 }

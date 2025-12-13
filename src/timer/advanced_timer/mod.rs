@@ -6,14 +6,16 @@ mod pins;
 mod pwm;
 mod types;
 
+use crate::interrupt::BindInterrupt;
+use crate::mcu::peripherals;
 use core::marker::PhantomData;
-
+use cortex_m::interrupt::InterruptNumber;
 pub use counter::Counter;
 pub use pwm::Pwm;
 pub use types::*;
 
 use crate::{
-    clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex, PeripheralInterrupt},
+    clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex},
     mode::Mode,
 };
 use embassy_hal_internal::{into_ref, Peripheral};
@@ -21,23 +23,33 @@ use embassy_hal_internal::{into_ref, Peripheral};
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 /// 高级定时器
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Timer {
     TIM1,
+}
+
+unsafe impl InterruptNumber for Timer {
+    fn number(self) -> u16 {
+        match self {
+            Self::TIM1 => crate::pac::Interrupt::TIM1_BRK_UP_TRG_COM.number(),
+        }
+    }
+}
+
+impl BindInterrupt for Timer {
+    fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
+        match *self {
+            Self::TIM1 => Self::bind(self, &|| unsafe {
+                future::EventFuture::<peripherals::TIM1>::on_interrupt(Timer::TIM1 as usize)
+            }),
+        }
+    }
 }
 
 impl PeripheralIdToClockIndex for Timer {
     fn clock(&self) -> PeripheralClockIndex {
         match *self {
             Self::TIM1 => PeripheralClockIndex::TIM1,
-        }
-    }
-}
-
-impl PeripheralInterrupt for Timer {
-    fn interrupt(&self) -> crate::pac::interrupt {
-        match *self {
-            Self::TIM1 => crate::pac::interrupt::TIM1_BRK_UP_TRG_COM,
         }
     }
 }
