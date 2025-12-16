@@ -2,11 +2,7 @@
 #![no_main]
 
 use core::cell::RefCell;
-
 use cortex_m::interrupt::{self, Mutex};
-use PY32f030xx_pac::{adc, ADC};
-
-use defmt::info;
 use hal::adc::{AdcChannel, AnyAdc, ChannelConfig, Config, SampleCycles, TrigleSignal};
 use heapless::spsc::Queue;
 
@@ -19,6 +15,10 @@ use {defmt_rtt as _, panic_probe as _};
 
 static ADC_INSTANCE: Mutex<RefCell<Option<AnyAdc<hal::mcu::peripherals::ADC, Blocking>>>> =
     Mutex::new(RefCell::new(None));
+
+type AdcQueue = Queue<u16, 128>;
+
+static ADC_QUEUE: Mutex<RefCell<AdcQueue>> = Mutex::new(RefCell::new(AdcQueue::new()));
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
@@ -41,26 +41,25 @@ fn main() -> ! {
     let _ = interrupt::free(|cs| {
         adc.event_config(Event::EOC, true);
         ADC_INSTANCE.borrow(cs).replace(Some(adc));
-
         let mut adc_bind = ADC_INSTANCE.borrow(cs).borrow_mut();
         let adc = adc_bind.as_mut().unwrap();
-        let _ = adc.id().bind(&|| {
-            interrupt::free(|cs| {
-                let mut adc_bind = ADC_INSTANCE.borrow(cs).borrow_mut();
-                let adc = adc_bind.as_mut().unwrap();
-                let _ = adc.read_once();
-            })
+        let _ = adc.id().bind(&|cs| {
+            let mut adc = ADC_INSTANCE.borrow(cs).borrow_mut();
+            let mut queue = ADC_QUEUE.borrow(cs).borrow_mut();
+            let _ = queue.enqueue(adc.as_mut().unwrap().read_once());
         });
-        adc.id().enable();
+        adc.id().enable_irq();
         adc.start();
     });
 
-    // 使用闭包的方式在中断中调用闭包处理函数
-    // 兼顾友好型 api
-    static mut ADC_QUEUE: Queue<u16, 128> = Queue::new();
     loop {
         cortex_m::asm::wfi();
 
-        defmt::info!("adc value: {}", unsafe { ADC_QUEUE.dequeue().unwrap() });
+        interrupt::free(|cs| {
+            let mut queue = ADC_QUEUE.borrow(cs).borrow_mut();
+            while let Some(v) = queue.dequeue() {
+                defmt::info!("adc value: {}", v);
+            }
+        })
     }
 }

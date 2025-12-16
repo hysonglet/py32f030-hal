@@ -57,7 +57,7 @@ impl<'d> Future for ExtiInputFuture<'d> {
             Poll::Ready(())
         } else {
             EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
-            self.line.enable();
+            self.line.enable_irq();
             Poll::Pending
         }
     }

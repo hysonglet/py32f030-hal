@@ -7,7 +7,7 @@ mod pins;
 mod types;
 
 use crate::pac;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 
 #[cfg(feature = "embassy")]
 use core::{future::Future, task::Poll};
@@ -50,8 +50,10 @@ pub enum Id {
 impl BindInterrupt for Id {
     #[cfg(feature = "embassy")]
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        Self::bind(self, &|| unsafe {
-            ChannelInputFuture::<crate::mcu::peripherals::ADC>::on_interrupt();
+        interrupt::free(|_cs| {
+            Self::bind(self, &|_cs| unsafe {
+                ChannelInputFuture::<crate::mcu::peripherals::ADC>::on_interrupt();
+            })
         })
     }
 }
@@ -97,7 +99,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 
         // 异步方式需要打开外设中断
         if M::is_async() {
-            T::id().enable();
+            T::id().enable_irq();
         }
 
         Ok(Self {
@@ -209,7 +211,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 impl<'d, T: Instance, M: Mode> Drop for AnyAdc<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable();
+            T::id().disable_irq();
         }
     }
 }

@@ -1,14 +1,17 @@
 use crate::pac::interrupt;
 use core::cell::RefCell;
-use cortex_m::interrupt::{free, InterruptNumber, Mutex};
+use cortex_m::interrupt::{free, CriticalSection, InterruptNumber, Mutex};
 
 pub enum Error {
     InvalidInterruptNumber,
     DoubleBinding,
 }
 
-static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<&'static dyn Fn()>>>; 32] = {
-    const INIT_HANDLER: Mutex<RefCell<Option<&'static dyn Fn()>>> = Mutex::new(RefCell::new(None));
+type InterruptHandle = &'static dyn Fn(&CriticalSection);
+// type InterruptHandle = dyn Fn(&CriticalSection) + Send + 'static;
+
+static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<InterruptHandle>>>; 32] = {
+    const INIT_HANDLER: Mutex<RefCell<Option<InterruptHandle>>> = Mutex::new(RefCell::new(None));
     [INIT_HANDLER; 32]
 };
 
@@ -17,21 +20,21 @@ pub trait BindInterrupt: InterruptNumber + Copy + Clone {
     /* 绑定一个默认的中断处理函数给funtures用 */
     fn bind_default(&self) -> Result<(), Error>;
 
-    fn bind(&self, f: &'static dyn Fn()) -> Result<(), Error> {
+    fn bind(&self, f: &'static dyn Fn(&CriticalSection)) -> Result<(), Error> {
         bind(self.number() as usize, f)
     }
     fn unbind(&self) {
         let _ = unbind(self.number() as usize);
     }
-    fn enable(&self) {
+    fn enable_irq(&self) {
         unsafe { cortex_m::peripheral::NVIC::unmask(*self) }
     }
-    fn disable(&self) {
+    fn disable_irq(&self) {
         cortex_m::peripheral::NVIC::mask(*self)
     }
 }
 
-pub fn bind(irq_num: usize, f: &'static dyn Fn()) -> Result<(), Error> {
+pub fn bind(irq_num: usize, f: InterruptHandle) -> Result<(), Error> {
     if irq_num >= 32 {
         return Err(Error::InvalidInterruptNumber);
     }
@@ -77,7 +80,7 @@ macro_rules! define_interrupt_wrapper {
                 let handler_cell = unsafe { INTERRUPT_HANDLERS[$irq_num].borrow(cs).borrow_mut() };
 
                 if let Some(handler) = *handler_cell {
-                    handler();
+                    handler(cs);
                 }
             });
         }

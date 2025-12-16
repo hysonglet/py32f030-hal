@@ -11,7 +11,7 @@ use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
 use crate::syscfg::{syscfg, DmaChannelMap};
 use core::marker::PhantomData;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 use embassy_hal_internal::{into_ref, Peripheral};
 use enumset::EnumSet;
 #[cfg(feature = "embassy")]
@@ -47,14 +47,14 @@ pub enum Channel {
 
 impl BindInterrupt for Channel {
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match self {
-            Self::Channel1 => Self::bind(&self, &|| unsafe {
+        interrupt::free(|_cs| match self {
+            Self::Channel1 => Self::bind(&self, &|_cs| unsafe {
                 EventFuture::<crate::mcu::peripherals::DMA>::on_interrupt(
                     Channel::Channel1,
                     EnumSet::all(),
                 )
             }),
-            Self::Channel2 | Self::Channel3 => Self::bind(&self, &|| unsafe {
+            Self::Channel2 | Self::Channel3 => Self::bind(&self, &|_cs| unsafe {
                 EventFuture::<crate::mcu::peripherals::DMA>::on_interrupt(
                     Channel::Channel2,
                     EnumSet::all(),
@@ -64,7 +64,7 @@ impl BindInterrupt for Channel {
                     EnumSet::all(),
                 )
             }),
-        }
+        })
     }
 }
 

@@ -26,7 +26,7 @@ impl<T: Instance> Unpin for EventFuture<T> {}
 impl<T: Instance> Drop for EventFuture<T> {
     fn drop(&mut self) {
         // 关闭通道中断
-        self.channel.disable();
+        self.channel.disable_irq();
     }
 }
 
@@ -85,7 +85,7 @@ impl<T: Instance> Future for EventFuture<T> {
             .iter()
             .for_each(|event| T::event_config(self.channel, event, true));
         // 开启通道的中断
-        self.channel.enable();
+        self.channel.enable_irq();
         // 没有任何事件
         Poll::Pending
     }

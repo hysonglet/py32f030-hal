@@ -21,7 +21,7 @@ pub struct Master<'d, T: Instance, M: Mode> {
 impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
     pub(super) fn new() -> Self {
         if M::is_async() {
-            T::id().enable();
+            T::id().enable_irq();
         }
         Self { _t: PhantomData }
     }
@@ -30,7 +30,7 @@ impl<'d, T: Instance, M: Mode> Master<'d, T, M> {
 impl<'d, T: Instance, M: Mode> Drop for Master<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable();
+            T::id().disable_irq();
         }
     }
 }

@@ -21,7 +21,7 @@ use core::future::poll_fn;
 use core::marker::PhantomData;
 #[cfg(feature = "embassy")]
 use core::task::Poll;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 use drop_move::DropGuard;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::{EnumSet, EnumSetType};
@@ -56,14 +56,14 @@ unsafe impl InterruptNumber for Id {
 
 impl BindInterrupt for Id {
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match self {
-            Self::USART1 => Self::bind(self, &|| unsafe {
+        interrupt::free(|_cs| match self {
+            Self::USART1 => Self::bind(self, &|_cs| unsafe {
                 future::EventFuture::<peripherals::USART1>::on_interrupt(Id::USART1 as usize)
             }),
-            Self::USART2 => Self::bind(self, &|| unsafe {
+            Self::USART2 => Self::bind(self, &|_cs| unsafe {
                 future::EventFuture::<peripherals::USART2>::on_interrupt(Id::USART2 as usize)
             }),
-        }
+        })
     }
 }
 
@@ -195,7 +195,7 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         T::config(config);
 
         if M::is_async() {
-            T::id().enable();
+            T::id().enable_irq();
         }
 
         Self {

@@ -1,9 +1,9 @@
 use super::future;
 use crate::bit::*;
 use crate::gpio::{self, GpioPort};
-use crate::interrupt::{self, BindInterrupt};
+use crate::interrupt::{BindInterrupt, Error};
 use crate::pac;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Line {
@@ -52,22 +52,18 @@ pub enum Line {
 }
 
 impl BindInterrupt for Line {
-    fn bind_default(&self) -> Result<(), interrupt::Error> {
-        match *self {
-            Self::Line0 | Self::Line1 => {
-                interrupt::bind(Self::Line0.number() as usize, &|| unsafe {
-                    future::on_gpio_line_irq(0x03);
-                })
-            }
-            Self::Line2 | Self::Line3 => {
-                interrupt::bind(Self::Line2.number() as usize, &|| unsafe {
-                    future::on_gpio_line_irq(0xc0);
-                })
-            }
-            _ => interrupt::bind(Self::Line4.number() as usize, &|| unsafe {
+    fn bind_default(&self) -> Result<(), Error> {
+        interrupt::free(|_cs| match *self {
+            Self::Line0 | Self::Line1 => Self::bind(&self, &|_cs| unsafe {
+                future::on_gpio_line_irq(0x03);
+            }),
+            Self::Line2 | Self::Line3 => Self::bind(&self, &|_cs| unsafe {
+                future::on_gpio_line_irq(0xc0);
+            }),
+            _ => Self::bind(&self, &|_cs| unsafe {
                 future::on_gpio_line_irq(0xfff0);
             }),
-        }
+        })
     }
 }
 

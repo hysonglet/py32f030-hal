@@ -31,7 +31,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::set_dir(CountDirection::Up);
 
         if M::is_async() {
-            T::id().enable();
+            T::id().enable_irq();
         }
 
         Counter {
@@ -68,7 +68,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
 impl<'d, T: Instance, M: Mode> Drop for Counter<'d, T, M> {
     fn drop(&mut self) {
         if M::is_async() {
-            T::id().disable();
+            T::id().disable_irq();
         }
     }
 }

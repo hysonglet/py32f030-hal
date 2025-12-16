@@ -9,7 +9,7 @@ mod types;
 use crate::interrupt::BindInterrupt;
 use crate::mcu::peripherals;
 use core::marker::PhantomData;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 pub use counter::Counter;
 pub use pwm::Pwm;
 pub use types::*;
@@ -38,11 +38,11 @@ unsafe impl InterruptNumber for Timer {
 
 impl BindInterrupt for Timer {
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match *self {
-            Self::TIM1 => Self::bind(self, &|| unsafe {
+        interrupt::free(|_cs| match *self {
+            Self::TIM1 => Self::bind(self, &|_cs| unsafe {
                 future::EventFuture::<peripherals::TIM1>::on_interrupt(Timer::TIM1 as usize)
             }),
-        }
+        })
     }
 }
 

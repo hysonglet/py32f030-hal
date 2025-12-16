@@ -11,7 +11,7 @@ use crate::interrupt::BindInterrupt;
 use crate::macro_def::{impl_sealed_peripheral_id, pin_af_for_instance_def};
 use crate::mode::Mode;
 use core::marker::PhantomData;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::EnumSetType;
 pub use master::Master;
@@ -35,11 +35,11 @@ unsafe impl InterruptNumber for Id {
 
 impl BindInterrupt for Id {
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match *self {
-            Self::I2c1 => Self::bind(&self, &|| unsafe {
+        interrupt::free(|_cs| match *self {
+            Self::I2c1 => Self::bind(&self, &|_cs| unsafe {
                 future::EventFuture::<crate::mcu::peripherals::I2C>::on_interrupt()
             }),
-        }
+        })
     }
 }
 

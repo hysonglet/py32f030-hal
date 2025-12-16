@@ -9,6 +9,7 @@ use crate::{
     rtc::future::WakeFuture,
 };
 use core::marker::PhantomData;
+use cortex_m::interrupt;
 use cortex_m::interrupt::InterruptNumber;
 use embassy_hal_internal::Peripheral;
 use enumset::EnumSet;
@@ -42,11 +43,11 @@ unsafe impl InterruptNumber for Id {
 impl BindInterrupt for Id {
     #[cfg(feature = "embassy")]
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match *self {
-            Self::Rtc1 => Self::bind(self, &|| {
+        interrupt::free(|_cs| match *self {
+            Self::Rtc1 => Self::bind(self, &|_cs| {
                 WakeFuture::<crate::mcu::peripherals::RTC>::on_interrupt()
             }),
-        }
+        })
     }
 }
 
@@ -161,7 +162,7 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
             T::clear_interrupt(event);
             T::event_config(event, true);
         });
-        T::id().enable();
+        T::id().enable_irq();
         future::WakeFuture::<T>::new(event).await
     }
 
@@ -175,7 +176,7 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
             T::clear_interrupt(event);
             T::event_config(event, true);
         });
-        T::id().enable();
+        T::id().enable_irq();
         future::WakeFuture::<T>::new(event).await
     }
 }

@@ -8,7 +8,7 @@ use crate::gpio::AnyPin;
 use crate::gpio::{PinIoType, Speed};
 use crate::mode::Mode;
 use core::marker::PhantomData;
-use cortex_m::interrupt::InterruptNumber;
+use cortex_m::interrupt::{self, InterruptNumber};
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
 use embedded_hal::spi::{Phase, Polarity};
@@ -36,10 +36,10 @@ unsafe impl InterruptNumber for Id {
 
 impl BindInterrupt for Id {
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
-        match self {
-            Self::SPI1 => Self::bind(self, &|| todo!()),
-            Self::SPI2 => Self::bind(self, &|| todo!()),
-        }
+        interrupt::free(|_cs| match self {
+            Self::SPI1 => Self::bind(self, &|_cs| todo!()),
+            Self::SPI2 => Self::bind(self, &|_cs| todo!()),
+        })
     }
 }
 
