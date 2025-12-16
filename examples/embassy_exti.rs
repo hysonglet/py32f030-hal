@@ -4,7 +4,9 @@
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use hal::exti::ExtiInput;
+use hal::exti::Line;
 use hal::gpio::{Pull, Speed};
+use hal::interrupt::BindInterrupt;
 use hal::mode::Async;
 use py32f030_hal::{self as hal, prelude::*};
 use {defmt::info, defmt_rtt as _, panic_probe as _};

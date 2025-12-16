@@ -4,15 +4,16 @@
 use core::cell::RefCell;
 use cortex_m::interrupt::{self, Mutex};
 use hal::adc::{
-    temperature, vrefence_internal, AdcChannel, AnyAdc, ChannelConfig, Config, ConversionMode,
-    Event, SampleCycles, TrigleSignal,
+    AdcChannel, AnyAdc, ChannelConfig, Config, ConversionMode, Event, SampleCycles, TrigleSignal,
 };
 use hal::clock::sys_core_clock;
+use hal::gpio;
 use hal::interrupt::BindInterrupt;
 use hal::mcu::peripherals::ADC;
 use hal::mode::Blocking;
 use heapless::spsc::Queue;
 use py32f030_hal as hal;
+use py32f030_hal::adc::AnalogPin;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -28,6 +29,11 @@ fn main() -> ! {
     let p = hal::init(Default::default());
     defmt::info!("{}", sys_core_clock());
 
+    let gpioa = p.GPIOA.split();
+    // gpio::Analog::new(gpioa.PA0);
+    let channel_pin = gpioa.PA3;
+    channel_pin.as_anlog();
+
     let mut adc: AnyAdc<_, Blocking> = AnyAdc::new(
         p.ADC,
         Config::default().sample(SampleCycles::Cycle_239_5),
@@ -36,10 +42,8 @@ fn main() -> ! {
             .wait(true) // 转换完成后等待读取完毕再开始转换
             .singal(TrigleSignal::Soft)
             .mode(ConversionMode::Continuous),
-        // 按顺序读取温度和电压采集的值
-        &[AdcChannel::Channel11, AdcChannel::Channel12],
-        // 读取温度值
-        // &[AdcChannel::Channel11]],
+        // 读
+        &[channel_pin.channel()],
     )
     .unwrap();
 
@@ -69,11 +73,10 @@ fn main() -> ! {
         cortex_m::asm::wfi();
         interrupt::free(|cs| {
             let mut queue = ADC_QUEUE.borrow(cs).borrow_mut();
-            while queue.len() >= 2 {
+            while queue.len() > 0 {
                 defmt::info!(
-                    "voltage: {}, temperature: {} redunt: {}",
-                    vrefence_internal(queue.dequeue().unwrap()),
-                    temperature(queue.dequeue().unwrap()),
+                    "adc: {},  redunt: {}",
+                    queue.dequeue().unwrap(),
                     queue.len()
                 );
             }

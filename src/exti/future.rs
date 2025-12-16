@@ -25,6 +25,7 @@ pub struct ExtiInputFuture<'a> {
 impl<'a> ExtiInputFuture<'a> {
     pub fn new(port: GpioPort, pin: usize, edge: Edge) -> Self {
         let line: Line = pin.into();
+        let _ = line.bind_default();
         // line 选择
         Exti::exit_channle_select(line, port.into());
 

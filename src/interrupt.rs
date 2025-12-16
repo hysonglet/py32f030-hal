@@ -2,14 +2,17 @@ use crate::pac::interrupt;
 use core::cell::RefCell;
 use cortex_m::interrupt::{free, CriticalSection, InterruptNumber, Mutex};
 
+/// 中断处理错误的类型
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Error {
     InvalidInterruptNumber,
     DoubleBinding,
 }
 
+/// 定义中断处理函数的类型
 type InterruptHandle = &'static dyn Fn(&CriticalSection);
-// type InterruptHandle = dyn Fn(&CriticalSection) + Send + 'static;
 
+/// 定义中断处理函数的数组
 static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<InterruptHandle>>>; 32] = {
     const INIT_HANDLER: Mutex<RefCell<Option<InterruptHandle>>> = Mutex::new(RefCell::new(None));
     [INIT_HANDLER; 32]
@@ -17,24 +20,31 @@ static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<InterruptHandle>>>; 32] = {
 
 pub trait BindInterrupt: InterruptNumber + Copy + Clone {
     #[cfg(feature = "embassy")]
-    /* 绑定一个默认的中断处理函数给funtures用 */
+    /// 绑定一个默认的中断处理函数给funtures用
     fn bind_default(&self) -> Result<(), Error>;
 
+    /// 绑定一个中断处理函数
     fn bind(&self, f: &'static dyn Fn(&CriticalSection)) -> Result<(), Error> {
         bind(self.number() as usize, f)
     }
+
+    /// 解绑中断处理函数
     fn unbind(&self) {
         let _ = unbind(self.number() as usize);
     }
+
+    /// 开启外设的总中断
     fn enable_irq(&self) {
         unsafe { cortex_m::peripheral::NVIC::unmask(*self) }
     }
+
+    /// 关闭外设的总中断
     fn disable_irq(&self) {
         cortex_m::peripheral::NVIC::mask(*self)
     }
 }
 
-pub fn bind(irq_num: usize, f: InterruptHandle) -> Result<(), Error> {
+pub(super) fn bind(irq_num: usize, f: InterruptHandle) -> Result<(), Error> {
     if irq_num >= 32 {
         return Err(Error::InvalidInterruptNumber);
     }
@@ -50,7 +60,7 @@ pub fn bind(irq_num: usize, f: InterruptHandle) -> Result<(), Error> {
     })
 }
 
-pub fn unbind(irq_num: usize) -> Result<(), Error> {
+pub(super) fn unbind(irq_num: usize) -> Result<(), Error> {
     if irq_num >= 32 {
         return Err(Error::InvalidInterruptNumber);
     }

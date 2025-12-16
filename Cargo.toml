@@ -21,7 +21,7 @@ embedded-hal = "1.0.0"
 embedded-hal-027 = { package = "embedded-hal", version = "0.2.7", features = ["unproven"] }
 embedded-hal-async = { version = "1.0" }
 embedded-io = "0.6.1"
-embedded-io-async = { version = "0.6.1", option = true }
+embedded-io-async = { version = "0.6.1"}
 nb = "1"
 void = { version = "1.0", default-features = false }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core", "inline-asm"] }
@@ -91,7 +91,7 @@ name = "embassy_dma_mem2mem"
 required-features = ["embassy"]
 
 [[example]]
-name = "embassy_exit"
+name = "embassy_exti"
 required-features = ["embassy"]
 
 [[example]]

@@ -55,6 +55,7 @@ unsafe impl InterruptNumber for Id {
 }
 
 impl BindInterrupt for Id {
+    #[cfg(feature = "embassy")]
     fn bind_default(&self) -> Result<(), crate::interrupt::Error> {
         interrupt::free(|_cs| match self {
             Self::USART1 => Self::bind(self, &|_cs| unsafe {

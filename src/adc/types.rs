@@ -50,7 +50,7 @@ pub enum AdcChannel {
     /// PB1
     Channel9 = 9,
 
-    /// inner temperature
+    /// inner Temperature sensor
     Channel11 = 11,
     /// inner ref voltage
     Channel12 = 12,
