@@ -9,12 +9,12 @@ use {defmt::info, defmt_rtt as _, panic_probe as _};
 fn main() -> ! {
     let p = hal::init(Default::default());
 
-    info!("Led blinky testing...");
+    let p_back = p;
 
-    let gpioa = p.GPIOA.split();
+    info!("Led blinky testing...");
+    let gpioa = p_back.GPIOA.split();
     // LED: TX led
     let mut led = Output::new(gpioa.PA9, PinIoType::PullDown, Speed::Low);
-
     loop {
         // 翻转led
         let _ = led.toggle();

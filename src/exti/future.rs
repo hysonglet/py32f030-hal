@@ -25,6 +25,8 @@ pub struct ExtiInputFuture<'a> {
 impl<'a> ExtiInputFuture<'a> {
     pub fn new(port: GpioPort, pin: usize, edge: Edge) -> Self {
         let line: Line = pin.into();
+
+        // NOTE：For simplicity, we implicitly bind and enable the interrupt. If the interrupt is not used after this component is finished, it may still be enabled and needs to be manually disabled.
         let _ = line.bind_default();
         // line 选择
         Exti::exit_channle_select(line, port.into());

@@ -44,6 +44,31 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    pub fn baud_rate(self, baud_rate: Baud) -> Self {
+        Self { baud_rate, ..self }
+    }
+
+    pub fn stop_bit(self, stop_bit: StopBits) -> Self {
+        Self { stop_bit, ..self }
+    }
+
+    pub fn parity(self, parity: Parity) -> Self {
+        Self { parity, ..self }
+    }
+
+    pub fn data_bits(self, data_bits: DataBits) -> Self {
+        Self { data_bits, ..self }
+    }
+
+    pub fn over_sampling(self, over_sampling: OverSampling) -> Self {
+        Self {
+            over_sampling,
+            ..self
+        }
+    }
+}
+
 /// Number of stop bits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum StopBits {

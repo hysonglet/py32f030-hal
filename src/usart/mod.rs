@@ -28,7 +28,7 @@ use enumset::{EnumSet, EnumSetType};
 #[cfg(feature = "embassy")]
 use future::EventFuture;
 use hal::sealed;
-use types::*;
+pub use types::*;
 
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
 
