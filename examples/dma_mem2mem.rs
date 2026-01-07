@@ -15,7 +15,7 @@ fn main() -> ! {
     let mut src: [u32; 4] = [1, 2, 3, 4];
     let mut dst: [u32; 4] = [0; 4];
 
-    let mut dma: AnyDma<_, Blocking> = AnyDma::new(p.DMA);
+    let dma: AnyDma<_, Blocking> = AnyDma::new(p.DMA);
 
     let [mut channel1, _, _] = dma.split();
     channel1.config(Config::new_mem2mem(

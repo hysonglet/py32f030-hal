@@ -15,17 +15,14 @@ pub mod clock;
 pub mod crc;
 pub mod delay;
 pub mod dma;
-// pub mod dwt;
 #[cfg(feature = "embassy")]
 mod embassy;
+// pub mod dwt;
 pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
-// #[cfg(not(feature = "embassy"))]
 pub mod interrupt;
-#[cfg(not(feature = "embassy"))]
-extern crate alloc;
 pub mod iwdg;
 mod macro_def;
 pub mod mcu;
@@ -44,7 +41,6 @@ pub mod prelude {
 }
 
 pub mod config {
-
     /// 系统时钟选择
     #[derive(Default)]
     pub enum SysClockSource {
@@ -103,7 +99,6 @@ pub fn init(config: config::Config) -> Peripherals {
 /// 定义外设工作模式，阻塞或异步方式
 pub mod mode {
     trait Sealed {}
-
     /// 外设的工作模式
     #[allow(private_bounds)]
     pub trait Mode: Sealed {

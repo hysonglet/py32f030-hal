@@ -12,10 +12,12 @@ pub enum Error {
 /// 定义中断处理函数的类型
 type InterruptHandle = &'static dyn Fn(&CriticalSection);
 
+const INTERRUPT_HANDLE_CNT: usize = 32;
+
 /// 定义中断处理函数的数组
-static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<InterruptHandle>>>; 32] = {
+static mut INTERRUPT_HANDLERS: [Mutex<RefCell<Option<InterruptHandle>>>; INTERRUPT_HANDLE_CNT] = {
     const INIT_HANDLER: Mutex<RefCell<Option<InterruptHandle>>> = Mutex::new(RefCell::new(None));
-    [INIT_HANDLER; 32]
+    [INIT_HANDLER; INTERRUPT_HANDLE_CNT]
 };
 
 pub trait BindInterrupt: InterruptNumber + Copy + Clone {
@@ -120,7 +122,3 @@ define_interrupt_wrapper!(SPI2, 26);
 define_interrupt_wrapper!(USART1, 27);
 define_interrupt_wrapper!(USART2, 28);
 define_interrupt_wrapper!(LED, 30);
-
-// define_interrupt_wrapper!(EXTI0_1, crate::exti::Line::Line0.number() as usize);
-// define_interrupt_wrapper!(EXTI2_3, crate::exti::Line::Line2.number() as usize);
-// define_interrupt_wrapper!(EXTI4_15, crate::exti::Line::Line4.number() as usize);

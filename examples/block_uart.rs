@@ -2,10 +2,8 @@
 #![no_main]
 
 use defmt::{info, Debug2Format};
-use hal::dma::AnyDma;
 use hal::syscfg;
 use hal::usart::AnyUsart;
-use heapless::String;
 use py32f030_hal::{self as hal, mode::Blocking, prelude::*};
 
 use {defmt_rtt as _, panic_probe as _};

@@ -3,11 +3,8 @@
 
 use core::cell::RefCell;
 use cortex_m::interrupt::{self, Mutex};
-use hal::adc::{
-    AdcChannel, AnyAdc, ChannelConfig, Config, ConversionMode, Event, SampleCycles, TrigleSignal,
-};
+use hal::adc::{AnyAdc, ChannelConfig, Config, ConversionMode, Event, SampleCycles, TrigleSignal};
 use hal::clock::sys_core_clock;
-use hal::gpio;
 use hal::interrupt::BindInterrupt;
 use hal::mcu::peripherals::ADC;
 use hal::mode::Blocking;
@@ -31,7 +28,7 @@ fn main() -> ! {
 
     let gpioa = p.GPIOA.split();
     // gpio::Analog::new(gpioa.PA0);
-    let channel_pin = gpioa.PA3;
+    let channel_pin = gpioa.PA7;
     channel_pin.as_anlog();
 
     let mut adc: AnyAdc<_, Blocking> = AnyAdc::new(
@@ -63,10 +60,10 @@ fn main() -> ! {
             })
             .unwrap();
 
+        // 开启中断
         adc.id().enable_irq();
         // 开始转换
         adc.start();
-        // 开启中断
     });
 
     loop {

@@ -1,20 +1,19 @@
-use super::{Event, Id, Instance};
+use super::{Event, Instance};
 use core::{future::Future, marker::PhantomData, task::Poll};
 
 #[cfg(feature = "embassy")]
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-#[allow(clippy::declare_interior_mutable_const)]
 #[cfg(feature = "embassy")]
 const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
 #[cfg(feature = "embassy")]
 const _EVENT_COUNT: usize = Event::PE as usize + 1;
 #[cfg(feature = "embassy")]
-const _WAKER_COUNT: usize = Id::USART2 as usize;
+const _WAKER_COUNT: usize = 2; // usart1 and uart2
 #[cfg(feature = "embassy")]
 pub(super) static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
-    [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
+    [[_ATOMIC_WAKER; _EVENT_COUNT], [_ATOMIC_WAKER; _EVENT_COUNT]];
 
 pub struct EventFuture<T: Instance> {
     _t: PhantomData<T>,
@@ -36,7 +35,7 @@ impl<T: Instance> EventFuture<T> {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             /* 匹配到中断了 */
-            if T::is_event_enable(event) && T::event_flag(event) {
+            if T::event_flag(event) && T::is_event_enable(event) {
                 // 关闭触发的中断，防止重复响应
                 T::event_config(event, false);
                 EVENT_WAKERS[id][event as usize].wake()

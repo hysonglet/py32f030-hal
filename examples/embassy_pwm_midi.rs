@@ -3,11 +3,9 @@
 
 use core::u16;
 
-use hal::gpio::{Af, PinIoType, Speed};
 // use hal::timer::advanced_timer::TimerChannel1Pin;
 use hal::timer::advanced_timer::{AnyTimer, ChannelConfig, ChannelOutputConfig};
 use py32f030_hal::gpio::gpioa::PA0;
-use py32f030_hal::gpio::PinAF;
 use py32f030_hal::{self as hal, mode::Blocking, timer::advanced_timer::Channel};
 
 use embassy_executor::Spawner;

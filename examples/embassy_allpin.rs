@@ -59,7 +59,7 @@ async fn main(spawner: Spawner) {
     ];
 
     for pin in pins {
-        spawner.spawn(run_led(pin, 100)).unwrap();
+        spawner.spawn(run_led(pin, 200)).unwrap();
     }
 
     loop {

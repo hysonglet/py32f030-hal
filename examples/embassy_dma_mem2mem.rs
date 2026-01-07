@@ -28,7 +28,7 @@ async fn main(_spawner: Spawner) {
     //     dma::Burst::World,
     // ))
     // .unwrap();
-    let mut dma: AnyDma<_, Async> = AnyDma::new(p.DMA);
+    let dma: AnyDma<_, Async> = AnyDma::new(p.DMA);
 
     let [mut channel1, _, _] = dma.split();
     channel1.config(Config::new_mem2mem(

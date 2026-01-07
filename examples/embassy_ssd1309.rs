@@ -14,7 +14,6 @@ use {defmt_rtt as _, panic_probe as _};
 
 use display_interface_i2c::I2CInterface;
 use embedded_graphics::{
-    image::{Image, ImageRawLE},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::{Circle, Line, PrimitiveStyle, Rectangle},
