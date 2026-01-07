@@ -6,6 +6,7 @@ use crate::interrupt::BindInterrupt;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
 use crate::mode::{Blocking, Mode};
+use crate::timer::advanced_timer::Timer;
 use core::marker::PhantomData;
 #[cfg(feature = "embassy")]
 use enumset::EnumSet;
@@ -37,18 +38,29 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         }
     }
 
+    pub fn id(&self) -> Timer {
+        T::id()
+    }
+
     /// 获取当前定时器的计数频率
     #[inline]
     pub fn get_freq(&self) -> u32 {
         T::counter_frequency()
     }
 
-    fn start_us(&mut self, us: u64) {
+    pub fn delay<H: Into<MicrosDurationU32>>(&mut self, delay: H) {
+        self.start_us(delay.into().to_micros() as u64);
+    }
+
+    pub fn start_us(&mut self, us: u64) {
         let (div, rep, arr) = T::micros_to_compute_with_rep(us);
         T::stop();
         T::set_prescaler(div);
         T::set_repetition(rep);
         T::set_auto_reload(arr);
+        T::set_cnt(0);
+        T::enable_single_mode(false);
+        T::set_dir(CountDirection::Up);
         T::event_clear(Event::UIF);
         T::start();
     }
@@ -59,8 +71,19 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::set_prescaler(div);
         T::set_repetition(rep);
         T::set_auto_reload(arr);
+        T::set_cnt(0);
+        T::enable_single_mode(false);
+        T::set_dir(CountDirection::Up);
         T::event_clear(Event::UIF);
         T::start();
+    }
+
+    pub fn enable_event(&mut self, events: EnumSet<Event>, enable: bool) {
+        events.iter().for_each(|e| T::event_config(e, enable));
+    }
+
+    pub fn clear_events(&mut self, events: EnumSet<Event>) {
+        events.iter().for_each(|e| T::event_clear(e));
     }
 }
 
@@ -79,6 +102,14 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
         self.start_us(us as u64);
         while !T::event_flag(Event::UIF) {}
         T::stop();
+    }
+}
+
+#[cfg(feature = "embassy")]
+impl<'d, T: Instance> Counter<'d, T, Async> {
+    pub async fn delay_ms(&mut self, ms: u32) {
+        self.start_us(ms as u64 * 1000);
+        let _ = EventFuture::<T>::new(Event::UIF.into()).await;
     }
 }
 

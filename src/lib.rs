@@ -22,7 +22,13 @@ pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+
+#[cfg(not(feature = "interrupt_v2"))]
 pub mod interrupt;
+#[cfg(feature = "interrupt_v2")]
+pub mod interrupt_v2;
+#[cfg(feature = "interrupt_v2")]
+pub use interrupt_v2 as interrupt;
 pub mod iwdg;
 mod macro_def;
 pub mod mcu;

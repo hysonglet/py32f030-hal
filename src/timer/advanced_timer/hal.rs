@@ -28,7 +28,7 @@ pub(crate) mod sealed {
             Self::block().cr1.modify(|_, w| w.cen().clear_bit())
         }
 
-        /// 返回定时器外设时钟
+        /// 返回定时器外设时钟，only avalible for SMS[2:0] == 0b000
         #[inline]
         fn get_time_pclk() -> u32 {
             timer_pclk()
@@ -51,6 +51,12 @@ pub(crate) mod sealed {
             Self::block()
                 .psc
                 .modify(|_, w| unsafe { w.psc().bits(cnt) })
+        }
+
+        /// 禁止产生更新事件
+        #[inline]
+        fn disable_update(disable: bool) {
+            Self::block().cr1.modify(|_, w| w.udis().bit(disable));
         }
 
         /// 设置计数值
@@ -123,6 +129,10 @@ pub(crate) mod sealed {
             Self::block()
                 .rcr
                 .write(|w| unsafe { w.rep().bits(repetition) })
+        }
+
+        fn get_repetition() -> u8 {
+            Self::block().rcr.read().bits() as u8
         }
 
         /// 设置通道输入或输出类型

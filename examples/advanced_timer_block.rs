@@ -18,15 +18,15 @@ fn main() -> ! {
     let timer = AnyTimer::<_, Blocking>::new(p.TIM1).unwrap();
     let mut counter = timer.as_counter();
 
-    let mut led = Output::new(gpioa.PA0, PinIoType::PullUp, Speed::Low);
+    let mut led = Output::new(gpioa.PA9, PinIoType::PullUp, Speed::Low);
 
     let mut cnt = 0;
 
     loop {
         let _ = led.toggle();
         // 延时 1s
+        defmt::info!("{}s", cnt);
         counter.delay_us_blocking(1_000_000);
-        defmt::info!("{}", cnt);
         cnt += 1;
     }
 }

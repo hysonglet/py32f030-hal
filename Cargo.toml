@@ -38,6 +38,9 @@ fugit = { version = "0.3.6" }
 fugit-timer = "0.1.3"
 drop-move = "0.1.0"
 embedded-time = "0.12.1"
+alloc-cortex-m = "0.4.2"
+defmt = "0.3.2"
+defmt-rtt = "0.4"
 
 [features]
 default = ["embassy"]
@@ -48,6 +51,7 @@ embassy = [
 ]
 ## Enable the timer for use with `embassy-time` with a 1KHz tick rate.
 time-driver = ["dep:embassy-time-driver", "embassy-time-driver/tick-hz-1_000"]
+interrupt_v2 = []
 
 [dev-dependencies]
 defmt = "0.3.2"

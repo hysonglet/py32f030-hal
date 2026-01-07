@@ -50,13 +50,19 @@ fn main() -> ! {
         let mut adc_bind = ADC_INSTANCE.borrow(cs).borrow_mut();
         let adc = adc_bind.as_mut().unwrap();
 
+        static mut SUM: u64 = 0;
         adc.id()
             .bind(&|cs| {
                 // 拿到ADC实例
                 let mut adc_borrow = ADC_INSTANCE.borrow(cs).borrow_mut();
                 // 获取队列的所有权
                 let mut queue = ADC_QUEUE.borrow(cs).borrow_mut();
-                let _ = queue.enqueue(adc_borrow.as_mut().unwrap().read_once());
+                let tmp = adc_borrow.as_mut().unwrap().read_once();
+                let _ = queue.enqueue(tmp);
+                unsafe {
+                    SUM += tmp as u64;
+                    // info!("{}", SUM);
+                }
             })
             .unwrap();
 
@@ -67,7 +73,6 @@ fn main() -> ! {
     });
 
     loop {
-        cortex_m::asm::wfi();
         interrupt::free(|cs| {
             let mut queue = ADC_QUEUE.borrow(cs).borrow_mut();
             while queue.len() > 0 {

@@ -43,12 +43,12 @@ impl<T: Instance> Future for EventFuture<T> {
         WAKER[T::id() as usize].register(cx.waker());
 
         let mut e = EnumSet::empty();
-        for event in self.events {
+        self.events.iter().for_each(|event| {
             if T::event_flag(event) {
                 T::event_clear(event);
                 e |= event;
             }
-        }
+        });
 
         if !e.is_empty() {
             return Poll::Ready(Ok(e));
