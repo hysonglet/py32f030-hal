@@ -73,11 +73,13 @@ fn main() -> ! {
     loop {
         cortex_m::asm::wfi();
 
+        // 通过裸指针读取，避免创建指向 `static mut` 的共享引用
+        let queue = unsafe { &*core::ptr::addr_of!(QUEUE) };
         defmt::info!(
             "adc {:?} sum: {} avrage: {}",
-            Debug2Format(unsafe { &QUEUE }),
-            unsafe { QUEUE.iter().sum::<u16>() },
-            unsafe { QUEUE.iter().sum::<u16>() / QUEUE.len() as u16 }
+            Debug2Format(queue),
+            queue.iter().sum::<u16>(),
+            queue.iter().sum::<u16>() / queue.len() as u16
         );
     }
 }

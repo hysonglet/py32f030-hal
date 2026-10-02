@@ -1,6 +1,5 @@
 use super::{MisoPin, MosiPin, NssPin, SckPin};
 use crate::gpio::{self, gpioa, gpiob, gpiof};
-use crate::macro_def::impl_pin_af;
 use crate::mcu::peripherals;
 
 // 指定 引脚功能，生成与外设功能绑定的引脚 trait

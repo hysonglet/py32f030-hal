@@ -6,7 +6,6 @@ mod types;
 use crate::mode::Async;
 use crate::{
     clock::peripheral::PeripheralInterrupt,
-    macro_def::impl_sealed_peripheral_id,
     // mcu::peripherals::RTC,
     mode::Blocking,
 

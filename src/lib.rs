@@ -1,10 +1,7 @@
 #![no_std]
 #![allow(non_camel_case_types)]
 #![allow(clippy::uninit_assumed_init)]
-#![allow(internal_features)]
-#![feature(core_intrinsics)]
 #![allow(non_snake_case)]
-#![feature(async_closure)]
 
 use config::SysClockSource;
 use mcu::Peripherals;

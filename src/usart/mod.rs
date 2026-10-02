@@ -10,7 +10,6 @@ use crate::clock::peripheral::{
 };
 use crate::dma::{self, DmaChannel};
 use crate::gpio::{self, AnyPin};
-use crate::macro_def::pin_af_for_instance_def;
 use crate::mcu::peripherals::DMA;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
