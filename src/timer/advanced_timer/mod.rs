@@ -18,10 +18,11 @@ use crate::{
 };
 use embassy_hal_internal::{into_ref, Peripheral};
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 /// 高级定时器
-#[derive(PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Timer {
     TIM1,
 }
@@ -150,6 +151,13 @@ impl<'d, T: Instance, M: Mode> AnyTimer<'d, T, M> {
     /// 转换成pwm模式
     pub fn as_pwm(self) -> Pwm<'d, T> {
         Pwm::new()
+    }
+}
+
+impl<'d, T: Instance, M: Mode> Drop for AnyTimer<'d, T, M> {
+    fn drop(&mut self) {
+        T::stop();
+        T::id().clock().close();
     }
 }
 

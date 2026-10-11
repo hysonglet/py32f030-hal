@@ -17,10 +17,11 @@ use enumset::EnumSetType;
 pub use master::Master;
 pub use slave::Slave;
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 ///  mcu i2c 的索引
-#[derive(PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Id {
     I2c1,
 }

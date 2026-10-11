@@ -59,7 +59,7 @@ impl<'d, T: Instance> Flash<'d, T> {
         let _drop = DropGuard::new(|| T::lock().unwrap());
 
         // 地址错误
-        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || addr % FLASH_PAGE_SIZE as u32 != 0
+        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
             return Err(Error::Addr);
         }
@@ -88,7 +88,7 @@ impl<'d, T: Instance> Flash<'d, T> {
 
         // 地址错误
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr)
-            || addr % FLASH_SECTOR_SIZE as u32 != 0
+            || !addr.is_multiple_of(FLASH_SECTOR_SIZE as u32)
         {
             return Err(Error::Addr);
         }
@@ -103,8 +103,11 @@ impl<'d, T: Instance> Flash<'d, T> {
     }
 
     pub fn erase_sector_by_index(&self, sector: usize) -> Result<(), Error> {
-        let addr = FLASH_BASE_ADDR + sector as u32 * FLASH_SECTOR_SIZE as u32;
-        self.erase_page(addr)
+        let base = FLASH_BASE_ADDR + sector as u32 * FLASH_SECTOR_SIZE as u32;
+        for p in 0..FLASH_PAGE_PER_SECTOR_CNT {
+            self.erase_page(base + p as u32 * FLASH_PAGE_SIZE as u32)?;
+        }
+        Ok(())
     }
 
     pub fn program_page(
@@ -114,7 +117,7 @@ impl<'d, T: Instance> Flash<'d, T> {
     ) -> Result<(), Error> {
         // 地址错误
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr)
-            || page_addr % FLASH_PAGE_SIZE as u32 != 0
+            || !page_addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
             return Err(Error::Addr);
         }
@@ -129,7 +132,7 @@ impl<'d, T: Instance> Flash<'d, T> {
     /// 读取一个 page 内容
     pub fn read_page(&self, addr: u32, buf: &mut [u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {
         // 地址错误
-        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || addr % FLASH_PAGE_SIZE as u32 != 0
+        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
             return Err(Error::Addr);
         }
@@ -169,4 +172,10 @@ impl<'d, T: Instance> Flash<'d, T> {
     }
 
     // pub fn write_page(&self, addr: u32, buf: &[u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {}
+}
+
+impl<'d, T: Instance> Drop for Flash<'d, T> {
+    fn drop(&mut self) {
+        let _ = T::lock();
+    }
 }

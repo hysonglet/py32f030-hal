@@ -8,16 +8,13 @@ use critical_section::CriticalSection;
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-#[allow(clippy::declare_interior_mutable_const)]
-#[cfg(feature = "embassy")]
-const _ATOMIC_WAKER: AtomicWaker = AtomicWaker::new();
 #[cfg(feature = "embassy")]
 const _EVENT_COUNT: usize = Event::PE as usize + 1;
 #[cfg(feature = "embassy")]
-const _WAKER_COUNT: usize = Id::USART2 as usize;
+const _WAKER_COUNT: usize = Id::USART2 as usize + 1;
 #[cfg(feature = "embassy")]
-pub(super) static EVENT_WAKERS: [[AtomicWaker; _EVENT_COUNT]; _WAKER_COUNT] =
-    [[_ATOMIC_WAKER; _EVENT_COUNT]; _WAKER_COUNT];
+pub(super) static EVENT_WAKERS: [AtomicWaker; _EVENT_COUNT * _WAKER_COUNT] =
+    [const { AtomicWaker::new() }; _EVENT_COUNT * _WAKER_COUNT];
 
 pub struct EventFuture<T: Instance> {
     _t: PhantomData<T>,
@@ -42,7 +39,7 @@ impl<T: Instance> EventFuture<T> {
             if T::is_event_enable(event) && T::event_flag(event) {
                 // 关闭触发的中断，防止重复响应
                 T::event_config(event, false);
-                EVENT_WAKERS[id][event as usize].wake()
+                EVENT_WAKERS[id * _EVENT_COUNT + event as usize].wake()
             }
         });
     }
@@ -68,7 +65,7 @@ impl<T: Instance> Future for EventFuture<T> {
         }
 
         self.events.iter().for_each(|e| {
-            EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
+            EVENT_WAKERS[T::id() as usize * _EVENT_COUNT + e as usize].register(cx.waker());
         });
         // 没有任何事件
         Poll::Pending

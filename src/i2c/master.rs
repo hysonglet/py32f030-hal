@@ -322,22 +322,6 @@ impl<'d, T: Instance> embedded_hal_async::i2c::ErrorType for Master<'d, T, Async
     type Error = Error;
 }
 
-#[cfg(feature = "embassy")]
-impl<'d, T: Instance> embedded_hal_async::i2c::I2c for Master<'d, T, Async> {
-    async fn read(&mut self, _address: u8, _read: &mut [u8]) -> Result<(), Self::Error> {
-        todo!()
-    }
-
-    async fn transaction(
-        &mut self,
-        _address: u8,
-        _operations: &mut [embedded_hal_async::i2c::Operation<'_>],
-    ) -> Result<(), Self::Error> {
-        todo!()
-    }
-
-    async fn write(&mut self, _address: u8, _write: &[u8]) -> Result<(), Self::Error> {
-        // self.write(address, write).await.map_or_else((), |e| e)
-        todo!()
-    }
-}
+// 注：当前 Master 的异步 I2C 传输尚未实现（原 `embedded_hal_async::i2c::I2c`
+// 实现充斥 `todo!()`，调用即 panic）。出于安全起见暂不实现该 trait，使不支持
+// 的能力在编译期即可被发现，而非运行时崩溃。如需异步 I2C，请实现下方逻辑。

@@ -111,8 +111,8 @@ pub enum ScanDir {
     Down,
 }
 
-/// DMA Configuration
-/// This bit can be set and cleared by software, selects between two DMA modes of operation and is valid when DMAEN = 1
+// DMA Configuration
+// This bit can be set and cleared by software, selects between two DMA modes of operation and is valid when DMAEN = 1
 // #[derive(PartialEq)]
 // pub enum DmaMode {
 //     Single,

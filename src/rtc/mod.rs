@@ -115,6 +115,12 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
     }
 }
 
+impl<'d, T: Instance, M: Mode> Drop for AnyRtc<'d, T, M> {
+    fn drop(&mut self) {
+        T::id().clock().close();
+    }
+}
+
 impl<'d, T: Instance> AnyRtc<'d, T, Blocking> {
     #[inline]
     pub fn wait_block(&self, second: u32) {

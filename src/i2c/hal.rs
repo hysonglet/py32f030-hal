@@ -184,7 +184,8 @@ pub(super) mod sealed {
         ///
         /// - 0：ACK 位控制当前移位寄存器内正在接收的字节的(N)ACK。PEC 位表明当前移位寄存器内的字节是 PEC
         /// - 1：ACK 位控制在移位寄存器里接收的下一个字节的(N)ACK。PEC 位表明在移位寄存器里接收的下一个字节是 PEC
-        ///      注：POS 位只能用在 2 字节的接收配置中，必须在接收数据之前配置。为了 NACK 第 2 个字节，必须在清除 ADDR 之后清除 ACK 位。为了检测第 2 个字节的 PEC，必须在配置了POS 位之后，ADDR stretch 事件时设置 PEC位。
+        ///
+        /// 注：POS 位只能用在 2 字节的接收配置中，必须在接收数据之前配置。为了 NACK 第 2 个字节，必须在清除 ADDR 之后清除 ACK 位。为了检测第 2 个字节的 PEC，必须在配置了POS 位之后，ADDR stretch 事件时设置 PEC位。
         #[inline]
         fn clear_pos() {
             Self::block().cr1.modify(|_, w| w.pos().clear_bit());

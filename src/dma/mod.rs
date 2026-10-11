@@ -39,6 +39,7 @@ impl PeripheralIdToClockIndex for Id {
 
 /// 通道 id
 #[derive(PartialEq, Clone, Copy)]
+#[derive(Debug, Eq)]
 pub enum Channel {
     Channel1 = 0,
     Channel2 = 1,

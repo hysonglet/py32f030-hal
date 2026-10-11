@@ -50,8 +50,8 @@ pub(crate) mod sealed {
         #[inline]
         fn set_period_cnt(cnt: u16) {
             Self::block()
-                .psc
-                .modify(|_, w| unsafe { w.psc().bits(cnt) })
+                .arr
+                .modify(|_, w| unsafe { w.arr().bits(cnt) })
         }
 
         /// 设置计数值

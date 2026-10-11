@@ -132,7 +132,7 @@ pub(crate) mod sealed {
         #[inline]
         fn page_erase(page_addr: u32) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
-            assert!(page_addr % FLASH_PAGE_SIZE as u32 == 0);
+            assert!(page_addr.is_multiple_of(FLASH_PAGE_SIZE as u32));
             Self::block().cr.modify(|_, w| w.per().set_bit());
             unsafe {
                 core::ptr::write_volatile(page_addr as _, 0xff);
@@ -143,7 +143,7 @@ pub(crate) mod sealed {
         #[inline]
         fn sector_erase(sector_addr: u32) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&sector_addr));
-            assert!(sector_addr % FLASH_SECTOR_SIZE as u32 == 0);
+            assert!(sector_addr.is_multiple_of(FLASH_SECTOR_SIZE as u32));
 
             Self::block().cr.modify(|_, w| w.ser().set_bit());
             unsafe {
@@ -155,7 +155,7 @@ pub(crate) mod sealed {
         #[inline]
         fn page_program(page_addr: u32, content: [u32; FLASH_PAGE_SIZE / 4]) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
-            assert!(page_addr % FLASH_PAGE_SIZE as u32 == 0);
+            assert!(page_addr.is_multiple_of(FLASH_PAGE_SIZE as u32));
 
             let block = Self::block();
 

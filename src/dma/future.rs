@@ -104,6 +104,6 @@ fn DMA_CHANNEL2_3() {
     // 通道 2 和 通道 3可能会混，所以都遍历一遍
     critical_section::with(|cs| unsafe {
         EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all());
-        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel2, EnumSet::all())
+        EventFuture::<DMA>::on_interrupt(cs, Channel::Channel3, EnumSet::all())
     })
 }

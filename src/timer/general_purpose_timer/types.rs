@@ -66,8 +66,8 @@ pub enum CountDirection {
     Down = 1,
 }
 
-///时钟分频因子
-/// 这 2 位定义在定时器时钟(CK_INT)频率，死区时间和由死区发生器与数字滤波器(ETR,Tix)所用的采样时钟之间的分频比例
+//时钟分频因子
+// 这 2 位定义在定时器时钟(CK_INT)频率，死区时间和由死区发生器与数字滤波器(ETR,Tix)所用的采样时钟之间的分频比例
 // #[derive(PartialEq, Clone, Copy)]
 // pub enum ClockDiv {
 //     ///  tDTS = tCK_INT

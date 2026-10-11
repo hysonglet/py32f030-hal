@@ -42,6 +42,7 @@ impl PeripheralInterrupt for Id {
     }
 }
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 impl_sealed_peripheral_id!(SPI1, SPI1);
@@ -71,6 +72,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         T::set_clock_polarity(config.mode.polarity);
         T::set_frame_format(config.bit_order);
         T::set_baud_rate_div(config.baud_rate_div);
+        T::spi_enable(true);
 
         Ok(Self {
             _t: PhantomData,
@@ -162,6 +164,20 @@ pub struct Config {
     pub bit_order: BitOrder,
     pub baud_rate_div: BaudRateDiv,
     pub data_len: DataLength,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            mode: embedded_hal::spi::Mode {
+                polarity: embedded_hal::spi::Polarity::IdleLow,
+                phase: embedded_hal::spi::Phase::CaptureOnFirstTransition,
+            },
+            bit_order: BitOrder::MSB,
+            baud_rate_div: BaudRateDiv::Div2,
+            data_len: DataLength::Length8,
+        }
+    }
 }
 
 pin_af_for_instance_def!(SckPin, Instance);

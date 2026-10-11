@@ -28,6 +28,7 @@ use future::EventFuture;
 use hal::sealed;
 use types::*;
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
 
 // 定义 串口的特殊引脚 trait
@@ -208,7 +209,7 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
 
             dma.clear_flag(EnumSet::all());
             // 不管成功与否都关闭dma触发
-            let _tx_dmp_close = DropGuard::new(|| T::tx_dma_enable(false));
+            let _rx_dmp_close = DropGuard::new(|| T::rx_dma_enable(false));
 
             // 配置dma channel
             dma.config(dma::Config::new_periph2mem(
@@ -281,7 +282,8 @@ impl<'d, T: Instance> UsartRx<'d, T, Async> {
 
             let event_future = poll_fn(move |cx| {
                 events.iter().for_each(|e| {
-                    future::EVENT_WAKERS[T::id() as usize][e as usize].register(cx.waker());
+                    future::EVENT_WAKERS[T::id() as usize * (Event::PE as usize + 1) + e as usize]
+                        .register(cx.waker());
                     T::event_config(e, true);
                 });
 
@@ -344,7 +346,7 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
         rx_dma: Option<DmaChannel<'d, DMA, M>>,
     ) -> Self {
         T::rx_enable(rxd.is_some());
-        T::rts_enable(rts.is_none());
+        T::rts_enable(rts.is_some());
 
         Self {
             _p: PhantomData,

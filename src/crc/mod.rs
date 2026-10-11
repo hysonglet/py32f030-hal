@@ -4,6 +4,7 @@ use embassy_hal_internal::{into_ref, Peripheral};
 
 mod hal;
 
+#[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
 
 impl Instance for crate::mcu::peripherals::CRC {}

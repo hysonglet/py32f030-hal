@@ -197,7 +197,7 @@ pub(crate) mod sealed {
                         block.ccr1.modify(|_, w| w.tcie().bit(en));
                     }
                     Event::TEIF => {
-                        block.ccr1.modify(|_, w| w.tcie().bit(en));
+                        block.ccr1.modify(|_, w| w.teie().bit(en));
                     }
                 },
                 Channel::Channel2 => match event {
@@ -209,7 +209,7 @@ pub(crate) mod sealed {
                         block.ccr2.modify(|_, w| w.tcie().bit(en));
                     }
                     Event::TEIF => {
-                        block.ccr2.modify(|_, w| w.tcie().bit(en));
+                        block.ccr2.modify(|_, w| w.teie().bit(en));
                     }
                 },
                 Channel::Channel3 => match event {
@@ -221,7 +221,7 @@ pub(crate) mod sealed {
                         block.ccr3.modify(|_, w| w.tcie().bit(en));
                     }
                     Event::TEIF => {
-                        block.ccr3.modify(|_, w| w.tcie().bit(en));
+                        block.ccr3.modify(|_, w| w.teie().bit(en));
                     }
                 },
             }

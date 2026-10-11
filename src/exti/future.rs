@@ -85,7 +85,7 @@ fn EXTI0_1() {
 
 #[interrupt]
 fn EXTI2_3() {
-    critical_section::with(|_cs| unsafe { on_gpio_line_irq(0xc0) })
+    critical_section::with(|_cs| unsafe { on_gpio_line_irq(0x0c) })
 }
 
 #[interrupt]

@@ -94,11 +94,6 @@ pub(crate) mod sealed {
         }
 
         #[inline]
-        fn lock(&self, _lock: bool) {
-            todo!()
-        }
-
-        #[inline]
         fn set_af(&self, af: PinAF) {
             let block = self.block();
 

@@ -9,12 +9,11 @@ impl_pin_af!(gpiof, PF0_OSC_IN, I2C, SdaPin, AF12);
 impl_pin_af!(gpiof, PF1_OSC_OUT, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA2, I2C, SdaPin, AF12);
-impl_pin_af!(gpioa, PA3, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA7, I2C, SdaPin, AF12);
 impl_pin_af!(gpioa, PA8, I2C, SclPin, AF12);
 
-impl_pin_af!(gpioa, PA9, I2C, SdaPin, AF6);
+impl_pin_af!(gpioa, PA9, I2C, SdaPin, AF12);
 impl_pin_af!(gpioa, PA9, I2C, SclPin, AF6);
 
 impl_pin_af!(gpioa, PA10, I2C, SdaPin, AF6);
