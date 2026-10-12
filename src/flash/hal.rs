@@ -178,5 +178,31 @@ pub(crate) mod sealed {
             // disable 编程
             block.cr.modify(|_, w| w.pg().clear_bit());
         }
+
+        /// 设置 Flash 读等待周期（ACR.LATENCY）：0–1 个等待状态
+        #[inline]
+        fn set_latency(ws: u8) {
+            Self::block()
+                .acr
+                .modify(|_, w| w.latency().bit(ws.min(1) != 0));
+        }
+
+        /// 读取当前 Flash 读等待周期
+        #[inline]
+        fn get_latency() -> u8 {
+            Self::block().acr.read().latency().bit() as u8
+        }
+
+        /// 读取选项字节寄存器（OPTR）原始值
+        #[inline]
+        fn read_option_byte() -> u32 {
+            Self::block().optr.read().bits()
+        }
+
+        /// 读取当前读保护等级（OPTR.RDP）
+        #[inline]
+        fn get_read_protection() -> u8 {
+            Self::block().optr.read().rdp().bits()
+        }
     }
 }

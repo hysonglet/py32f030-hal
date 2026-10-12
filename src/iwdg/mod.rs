@@ -33,6 +33,11 @@ pub enum Div {
 pub struct Config {
     div: Div,
     reload: u16,
+    /// 窗口值（0 表示不启用窗口看门狗）
+    ///
+    /// 若启用，喂狗（重装载）必须发生在计数器值低于窗口值时进行，
+    /// 否则会触发复位。窗口值需满足 `reload < window < 0xFFF`。
+    window: u16,
 }
 
 impl Default for Config {
@@ -40,6 +45,7 @@ impl Default for Config {
         Self {
             div: Div::Div32,
             reload: 2048,
+            window: 0,
         }
     }
 }
@@ -60,13 +66,18 @@ impl<'d, T: Instance> IWdg<'d, T> {
 
         T::start();
 
-        // PeripheralClockIndex::.clock(true);
         T::enable_config();
 
         wait_for_true_timeout_block(100000, || !T::is_div_updating()).unwrap();
         wait_for_true_timeout_block(100000, || !T::is_reloading()).unwrap();
         T::set_div(config.div);
         T::set_reload(config.reload);
+
+        // 窗口看门狗
+        if config.window > 0 {
+            wait_for_true_timeout_block(100000, || !T::is_window_updating()).unwrap();
+            T::set_window(config.window);
+        }
         Self { _t: PhantomData }
     }
 

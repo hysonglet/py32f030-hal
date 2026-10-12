@@ -10,6 +10,7 @@ pub use PY32f030xx_pac as pac;
 pub mod adc;
 pub mod bit;
 pub mod clock;
+pub mod comp;
 pub mod crc;
 pub mod delay;
 pub mod dma;
@@ -20,6 +21,7 @@ pub mod exti;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+pub mod led;
 #[cfg(not(feature = "embassy"))]
 pub mod interrupt;
 #[cfg(not(feature = "embassy"))]

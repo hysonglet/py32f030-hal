@@ -1,6 +1,6 @@
 use super::types::*;
 use crate::clock::peripheral::PeripheralInterrupt;
-use crate::exti::hal::sealed::Instance;
+use crate::exti::hal::sealed::{ExtiImpl, Instance};
 use crate::gpio::{AnyPin, GpioPort};
 use crate::pac::interrupt;
 
@@ -13,10 +13,6 @@ const EXIT_GPIO_COUNT: usize = 17;
 const ATOMIC_WAKE_CONST: AtomicWaker = AtomicWaker::new();
 static EXIT_GPIO_WAKERS: [AtomicWaker; EXIT_GPIO_COUNT] = [ATOMIC_WAKE_CONST; EXIT_GPIO_COUNT];
 
-impl Instance for Exti {}
-
-pub(crate) struct Exti;
-
 pub struct ExtiInputFuture<'a> {
     line: Line,
     edge: Edge,
@@ -27,17 +23,17 @@ impl<'a> ExtiInputFuture<'a> {
     pub fn new(port: GpioPort, pin: usize, edge: Edge) -> Self {
         let line: Line = pin.into();
         // line 选择
-        Exti::exit_channle_select(line, port.into());
+        ExtiImpl::exit_channle_select(line, port.into());
 
         critical_section::with(|_| {
             // 设置上升沿触发条件
-            Exti::line_ring_edge(line, edge.is_rising());
+            ExtiImpl::line_ring_edge(line, edge.is_rising());
             // 设置下降沿的触发条件
-            Exti::line_falling_edge(line, edge.is_falling());
+            ExtiImpl::line_falling_edge(line, edge.is_falling());
 
             // clear pending bit
-            Exti::clear_pending(line);
-            Exti::line_pend_enable(line, true);
+            ExtiImpl::clear_pending(line);
+            ExtiImpl::line_pend_enable(line, true);
         });
 
         Self {
@@ -54,7 +50,7 @@ impl<'d> Future for ExtiInputFuture<'d> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        if !Exti::is_line_pend_enable(self.line) {
+        if !ExtiImpl::is_line_pend_enable(self.line) {
             Poll::Ready(())
         } else {
             EXIT_GPIO_WAKERS[self.line as usize].register(cx.waker());
@@ -68,9 +64,9 @@ impl<'d> Drop for ExtiInputFuture<'d> {
     fn drop(&mut self) {
         critical_section::with(|_| {
             if self.edge.is_rising() {
-                Exti::line_ring_edge(self.line, false);
+                ExtiImpl::line_ring_edge(self.line, false);
             } else if self.edge.is_falling() {
-                Exti::line_falling_edge(self.line, false);
+                ExtiImpl::line_falling_edge(self.line, false);
             }
             // Exit::line_falling_edge(self.line, false);
             // Exit::line_pend_enable(self.line, false);
@@ -94,10 +90,10 @@ fn EXTI4_15() {
 }
 
 unsafe fn on_gpio_line_irq(mask: u32) {
-    let flag = Exti::block().pr.read().bits() & mask;
+    let flag = ExtiImpl::block().pr.read().bits() & mask;
     for line in BitIter(flag) {
-        Exti::line_pend_enable(Line::from(line as usize), false);
-        Exti::clear_pending(Line::from(line as usize));
+        ExtiImpl::line_pend_enable(Line::from(line as usize), false);
+        ExtiImpl::clear_pending(Line::from(line as usize));
         EXIT_GPIO_WAKERS[line as usize].wake();
     }
 }

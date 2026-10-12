@@ -313,6 +313,13 @@ impl embedded_hal_async::i2c::Error for Error {
             Self::Start => embedded_hal_async::i2c::ErrorKind::Other,
             Self::Stop => embedded_hal_async::i2c::ErrorKind::Other,
             Self::Tx => embedded_hal_async::i2c::ErrorKind::Other,
+            Self::Acknowledge => embedded_hal_async::i2c::ErrorKind::NoAcknowledge(
+                embedded_hal_async::i2c::NoAcknowledgeSource::Unknown,
+            ),
+            Self::ArbitrationLost => embedded_hal_async::i2c::ErrorKind::ArbitrationLoss,
+            Self::Bus => embedded_hal_async::i2c::ErrorKind::Bus,
+            Self::Overrun => embedded_hal_async::i2c::ErrorKind::Overrun,
+            Self::Timeout => embedded_hal_async::i2c::ErrorKind::Other,
         }
     }
 }

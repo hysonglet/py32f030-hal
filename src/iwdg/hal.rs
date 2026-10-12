@@ -64,5 +64,18 @@ pub(super) mod sealed {
         fn is_div_updating() -> bool {
             Self::block().sr.read().pvu().bit()
         }
+
+        #[inline]
+        fn is_window_updating() -> bool {
+            Self::block().sr.read().wvu().bit()
+        }
+
+        #[inline]
+        fn set_window(window: u16) {
+            assert!(window <= RELOAD_MAX);
+            // WINR 在 PAC 中未标记为 Writable，使用裸指针写入
+            let winr = Self::block().winr.as_ptr() as *mut u32;
+            unsafe { core::ptr::write_volatile(winr, window as u32) };
+        }
     }
 }

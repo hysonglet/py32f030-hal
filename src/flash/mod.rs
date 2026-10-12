@@ -38,6 +38,32 @@ impl<'d, T: Instance> Flash<'d, T> {
         T::uuid()
     }
 
+    /// 设置 Flash 读等待周期（0–1 个等待状态）
+    ///
+    /// 当内核频率较高时应设置为 1，否则读取会出错。
+    #[inline]
+    pub fn set_latency(&self, ws: u8) {
+        T::set_latency(ws);
+    }
+
+    /// 读取当前 Flash 读等待周期
+    #[inline]
+    pub fn get_latency(&self) -> u8 {
+        T::get_latency()
+    }
+
+    /// 读取选项字节寄存器（OPTR）原始值
+    #[inline]
+    pub fn read_option_byte() -> u32 {
+        T::read_option_byte()
+    }
+
+    /// 读取当前读保护等级（OPTR.RDP）
+    #[inline]
+    pub fn get_read_protection() -> u8 {
+        T::get_read_protection()
+    }
+
     pub fn erase_flash(&self) -> Result<(), Error> {
         T::unlock()?;
 

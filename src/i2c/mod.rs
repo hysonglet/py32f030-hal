@@ -62,9 +62,20 @@ pub enum Error {
     SpeedMode,
     Start,
     Address,
+    /// 应答失败（AF）
+    Acknowledge,
+    /// 停止条件
     Stop,
     Tx,
     RX,
+    /// 等待超时
+    Timeout,
+    /// 仲裁丢失（ARLO）
+    ArbitrationLost,
+    /// 总线错误（BERR）
+    Bus,
+    /// 过载/欠载（OVR）
+    Overrun,
 }
 
 pin_af_for_instance_def!(SdaPin, Instance);
@@ -90,8 +101,10 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
         Master::<'_, T, M>::new()
     }
 
-    pub fn as_slave() -> Slave<'d, T, M> {
-        todo!()
+    /// 转换为从机（会自动写入配置中的自身地址）
+    pub fn as_slave(self, address: u8) -> Slave<'d, T, M> {
+        T::address(address & 0x7f);
+        Slave::<'_, T, M>::new()
     }
 
     pub fn new(
@@ -120,20 +133,66 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
 }
 
 /// I2C 外设配置
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Config {
+    /// 通信速率（Hz），最大 400K
     speed: usize,
+    /// 从机模式下的自身地址（7 位）
+    own_address: u8,
+    /// 使能广播呼叫（ENGC）
+    general_call: bool,
+    /// 禁止时钟延展（NOSTRETCH）
+    no_stretch: bool,
+    /// 使能 PEC 校验
+    pec: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         // 默认速度100K
-        Self { speed: 100_000 }
+        Self {
+            speed: 100_000,
+            own_address: 0,
+            general_call: false,
+            no_stretch: false,
+            pec: false,
+        }
     }
 }
 
 impl Config {
+    /// 设置通信速率
     pub fn speed(self, speed: usize) -> Self {
-        Self { speed }
+        Self { speed, ..self }
+    }
+
+    /// 设置从机自身地址（7 位）
+    pub fn own_address(self, address: u8) -> Self {
+        Self {
+            own_address: address & 0x7f,
+            ..self
+        }
+    }
+
+    /// 使能广播呼叫
+    pub fn general_call(self, en: bool) -> Self {
+        Self {
+            general_call: en,
+            ..self
+        }
+    }
+
+    /// 禁止时钟延展
+    pub fn no_stretch(self, en: bool) -> Self {
+        Self {
+            no_stretch: en,
+            ..self
+        }
+    }
+
+    /// 使能 PEC 校验
+    pub fn pec(self, en: bool) -> Self {
+        Self { pec: en, ..self }
     }
 }
 

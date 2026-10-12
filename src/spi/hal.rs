@@ -1,6 +1,8 @@
 pub(super) mod sealed {
     use crate::pac;
     use crate::spi::*;
+    use embedded_hal::spi::{Phase, Polarity};
+
     pub trait Instance {
         fn id() -> Id;
 
@@ -158,7 +160,39 @@ pub(super) mod sealed {
             Self::block().cr2.modify(|_, w| w.ssoe().bit(en))
         }
 
+        /// 接收 FIFO 阈值（FRXTH）
+        ///
+        /// false：RXNE 在 FIFO 达到 16 位时置位；true：达到 8 位即置位
+        #[inline]
+        fn set_fifo_rx_threshold_8bit(en: bool) {
+            Self::block().cr2.modify(|_, w| w.frxth().bit(en))
+        }
+
+        /// 最后一次 DMA 传输（LDMA_TX）：本次 DMA 结束后关闭 DMA 请求
+        #[inline]
+        fn set_last_dma_tx(en: bool) {
+            Self::block().cr2.modify(|_, w| w.ldma_tx().bit(en))
+        }
+
+        /// 最后一次 DMA 传输（LDMA_RX）
+        #[inline]
+        fn set_last_dma_rx(en: bool) {
+            Self::block().cr2.modify(|_, w| w.ldma_rx().bit(en))
+        }
+
         // dma option
+
+        /// 发送 DMA 请求使能（TXDMAEN）
+        #[inline]
+        fn tx_dma_enable(en: bool) {
+            Self::block().cr2.modify(|_, w| w.txdmaen().bit(en))
+        }
+
+        /// 接收 DMA 请求使能（RXDMAEN）
+        #[inline]
+        fn rx_dma_enable(en: bool) {
+            Self::block().cr2.modify(|_, w| w.rxdmaen().bit(en))
+        }
 
         /// busy?
         #[inline]
@@ -176,6 +210,44 @@ pub(super) mod sealed {
             // 1: Overrun occurred
             // This flag is set by hardware and reset by a software sequence.
             Self::block().sr.read().ovr().bit()
+        }
+
+        /// 模式错误（MODF）：主机模式下 NSS 被外部拉低
+        #[inline]
+        fn is_mode_fault() -> bool {
+            Self::block().sr.read().modf().bit()
+        }
+
+        /// 接收 FIFO 水位（FRLVL）
+        #[inline]
+        fn fifo_rx_level() -> u8 {
+            Self::block().sr.read().frlvl().bits()
+        }
+
+        /// 发送 FIFO 水位（FTLVL）
+        #[inline]
+        fn fifo_tx_level() -> u8 {
+            Self::block().sr.read().ftlvl().bits()
+        }
+
+        /// 清除错误标志
+        ///
+        /// - OVR：先读 SR 再读 DR 清零
+        /// - MODF：先读 SR 再写 CR1 清零（这里通过关/开 SPE 复位）
+        fn clear_errors() {
+            let block = Self::block();
+
+            if block.sr.read().ovr().bit() {
+                let _ = block.sr.read().bits();
+                let _ = block.dr.read().dr().bits();
+            }
+
+            if block.sr.read().modf().bit() {
+                let _ = block.sr.read().bits();
+                // 读 SR 后写 CR1 清除 MODF
+                block.cr1.modify(|_, w| w.spe().bit(false));
+                block.cr1.modify(|_, w| w.spe().bit(true));
+            }
         }
 
         /// Transmit buffer empty

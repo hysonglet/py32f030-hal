@@ -9,6 +9,8 @@ impl_pin_af!(gpiof, PF0_OSC_IN, I2C, SdaPin, AF12);
 impl_pin_af!(gpiof, PF1_OSC_OUT, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA2, I2C, SdaPin, AF12);
+// PA3 的 I2C_SCL 复用功能为 AF12（此前缺失，导致 PA2+PA3 组合无法编译）
+impl_pin_af!(gpioa, PA3, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA7, I2C, SdaPin, AF12);
 impl_pin_af!(gpioa, PA8, I2C, SclPin, AF12);

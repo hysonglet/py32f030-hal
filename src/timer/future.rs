@@ -1,11 +1,20 @@
-use super::{Error, Event, Instance, Timer};
-use crate::{mcu::peripherals::TIM1, pac::interrupt};
+use super::{Error, Event, Instance, TimerId};
+use crate::mcu::peripherals::{TIM1, TIM14, TIM16, TIM17, TIM3};
+use crate::pac::interrupt;
 use core::{future::Future, marker::PhantomData, task::Poll};
 use critical_section::CriticalSection;
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-static WAKER: [AtomicWaker; 1] = [AtomicWaker::new(); 1];
+/// 每个定时器一个 Waker，按 `TimerId` 索引
+/// （`AtomicWaker` 非 `Copy`，不能用 `[AtomicWaker::new(); N]` 简写）
+static WAKER: [AtomicWaker; 5] = [
+    AtomicWaker::new(),
+    AtomicWaker::new(),
+    AtomicWaker::new(),
+    AtomicWaker::new(),
+    AtomicWaker::new(),
+];
 
 pub struct EventFuture<T: Instance> {
     _t: PhantomData<T>,
@@ -23,16 +32,14 @@ impl<T: Instance> EventFuture<T> {
 
     /// 中断函数调用
     #[inline]
-    unsafe fn on_interrupt(_cs: CriticalSection, _id: usize) {
+    unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
         // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
-            /* 匹配到中断了 */
             if T::event_flag(event) {
-                // 关闭该中断
                 T::event_config(event, false);
             }
         });
-        WAKER[T::id() as usize].wake()
+        WAKER[id].wake()
     }
 }
 
@@ -60,9 +67,45 @@ impl<T: Instance> Future for EventFuture<T> {
     }
 }
 
+// TIM1 占用两个中断向量，两个都要唤醒同一个 Waker
 #[interrupt]
 fn TIM1_BRK_UP_TRG_COM() {
     critical_section::with(|cs| unsafe {
-        EventFuture::<TIM1>::on_interrupt(cs, Timer::TIM1 as usize)
+        EventFuture::<TIM1>::on_interrupt(cs, TimerId::TIM1 as usize)
+    })
+}
+
+#[interrupt]
+fn TIM1_CC() {
+    critical_section::with(|cs| unsafe {
+        EventFuture::<TIM1>::on_interrupt(cs, TimerId::TIM1 as usize)
+    })
+}
+
+#[interrupt]
+fn TIM3() {
+    critical_section::with(|cs| unsafe {
+        EventFuture::<TIM3>::on_interrupt(cs, TimerId::TIM3 as usize)
+    })
+}
+
+#[interrupt]
+fn TIM14() {
+    critical_section::with(|cs| unsafe {
+        EventFuture::<TIM14>::on_interrupt(cs, TimerId::TIM14 as usize)
+    })
+}
+
+#[interrupt]
+fn TIM16() {
+    critical_section::with(|cs| unsafe {
+        EventFuture::<TIM16>::on_interrupt(cs, TimerId::TIM16 as usize)
+    })
+}
+
+#[interrupt]
+fn TIM17() {
+    critical_section::with(|cs| unsafe {
+        EventFuture::<TIM17>::on_interrupt(cs, TimerId::TIM17 as usize)
     })
 }

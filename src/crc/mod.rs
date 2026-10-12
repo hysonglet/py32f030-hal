@@ -41,6 +41,18 @@ impl<'d, T: Instance> Crc<'d, T> {
     pub fn reset(&self) {
         T::reset()
     }
+
+    /// 写入独立数据寄存器（IDR），可用于暂存用户数据
+    #[inline]
+    pub fn set_idr(&self, v: u8) {
+        T::set_idr(v);
+    }
+
+    /// 读取独立数据寄存器（IDR）
+    #[inline]
+    pub fn get_idr(&self) -> u8 {
+        T::get_idr()
+    }
 }
 
 impl<'d, T: Instance> Drop for Crc<'d, T> {

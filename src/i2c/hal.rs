@@ -79,6 +79,55 @@ pub(super) mod sealed {
                 .modify(|_, w| unsafe { w.add().bits(address) });
         }
 
+        /// 使能广播呼叫（CR1.ENGC）
+        #[inline]
+        fn set_general_call(en: bool) {
+            Self::block().cr1.modify(|_, w| w.engc().bit(en));
+        }
+
+        /// 禁止时钟延展（CR1.NOSTRETCH）
+        #[inline]
+        fn set_no_stretch(en: bool) {
+            Self::block().cr1.modify(|_, w| w.nostretch().bit(en));
+        }
+
+        /// 使能 PEC 校验（CR1.ENPEC）
+        #[inline]
+        fn set_pec(en: bool) {
+            Self::block().cr1.modify(|_, w| w.enpec().bit(en));
+        }
+
+        /// 使能 DMA 请求（CR2.DMAEN）
+        #[inline]
+        fn dma_enable(en: bool) {
+            Self::block().cr2.modify(|_, w| w.dmaen().bit(en));
+        }
+
+        /// 下一次 DMA 传输为最后一次（CR2.LAST）
+        #[inline]
+        fn set_last_dma(en: bool) {
+            Self::block().cr2.modify(|_, w| w.last().bit(en));
+        }
+
+        /// 清除地址匹配标志（ADDR）：先读 SR1 再读 SR2
+        #[inline]
+        fn clear_addr() {
+            let _ = Self::block().sr1.read().bits();
+            let _ = Self::block().sr2.read().bits();
+        }
+
+        /// 是否为广播呼叫地址（SR2.GENCALL）
+        #[inline]
+        fn is_general_call() -> bool {
+            Self::block().sr2.read().gencall().bit()
+        }
+
+        /// 当前处于发送还是接收（SR2.TRA）：true 表示发送
+        #[inline]
+        fn is_transmitter() -> bool {
+            Self::block().sr2.read().tra().bit()
+        }
+
         /// 总线忙
         #[inline]
         fn busy() -> bool {
@@ -392,6 +441,12 @@ pub(super) mod sealed {
                 freq * 300 / 1000 + 1
             } as u8;
             block.trise.modify(|_, w| unsafe { w.trise().bits(rise) });
+
+            // 从机自身地址、广播呼叫、时钟延展与 PEC
+            Self::address(config.own_address);
+            Self::set_general_call(config.general_call);
+            Self::set_no_stretch(config.no_stretch);
+            Self::set_pec(config.pec);
 
             Self::enable_config(true);
 

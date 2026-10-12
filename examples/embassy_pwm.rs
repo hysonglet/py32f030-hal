@@ -48,7 +48,7 @@ async fn main(_spawner: Spawner) {
 
     // 引脚指定方式3
     // PA0，指定为OC_N, 当为None时候不会被使用，当引脚没有被模版冲突则不需要指定模版类型
-    pwm.set_channel_1_pin::<_, PA0>(Some(channel_1_pin), None);
+    pwm.set_channel_1_pins::<_, PA0>(Some(channel_1_pin), None);
 
     // 配置定时器
     pwm.config(
