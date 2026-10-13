@@ -1,6 +1,6 @@
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 mod types;
 #[cfg(feature = "embassy")]
 use crate::mode::Async;
@@ -23,14 +23,14 @@ use crate::{
 };
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
 #[derive(PartialEq)]
 pub(crate) enum Id {
     Rtc1 = 0,
 }
 
-// 根据ID匹配外设实体
+// Match the peripheral instance by ID
 impl_sealed_peripheral_id!(RTC, Rtc1);
 
 impl PeripheralIdToClockIndex for Id {
@@ -76,7 +76,7 @@ pub struct AnyRtc<'d, T: Instance, M: Mode> {
 
 impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
     pub fn new(_rtc: impl Peripheral<P = T>, config: Config) -> Result<Self, Error> {
-        // 开启时钟
+        // Enable the clock
         T::id().clock().open();
         // T::id().reset();
 
@@ -94,12 +94,12 @@ impl<'d, T: Instance, M: Mode> AnyRtc<'d, T, M> {
 
         let _ = T::enable_config();
 
-        // 关闭所有中断
+        // Disable all interrupts
         EnumSet::all()
             .iter()
             .for_each(|event| T::event_config(event, false));
 
-        // 重新写入计数值
+        // Rewrite the counter value
         if let Some(load) = config.load {
             T::set_counter(load);
         }
@@ -153,7 +153,6 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
         T::set_alarm(br);
         // T::disable_config();
         let event = EnumSet::empty() | EventKind::Alarm;
-        // 开启中断使能
         event.iter().for_each(|event| {
             T::clear_interrupt(event);
             T::event_config(event, true);
@@ -167,7 +166,6 @@ impl<'d, T: Instance> AnyRtc<'d, T, Async> {
 
         // T::disable_config();
         let event = EnumSet::empty() | EventKind::Second;
-        // 开启中断使能
         event.iter().for_each(|event| {
             T::clear_interrupt(event);
             T::event_config(event, true);

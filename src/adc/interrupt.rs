@@ -10,10 +10,10 @@ pub fn dispatch() {
     }
 }
 
-// ADC 中断服务函数
+// ADC interrupt service routine
 #[interrupt]
 fn ADC_COMP() {
-    // ADC1 的中断 eoc
+    // ADC1 EOC interrupt
     critical_section::with(|_cs| {
         dispatch();
     })

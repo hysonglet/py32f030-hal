@@ -22,7 +22,7 @@ pub(super) mod sealed {
             Self::block().pr.modify(|_, w| unsafe { w.pr().bits(pr) });
         }
 
-        /// 选择 COM 数量（0=1 个 COM，1=2 个，2=3 个，3=4 个）
+        /// Select the number of COM lines (0=1, 1=2, 2=3, 3=4).
         #[inline]
         fn set_com_count(count: u8) {
             let sel = (count.saturating_sub(1)).min(3);
@@ -31,7 +31,7 @@ pub(super) mod sealed {
                 .modify(|_, w| unsafe { w.led_com_sel().bits(sel) });
         }
 
-        /// 设置显示时序 t1 / t2（各 8 位）
+        /// Set display timing t1 / t2 (8 bits each).
         #[inline]
         fn set_timing(t1: u8, t2: u8) {
             Self::block()
@@ -39,7 +39,7 @@ pub(super) mod sealed {
                 .modify(|_, w| unsafe { w.t1().bits(t1).t2().bits(t2) });
         }
 
-        /// 亮度控制（EHS，2 位）
+        /// Brightness control (EHS, 2 bits).
         #[inline]
         fn set_light_control(lc: LightControl) {
             Self::block()
@@ -62,7 +62,7 @@ pub(super) mod sealed {
             Self::block().ir.modify(|_, w| w.flag().bit(true));
         }
 
-        /// 写入某个 COM 线的 8 段显示数据（dr0..dr3）
+        /// Write the 8-segment display data for a COM line (dr0..dr3).
         #[inline]
         fn set_display_data(com: u8, seg: u32) {
             let block = Self::block();

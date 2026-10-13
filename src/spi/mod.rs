@@ -1,10 +1,10 @@
-//! SPI 驱动
+//! SPI driver.
 //!
-//! 结构上与其它外设一致：寄存器层由 `hal::sealed::Instance` 封装，
-//! 面向用户的 `Master` / `Slave` 分别位于 `master.rs` / `slave.rs`。
-//! SPI1 与 SPI2 复用同一套寄存器块布局。
+//! Structurally consistent with other peripherals: the register layer is wrapped by `instance::sealed::Instance`,
+//! the user-facing `Master` / `Slave` live in `master.rs` / `slave.rs`.
+//! SPI1 and SPI2 share the same register-block layout.
 
-mod hal;
+mod instance;
 pub mod master;
 mod pins;
 mod slave;
@@ -25,7 +25,7 @@ use crate::syscfg::DmaChannelMap;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
-/// spi 的 索引
+/// SPI peripheral identifier.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Id {
     SPI1,
@@ -33,7 +33,7 @@ pub enum Id {
 }
 
 impl Id {
-    /// 返回 (TX, RX) 的 DMA 通道映射值
+    /// Return the DMA channel mapping values for (TX, RX).
     pub(crate) fn dma_channel_map(&self) -> (DmaChannelMap, DmaChannelMap) {
         match *self {
             Self::SPI1 => (DmaChannelMap::SPI1_TX, DmaChannelMap::SPI1_RX),
@@ -61,7 +61,7 @@ impl PeripheralInterrupt for Id {
 }
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
 impl_sealed_peripheral_id!(SPI1, SPI1);
 impl_sealed_peripheral_id!(SPI2, SPI2);
@@ -70,7 +70,7 @@ pub struct AnySpi<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,
     _m: PhantomData<M>,
 
-    // 引脚
+    // Pins
     _sck: PeripheralRef<'d, AnyPin>,
     _mosi: Option<PeripheralRef<'d, AnyPin>>,
     _miso: Option<PeripheralRef<'d, AnyPin>>,
@@ -92,7 +92,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         rx_dma: Option<DmaChannel<'d, DMA, M>>,
         config: Config,
     ) -> Result<Self, Error> {
-        // 配置前必须关闭 SPI
+        // SPI must be disabled before configuration.
         T::spi_enable(false);
 
         T::set_clock_phase(config.mode.phase);
@@ -106,7 +106,7 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         T::set_fifo_rx_threshold_8bit(config.fifo_rx_threshold_8bit);
         T::enable_ss_output(config.ss_output_enable);
 
-        // 未使用 NSS 引脚时必须开启软件从设备管理，否则会误报 MODF
+        // When the NSS pin is unused, software slave management must be enabled, otherwise a spurious MODF is reported.
         T::enable_soft_slave_management(config.software_slave_management || nss.is_none());
         T::slave_enable(true);
 
@@ -173,7 +173,6 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
             },
         );
 
-        // 使能外设时钟
         T::id().clock().open();
 
         into_ref!(spi);
@@ -181,19 +180,19 @@ impl<'d, T: Instance, M: Mode> AnySpi<'d, T, M> {
         Self::new_inner(spi, sck.map_into(), mosi, miso, nss, tx_dma, rx_dma, config)
     }
 
-    /// 转换为主机
+    /// Convert into master mode.
     pub fn as_master(self) -> Master<'d, T, M> {
         T::set_rule(Rule::Master);
         Master::<T, M>::new(self._sck, self._mosi, self._miso, self._nss, self.tx_dma, self.rx_dma)
     }
 
-    /// 转换为从机
+    /// Convert into slave mode.
     pub fn as_slave(self) -> Slave<'d, T, M> {
         T::set_rule(Rule::Slave);
         Slave::<T, M>::new(self._sck, self._mosi, self._miso, self._nss, self.tx_dma, self.rx_dma)
     }
 
-    /// 关闭 SPI 并释放外设时钟
+    /// Disable SPI and release the peripheral clock.
     pub fn deinit(self) {
         T::spi_enable(false);
         T::id().clock().close();
@@ -213,6 +212,6 @@ pin_af_for_instance_def!(MisoPin, Instance);
 pin_af_for_instance_def!(MosiPin, Instance);
 pin_af_for_instance_def!(NssPin, Instance);
 
-// 说明：`gpio` 导入用于引脚的 AF 配置；保留以匹配其它外设的写法
+// Note: the `gpio` import is used for pin AF configuration; kept to match other peripherals' style.
 #[allow(unused_imports)]
 use gpio as _gpio;

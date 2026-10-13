@@ -1,58 +1,59 @@
 use enumset::EnumSetType;
 
-/// LPTIM 错误（当前操作无失败分支）
+/// LPTIM error (current operations cannot fail).
 pub enum Error {}
 
-/// 预分频系数（LPTIM_CFGR.PRESC[2:0]）
+/// Prescaler (LPTIM_CFGR.PRESC[2:0]).
 #[derive(PartialEq, Clone, Copy)]
 pub enum Prescaler {
-    /// 1 分频
+    /// Divide by 1
     Div1 = 0,
-    /// 2 分频
+    /// Divide by 2
     Div2 = 1,
-    /// 4 分频
+    /// Divide by 4
     Div4 = 2,
-    /// 8 分频
+    /// Divide by 8
     Div8 = 3,
-    /// 16 分频
+    /// Divide by 16
     Div16 = 4,
-    /// 32 分频
+    /// Divide by 32
     Div32 = 5,
-    /// 64 分频
+    /// Divide by 64
     Div64 = 6,
-    /// 128 分频
+    /// Divide by 128
     Div128 = 7,
 }
 
 impl Prescaler {
-    /// 返回分频系数
+    /// Returns the prescaler divisor.
     pub fn divisor(&self) -> u32 {
         1u32 << (*self as u8)
     }
 }
 
-/// LPTIM 内核时钟源（RCC_CCIPR.LPTIMSEL[1:0]）
+/// LPTIM core clock source (RCC_CCIPR.LPTIMSEL[1:0]).
 #[derive(PartialEq, Clone, Copy)]
 pub enum ClockSource {
-    /// APB 时钟（PCLK）。注意：选 PCLK 时预分频必须 >= 2 分频。
+    /// APB clock (PCLK). Note: when PCLK is selected, the prescaler must be >= 2.
     Pclk = 0b00,
-    /// 内部低速时钟 LSI（约 32 kHz）
+    /// Internal low-speed clock LSI (~32 kHz)
     Lsi = 0b01,
-    /// 外部低速时钟 LSE（约 32.768 kHz）
+    /// External low-speed clock LSE (~32.768 kHz)
     Lse = 0b11,
 }
 
-/// LPTIM 配置
+/// LPTIM configuration.
 ///
-/// 注意：选择 `Lsi`/`Lse` 时，需先由用户通过 `crate::clock::LSI` / `crate::clock::LSE`
-/// 使能对应振荡器，否则 LPTIM 无内核时钟不会计数。
+/// Note: when `Lsi`/`Lse` is selected, the corresponding oscillator must first be
+/// enabled by the user via `crate::clock::LSI` / `crate::clock::LSE`, otherwise LPTIM
+/// has no core clock and will not count.
 #[derive(PartialEq, Clone, Copy)]
 pub struct LpTimerConfig {
-    /// 内核时钟源
+    /// Core clock source.
     pub clock_source: ClockSource,
-    /// 预分频系数
+    /// Prescaler.
     pub prescaler: Prescaler,
-    /// ARR 预装载使能（PRELOAD）
+    /// ARR preload enable (PRELOAD).
     pub preload: bool,
 }
 
@@ -66,9 +67,9 @@ impl Default for LpTimerConfig {
     }
 }
 
-/// LPTIM 事件
+/// LPTIM events.
 #[derive(EnumSetType, Debug)]
 pub enum Event {
-    /// 自动重装载匹配（ARRM）
+    /// Auto-reload match (ARRM)
     AutoreloadMatch,
 }

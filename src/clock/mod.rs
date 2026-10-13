@@ -1,5 +1,5 @@
-//！ MCU时钟配置模块
-//! 时钟初始化逻辑，提供获取系统时钟等接口
+//！ MCU clock configuration module.
+//! Clock initialization logic, providing interfaces to obtain the system clock, etc.
 
 pub mod peripheral;
 mod types;
@@ -13,19 +13,19 @@ static mut F_CPU: u32 = 8000000;
 
 const TIMEOUT: usize = 1_000_000;
 
-/// 返回系统时钟的频率，单位：Hz
+/// Return the system clock frequency in Hz.
 #[inline]
 pub fn sys_core_clock() -> u32 {
     unsafe { F_CPU }
 }
 
-/// 返回 PCLK 时钟频率，单位： Hz
+/// Return the PCLK clock frequency in Hz.
 pub fn sys_pclk() -> u32 {
     let ppre: PclkDiv = Rcc::block().cfgr.read().ppre().bits().into();
     sys_hclk() / ppre.div()
 }
 
-/// 返回 HCLK 时钟频率，单位：Hz
+/// Return the HCLK clock frequency in Hz.
 pub fn sys_hclk() -> u32 {
     let hpre: HclkDiv = Rcc::block().cfgr.read().hpre().bits().into();
     sys_core_clock() / hpre.div()
@@ -49,7 +49,7 @@ fn sys_core_clock_update(hz: u32) {
     }
 }
 
-/// Rcc 外设
+/// RCC peripheral.
 struct Rcc;
 
 impl Rcc {
@@ -58,12 +58,12 @@ impl Rcc {
     }
 }
 
-/// 返回时钟频率
+/// Return the clock frequency.
 pub trait ClockFrequency {
     fn hz() -> u32;
 }
 
-/// 输入时钟的trait
+/// Trait for an input clock.
 pub trait Clock {
     #[inline]
     fn enable() -> Result<(), Error> {
@@ -76,15 +76,15 @@ pub trait Clock {
     fn set(en: bool) -> Result<(), Error>;
 }
 
-/// 低速内部时钟：32KHz
+/// Low-speed internal clock: 32 KHz
 /// Low-speed internal clock
 pub struct LSI;
 
-/// 低速外部时钟：32KHz
+/// Low-speed external clock: 32 KHz
 /// Low-speed external clock
 pub struct LSE;
 
-/// 锁相环
+/// Phase-locked loop
 /// Phase locked loop
 pub struct PLL<CLK: PllSelect> {
     _clk: PhantomData<CLK>,
@@ -102,7 +102,7 @@ impl HsiHz {
     }
 }
 
-/// 高速内部时钟
+/// High-speed internal clock
 /// High-speed internal clock
 pub struct HSI;
 
@@ -114,7 +114,7 @@ impl HSI {
     }
 }
 
-/// HSE 高速外部时钟 （4~32M）
+/// High-speed external clock (4~32 MHz)
 /// High-speed external clock
 pub struct HSE<const HZ: u32 = 24000000>;
 
@@ -171,10 +171,10 @@ impl Clock for LSE {
             .bdcr
             .modify(|_, w| w.lscosel().set_bit().lscoen().clear_bit());
 
-        // 00：关闭 LSE；
-        // 01：弱驱动能力；（默认）
-        // 10：中驱动能力；（推荐）
-        // 11：强驱动能力；
+        // 00: LSE off;
+        // 01: weak drive capability (default);
+        // 10: medium drive capability (recommended);
+        // 11: strong drive capability;
         let lse_driver = if en { 0b01 } else { 0 };
 
         peripheral
@@ -251,7 +251,7 @@ impl<const DIV: u32> Clock for HSIDiv<DIV> {
         let peripheral = Rcc::block();
 
         let hsi_div: HsiDiv = DIV.into();
-        // 设置分频
+        // Set the prescaler.
         peripheral
             .cr
             .modify(|_, w| unsafe { w.hsidiv().bits(hsi_div as u8) });
@@ -282,7 +282,7 @@ impl PllClock {
     }
 }
 
-/// PLL 可以用来对 HSI 或者 HSE 进行倍频。在使能 PLL 之前，必须对 PLL 进行配置。一旦 PLL 被使能，这 些被配置的寄存器不能被改变。
+/// The PLL can multiply either HSI or HSE. It must be configured before being enabled; once enabled, these configuration registers cannot be changed.
 pub trait PllSelect: Clock {
     fn config() -> Result<(), Error>;
 }
@@ -302,7 +302,7 @@ impl<const HZ: u32> PllSelect for HSE<HZ> {
     }
 }
 
-/// Sysclk 选择
+/// System clock selection.
 #[derive(Clone, Copy)]
 #[allow(clippy::upper_case_acronyms)]
 enum SysClockSw {
@@ -335,7 +335,7 @@ pub trait SysClkSelect: Clock + ClockFrequency {
 
 impl<const DIV: u32> SysClkSelect for HSIDiv<DIV> {
     fn config() -> Result<(), Error> {
-        // 开启时钟
+        // Enable the clock.
         Self::enable()?;
 
         SysClockSw::HSISys.config()?;
@@ -366,7 +366,7 @@ impl SysClkSelect for LSI {
 impl SysClkSelect for LSE {
     fn config() -> Result<(), Error> {
         Self::enable()?;
-        // 更新时钟
+        // Update the clock.
         SysClockSw::LSE.config()?;
         sys_core_clock_update(Self::hz());
         Ok(())
@@ -417,7 +417,7 @@ impl PclkDiv {
     }
 }
 
-/// Mco输出分频
+/// MCO output prescaler.
 pub enum McoDIV {
     DIV1 = 0,
     DIV2 = 1,
@@ -446,7 +446,7 @@ impl From<u32> for McoDIV {
     }
 }
 
-/// 系统时钟
+/// System clock.
 pub struct SysClock<CLK: SysClkSelect> {
     _clk: PhantomData<CLK>,
 }
@@ -475,7 +475,7 @@ impl Mco {
     }
 }
 
-/// RTC 时钟选择器
+/// RTC clock selector.
 pub trait RtcSelect: Clock + ClockFrequency {
     fn config() -> Result<(), Error>;
 }
@@ -491,8 +491,8 @@ impl RtcSelect for LSI {
 }
 impl RtcSelect for LSE {
     fn config() -> Result<(), Error> {
-        // 开启外部时钟，
-        // TODO！ 引脚初始化？
+        // Enable the external clock.
+        // TODO: pin initialization?
         Self::enable()?;
         Rcc::block()
             .bdcr

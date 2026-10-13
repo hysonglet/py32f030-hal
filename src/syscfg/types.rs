@@ -31,12 +31,12 @@ pub enum DmaChannelMap {
     TIM17_UP = 29,
 }
 
-/// 系统启动引导模式
+/// System boot mode
 pub enum BootMode {
-    /// 主flash启动
+    /// Boot from main flash
     MainFlash = 0,
-    /// 进入iap
+    /// Enter IAP
     SystemFlash = 1,
-    /// 从sram启动
+    /// Boot from SRAM
     SRAM = 3,
 }

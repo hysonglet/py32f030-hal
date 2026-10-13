@@ -1,44 +1,45 @@
 pub(super) mod sealed {
     use super::super::*;
 
-    /// COMP 实例寄存器操作
+    /// COMP instance register operations.
     ///
-    /// COMP1 与 COMP2 的寄存器块是 PAC 中两个不同类型（comp1 / comp2），
-    /// 无法用统一的 `block()` 返回，故用宏按实例生成实现。
+    /// COMP1 and COMP2 have two distinct register-block types in the PAC (comp1 /
+    /// comp2) and cannot share a single `block()`, so the implementation is generated
+    /// per instance via a macro.
     ///
-    /// 注意：这里命名为 `CompInstance` 而非 `Instance`，避免与
-    /// `comp::Instance`（对外公开 trait）重名造成解析歧义。
+    /// Note: named `CompInstance` rather than `Instance` to avoid ambiguity with
+    /// `comp::Instance` (the public trait).
     pub trait CompInstance {
         fn id() -> Id;
 
-        /// 使能/关闭比较器
+        /// Enable/disable the comparator.
         fn enable(en: bool);
-        /// 读取比较器输出
+        /// Read the comparator output.
         fn output() -> bool;
-        /// 应用完整配置
+        /// Apply the full configuration.
         fn config(config: Config);
 
         fn set_hysteresis(hyst: Hysteresis);
         fn set_power_mode(mode: PowerMode);
         fn set_polarity(polarity: Polarity);
         fn set_window_mode(en: bool);
-        /// 锁定配置（LOCK 置位后 CSR 只读，直到复位）
+        /// Lock the configuration (once LOCK is set, CSR is read-only until reset).
         fn lock();
         fn is_locked() -> bool;
-        /// 数字滤波
+        /// Digital filter.
         fn set_filter(en: bool, count: u8);
 
-        /// 写入迟滞（仅 COMP1 支持；COMP2 无此字段，默认空实现）
+        /// Write hysteresis (COMP1 only; COMP2 has no such field, defaults to no-op).
         #[inline]
         fn write_hyst(_: Hysteresis) {}
-        /// 写入缩放器使能（仅 COMP1 支持；COMP2 无此字段，默认空实现）
+        /// Write the scaler enable (COMP1 only; COMP2 has no such field, defaults to no-op).
         #[inline]
         fn write_scaler(_: bool) {}
     }
 
     macro_rules! impl_comp_instance {
         ($periph:ident, $pac:ident, $id:ident, $extras:ident) => {
-            impl $crate::comp::hal::sealed::CompInstance for $crate::mcu::peripherals::$periph {
+            impl $crate::comp::instance::sealed::CompInstance for $crate::mcu::peripherals::$periph {
                 #[inline]
                 fn id() -> Id {
                     Id::$id
@@ -61,7 +62,7 @@ pub(super) mod sealed {
                 }
 
                 fn config(config: Config) {
-                    // 配置前先关闭比较器
+                    // Disable the comparator before configuring.
                     Self::enable(false);
 
                     unsafe { &*$crate::pac::$pac::PTR }.csr.modify(|_, w| unsafe {
@@ -133,19 +134,19 @@ pub(super) mod sealed {
 
                 #[inline]
                 fn write_hyst(hyst: Hysteresis) {
-                    $crate::comp::hal::sealed::impl_comp_instance!(@write_hyst $extras, $pac, hyst);
+                    $crate::comp::instance::sealed::impl_comp_instance!(@write_hyst $extras, $pac, hyst);
                 }
 
                 #[inline]
                 fn write_scaler(en: bool) {
-                    $crate::comp::hal::sealed::impl_comp_instance!(@write_scaler $extras, $pac, en);
+                    $crate::comp::instance::sealed::impl_comp_instance!(@write_scaler $extras, $pac, en);
                 }
             }
 
             impl $crate::comp::Instance for $crate::mcu::peripherals::$periph {}
         };
 
-        // COMP1 专有：迟滞与缩放器使能
+        // COMP1 only: hysteresis and scaler enable.
         (@write_hyst has_hyst, $pac:ident, $hyst:ident) => {
             unsafe { &*$crate::pac::$pac::PTR }
                 .csr

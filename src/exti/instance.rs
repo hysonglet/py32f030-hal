@@ -36,13 +36,13 @@ pub mod sealed {
                 .modify(|r, w| unsafe { w.bits(bit_mask_idx_set::<1>(line as usize, r.bits())) })
         }
 
-        /// 读取原始挂起位（不区分 GPIO / 内部线）
+        /// Read the raw pending bit (no distinction between GPIO / internal lines)
         #[inline]
         fn pending_raw(line: Line) -> bool {
             bit_mask_idx_get::<1>(line as usize, Self::block().pr.read().bits()) != 0
         }
 
-        /// 软件触发某一 EXTI 线（SWIER）
+        /// Software-trigger an EXTI line (SWIER)
         #[inline]
         fn software_trigger(line: Line) {
             Self::block()
@@ -54,7 +54,7 @@ pub mod sealed {
         fn exit_channle_select(line: Line, pin: ExitPinSource) {
             let block = Self::block();
             let idx = line as usize;
-            // 每个引脚源占 2 位，位偏移 = (line % 4) * 8
+            // Each pin source occupies 2 bits; bit offset = (line % 4) * 8
             let shift = (idx % 4) * 8;
             let val = pin as u32;
             match idx / 4 {
@@ -67,8 +67,9 @@ pub mod sealed {
                 2 => block.exticr3.modify(|r, w| unsafe {
                     w.bits(bit_mask_idx_modify::<2>(shift, r.bits(), val))
                 }),
-                // line 12–15：PY32f030xx-pac 未提供 exticr4，无法切换源选择
-                // （PA 为默认值，PB/PF 在这些线上不可用），故跳过。
+                // line 12–15: PY32f030xx-pac does not provide exticr4, so the source
+                // cannot be switched (PA is the default; PB/PF are unavailable on these
+                // lines), so skip.
                 _ => {}
             }
         }
@@ -96,7 +97,7 @@ pub mod sealed {
         // }
     }
 
-    /// 内部寄存器访问标记类型（供 `Exti` 公共 API 与 `ExtiInputFuture` 使用）
+    /// Internal register-access marker type (used by the `Exti` public API and `ExtiInputFuture`)
     pub(crate) struct ExtiImpl;
     impl Instance for ExtiImpl {}
 }

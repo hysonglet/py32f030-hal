@@ -1,4 +1,4 @@
-mod hal;
+mod instance;
 mod types;
 
 use crate::delay::wait_for_true_timeout_block;
@@ -19,9 +19,9 @@ pub const FLASH_END_ADDR: u32 = FLASH_BASE_ADDR + MAIN_FLASH_SIZE as u32;
 pub(crate) const WAIT_TICK_TIMEOUT: usize = 100000;
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 impl Instance for crate::mcu::peripherals::FLASH {}
-impl hal::sealed::Instance for crate::mcu::peripherals::FLASH {}
+impl instance::sealed::Instance for crate::mcu::peripherals::FLASH {}
 
 pub struct Flash<'d, T: Instance> {
     _t: PhantomData<&'d T>,
@@ -38,27 +38,27 @@ impl<'d, T: Instance> Flash<'d, T> {
         T::uuid()
     }
 
-    /// 设置 Flash 读等待周期（0–1 个等待状态）
+    /// Set the Flash read wait states (0–1 wait states).
     ///
-    /// 当内核频率较高时应设置为 1，否则读取会出错。
+    /// Set to 1 when the core clock is high, otherwise reads may be incorrect.
     #[inline]
     pub fn set_latency(&self, ws: u8) {
         T::set_latency(ws);
     }
 
-    /// 读取当前 Flash 读等待周期
+    /// Read the current Flash read wait states.
     #[inline]
     pub fn get_latency(&self) -> u8 {
         T::get_latency()
     }
 
-    /// 读取选项字节寄存器（OPTR）原始值
+    /// Read the raw option byte register (OPTR) value.
     #[inline]
     pub fn read_option_byte() -> u32 {
         T::read_option_byte()
     }
 
-    /// 读取当前读保护等级（OPTR.RDP）
+    /// Read the current read-protection level (OPTR.RDP).
     #[inline]
     pub fn get_read_protection() -> u8 {
         T::get_read_protection()
@@ -71,35 +71,36 @@ impl<'d, T: Instance> Flash<'d, T> {
 
         T::mass_erase();
 
-        // 等待擦除完毕
+        // Wait for erase to finish.
         wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !T::busy())
             .map_err(|_| Error::Timeout)?;
 
         T::lock()
     }
 
-    /// page 擦除
+    /// Erase a page.
     pub fn erase_page(&self, addr: u32) -> Result<(), Error> {
         T::unlock()?;
 
         let _drop = DropGuard::new(|| T::lock().unwrap());
 
-        // 地址错误
-        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
+        // Invalid address.
+        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr)
+            || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
             return Err(Error::Addr);
         }
 
         T::page_erase(addr);
 
-        // 等待擦除完毕
+        // Wait for erase to finish.
         wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !T::busy())
             .map_err(|_| Error::Timeout)?;
 
         T::lock()
     }
 
-    ///  给定扇区和页编号，自动计算出页的地址，然后擦除
+    /// Compute the page address from sector and page indices, then erase it.
     pub fn erase_page_by_index(&self, sector: usize, page: usize) -> Result<(), Error> {
         let addr = FLASH_BASE_ADDR
             + sector as u32 * FLASH_SECTOR_SIZE as u32
@@ -112,7 +113,7 @@ impl<'d, T: Instance> Flash<'d, T> {
 
         let _drop = DropGuard::new(|| T::lock().unwrap());
 
-        // 地址错误
+        // Invalid address.
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr)
             || !addr.is_multiple_of(FLASH_SECTOR_SIZE as u32)
         {
@@ -121,7 +122,7 @@ impl<'d, T: Instance> Flash<'d, T> {
 
         T::sector_erase(addr);
 
-        // 等待擦除完毕
+        // Wait for erase to finish.
         wait_for_true_timeout_block(WAIT_TICK_TIMEOUT, || !T::busy())
             .map_err(|_| Error::Timeout)?;
 
@@ -141,7 +142,7 @@ impl<'d, T: Instance> Flash<'d, T> {
         page_addr: u32,
         content: [u32; FLASH_PAGE_SIZE / 4],
     ) -> Result<(), Error> {
-        // 地址错误
+        // Invalid address.
         if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr)
             || !page_addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
@@ -155,10 +156,15 @@ impl<'d, T: Instance> Flash<'d, T> {
         T::lock()
     }
 
-    /// 读取一个 page 内容
-    pub fn read_page(&self, addr: u32, buf: &mut [u32; FLASH_PAGE_SIZE / 4]) -> Result<(), Error> {
-        // 地址错误
-        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr) || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
+    /// Read the contents of a page.
+    pub fn read_page(
+        &self,
+        addr: u32,
+        buf: &mut [u32; FLASH_PAGE_SIZE / 4],
+    ) -> Result<(), Error> {
+        // Invalid address.
+        if !(FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&addr)
+            || !addr.is_multiple_of(FLASH_PAGE_SIZE as u32)
         {
             return Err(Error::Addr);
         }
@@ -171,7 +177,7 @@ impl<'d, T: Instance> Flash<'d, T> {
         Ok(())
     }
 
-    /// 返回一个 page 内容
+    /// Read a page's contents by sector/page index.
     pub fn read_page_by_index(
         &self,
         sector: usize,
@@ -185,7 +191,7 @@ impl<'d, T: Instance> Flash<'d, T> {
         self.read_page(addr, buf)
     }
 
-    /// 返回页地址
+    /// Return the page address.
     pub fn get_page_addr(sector: usize, page: usize) -> Result<u32, Error> {
         if sector >= FLASH_SECTOR_CNT || page >= FLASH_PAGE_PER_SECTOR_CNT {
             return Err(Error::Addr);

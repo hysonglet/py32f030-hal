@@ -6,8 +6,8 @@ use critical_section::CriticalSection;
 use embassy_sync::waitqueue::AtomicWaker;
 use enumset::EnumSet;
 
-/// 每个定时器一个 Waker，按 `TimerId` 索引
-/// （`AtomicWaker` 非 `Copy`，不能用 `[AtomicWaker::new(); N]` 简写）
+/// One Waker per timer, indexed by `TimerId`.
+/// (`AtomicWaker` is not `Copy`, so the `[AtomicWaker::new(); N]` shorthand cannot be used.)
 static WAKER: [AtomicWaker; 5] = [
     AtomicWaker::new(),
     AtomicWaker::new(),
@@ -30,10 +30,9 @@ impl<T: Instance> EventFuture<T> {
         }
     }
 
-    /// 中断函数调用
+    /// Called from the interrupt handler.
     #[inline]
     unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
-        // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
             if T::event_flag(event) {
                 T::event_config(event, false);
@@ -67,7 +66,7 @@ impl<T: Instance> Future for EventFuture<T> {
     }
 }
 
-// TIM1 占用两个中断向量，两个都要唤醒同一个 Waker
+// TIM1 occupies two interrupt vectors; both must wake the same Waker.
 #[interrupt]
 fn TIM1_BRK_UP_TRG_COM() {
     critical_section::with(|cs| unsafe {

@@ -4,14 +4,14 @@ use super::{
 };
 use core::marker::PhantomData;
 
-/// 单脉冲配置
+/// One-pulse configuration.
 #[derive(Clone, Copy)]
 pub struct OnePulseConfig {
-    /// 输出通道
+    /// Output channel.
     pub output_channel: Channel,
-    /// 输出通道配置
+    /// Output channel configuration.
     pub channel: ChannelConfig,
-    /// 计数周期（ARR）
+    /// Count period (ARR).
     pub period: u16,
 }
 
@@ -28,10 +28,11 @@ impl Default for OnePulseConfig {
     }
 }
 
-/// 单脉冲（One Pulse Mode）
+/// One Pulse Mode.
 ///
-/// 仅 TIM1 / TIM3 / TIM16 具备 OPM，因此受 `WithOnePulse` 编译期门控。
-/// 外部触发输入需要 SMCR（即 `WithEncoder` 能力）与第二通道，故单独门控。
+/// Only TIM1 / TIM3 / TIM16 have OPM, so it is gated at compile time by
+/// `WithOnePulse`. External trigger input needs SMCR (i.e. the `WithEncoder`
+/// capability) and a second channel, so it is gated separately.
 pub struct OnePulse<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 }
@@ -40,7 +41,7 @@ impl<'d, T: Instance + WithOnePulse> OnePulse<'d, T> {
     pub(super) fn new(cfg: OnePulseConfig, op_mode: OnePulseMode) -> Self {
         assert!(
             cfg.output_channel.index() < T::CHANNELS,
-            "该定时器不支持此输出通道"
+            "this timer does not support this output channel"
         );
 
         T::stop();
@@ -55,38 +56,38 @@ impl<'d, T: Instance + WithOnePulse> OnePulse<'d, T> {
         T::set_channel_compare(cfg.output_channel, cfg.channel.compare);
         T::set_channel_output_effective_level(cfg.output_channel, ChannelOutput::P, true, true, false);
         T::set_auto_reload(cfg.period);
-        // OPM=1 时计数器在更新事件后停止
+        // With OPM=1 the counter stops after the update event.
         T::enable_single_mode(op_mode == OnePulseMode::Single);
 
         Self { _t: PhantomData }
     }
 
-    /// 启动单脉冲（软件触发）
+    /// Start the one-pulse (software trigger).
     #[inline]
     pub fn start(&self) {
         T::event_clear(Event::UIF);
         T::start();
     }
 
-    /// 停止
+    /// Stop.
     #[inline]
     pub fn stop(&self) {
         T::stop();
     }
 
-    /// 是否已完成（产生更新事件）
+    /// Whether it has finished (the update event has occurred).
     #[inline]
     pub fn is_finished(&self) -> bool {
         T::event_flag(Event::UIF)
     }
 
-    /// 清除完成标志
+    /// Clear the finished flag.
     #[inline]
     pub fn clear_finished(&self) {
         T::event_clear(Event::UIF);
     }
 
-    /// 阻塞等待脉冲结束
+    /// Block until the pulse ends.
     #[inline]
     pub fn wait(&self) {
         while !T::event_flag(Event::UIF) {}
@@ -94,9 +95,9 @@ impl<'d, T: Instance + WithOnePulse> OnePulse<'d, T> {
     }
 }
 
-/// 外部触发启动（需要 SMCR + 第二通道，仅 TIM1 / TIM3）
+/// External-trigger start (needs SMCR + a second channel, TIM1 / TIM3 only).
 impl<'d, T: Instance + WithOnePulse + WithEncoder + HasChannel<2>> OnePulse<'d, T> {
-    /// 配置外部触发输入（CH2 作为 TI2 触发源）
+    /// Configure the external trigger input (CH2 used as the TI2 trigger source).
     pub fn set_external_trigger(&self, config: InputCaptureConfig) {
         T::set_channel_input_config(
             Channel::CH2,
@@ -105,7 +106,7 @@ impl<'d, T: Instance + WithOnePulse + WithEncoder + HasChannel<2>> OnePulse<'d, 
             config.prescaler,
             config.filter,
         );
-        // 触发模式：TRGI 上升沿启动计数器
+        // Trigger mode: a rising edge on TRGI starts the counter.
         T::set_trigger_selection(super::TriggerSelection::TI2FP2);
         T::set_slave_mode(super::SlaveMode::Trigger);
     }

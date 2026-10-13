@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 use embassy_hal_internal::PeripheralRef;
 use enumset::EnumSet;
 
-/// 串口接收对象
+/// USART receive object.
 pub struct UsartRx<'d, T: Instance, M: Mode> {
     _p: PhantomData<(T, M)>,
     _rxd: Option<PeripheralRef<'d, AnyPin>>,
@@ -36,13 +36,13 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
         }
     }
 
-    /// 是否配置了 DMA 通道
+    /// Whether a DMA channel is configured.
     #[inline]
     pub fn has_dma(&self) -> bool {
         self.rx_dma.is_some()
     }
 
-    /// 非阻塞读取单字节
+    /// Non-blocking single-byte read.
     #[inline]
     pub fn nb_read(&self) -> nb::Result<u8, Error> {
         if T::rx_ready() {
@@ -53,33 +53,32 @@ impl<'d, T: Instance, M: Mode> UsartRx<'d, T, M> {
     }
 }
 
-////////////////////////////// Blocking //////////////////////////////
 
 impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
-    /// 阻塞读取，直到填满缓冲区
+    /// Blocking read until the buffer is filled.
     pub fn read_blocking(&self, buf: &mut [u8]) -> usize {
         T::read_bytes_blocking(buf)
     }
 
-    /// 阻塞读取，遇到线路空闲（IDLE）提前结束，返回实际收到的字节数
+    /// Blocking read that ends early on line idle (IDLE); returns the number of bytes actually received.
     pub fn read_idle_blocking(&self, buf: &mut [u8]) -> usize {
         T::read_bytes_idle_blocking(buf)
     }
 
-    /// 使用 DMA 接收，IDLE 或缓冲区满时结束，返回实际收到的字节数
+    /// Receive via DMA, ending on IDLE or a full buffer; returns the number of bytes actually received.
     pub fn read_dma_idle_blocking(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         let len = buf.len();
 
         if let Some(dma) = &mut self.rx_dma {
-            // 清除上一次可能残留的标志
+            // Clear any flags left over from the previous transfer.
             let clear_events = Event::IDLE | Event::RXNE | Event::NE | Event::FE | Event::PE;
             clear_events.iter().for_each(|e| T::event_clear(e));
 
-            // 返回 dma 通道的映射值
+            // Return the DMA channel's mapping value.
             let (rx_dma_map, _tx_dma_map) = T::id().dma_channel_map();
 
             dma.clear_flag(EnumSet::all());
-            // 不管成功与否都关闭 dma 触发
+            // Close the DMA trigger whether or not it succeeds.
             let _rx_dmp_close = drop_move::DropGuard::new(|| T::rx_dma_enable(false));
 
             dma.config(dma::Config::new_periph2mem(
@@ -125,11 +124,10 @@ impl<'d, T: Instance> UsartRx<'d, T, Blocking> {
     }
 }
 
-////////////////////////////// Async //////////////////////////////
 
 #[cfg(feature = "embassy")]
 impl<'d, T: Instance> UsartRx<'d, T, AsyncMode> {
-    /// 异步读取，直到填满缓冲区
+    /// Async read until the buffer is filled.
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         let events = Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE;
         let mut cnt = 0;
@@ -137,7 +135,7 @@ impl<'d, T: Instance> UsartRx<'d, T, AsyncMode> {
         for v in buf {
             let happened = EventFuture::<T>::new(events).await;
 
-            // 先判定错误，再取数据
+            // Check for errors first, then take the data.
             if let Some(e) = Self::to_error(&happened) {
                 return Err(e);
             }
@@ -151,7 +149,7 @@ impl<'d, T: Instance> UsartRx<'d, T, AsyncMode> {
         Ok(cnt)
     }
 
-    /// 异步读取，遇到线路空闲（IDLE）提前结束
+    /// Async read that ends early on line idle (IDLE).
     pub async fn read_with_idle(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         let events =
             Event::RXNE | Event::PE | Event::NE | Event::FE | Event::ORE | Event::IDLE;
@@ -193,7 +191,6 @@ impl<'d, T: Instance> UsartRx<'d, T, AsyncMode> {
     }
 }
 
-////////////////////////////// trait 实现 //////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::serial::Read<u8> for UsartRx<'d, T, Blocking> {
     type Error = Error;

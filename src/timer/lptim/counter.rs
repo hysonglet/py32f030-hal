@@ -2,13 +2,15 @@ use super::{ClockSource, Event, Instance, LpTimerConfig};
 use core::marker::PhantomData;
 use fugit::MicrosDurationU32;
 
-/// 低功耗定时器计数器
+/// Low-power timer counter.
 ///
-/// LPTIM 为 16 位向上计数器，仅支持 ARR 自动重装载匹配中断（ARRM）。
-/// 可用作低功耗延时/唤醒源（Sleep/Stop 下由 LSI/LSE 驱动仍可运行）。
+/// LPTIM is a 16-bit up-counter that only supports the ARR auto-reload match
+/// interrupt (ARRM). It can be used as a low-power delay / wakeup source
+/// (still runs under Sleep/Stop driven by LSI/LSE).
 ///
-/// 注意：当前 PAC 的 `Interrupt` 枚举缺少 `LPTIM1` 中断向量（硬件向量 17），
-/// 因此中断/ embassy 异步路径暂不可用；本结构提供完整的**阻塞轮询** API。
+/// Note: the current PAC `Interrupt` enum lacks the `LPTIM1` interrupt vector
+/// (hardware vector 17), so the interrupt / embassy async path is currently
+/// unavailable; this struct provides a complete **blocking polling** API.
 pub struct Counter<'d, T: Instance> {
     _t: PhantomData<&'d T>,
     config: LpTimerConfig,
@@ -16,7 +18,7 @@ pub struct Counter<'d, T: Instance> {
 
 impl<'d, T: Instance> Counter<'d, T> {
     pub(super) fn new(config: LpTimerConfig) -> Self {
-        // CFGR/IER 仅在 LPTIM 禁用时可写
+        // CFGR/IER are writable only when LPTIM is disabled.
         T::stop();
         T::set_clock_source(config.clock_source);
         T::set_prescaler(config.prescaler);
@@ -28,42 +30,42 @@ impl<'d, T: Instance> Counter<'d, T> {
         }
     }
 
-    /// 内核时钟频率（Hz）：PCLK / LSI / LSE，取决于配置
+    /// Core clock frequency (Hz): PCLK / LSI / LSE, depending on configuration.
     pub fn kernel_clock_hz(&self) -> u32 {
         match self.config.clock_source {
             ClockSource::Pclk => crate::clock::timer_pclk(),
-            // 与 crate::clock 中 LSI/LSE 频率常量保持一致（均为 32768）
+            // Keep consistent with the LSI/LSE frequency constants in crate::clock (both 32768).
             ClockSource::Lsi => 32_768,
             ClockSource::Lse => 32_768,
         }
     }
 
-    /// 计数时钟频率（Hz）：内核时钟经预分频后计数器递增的频率
+    /// Count clock frequency (Hz): the rate at which the counter increments after prescaling.
     pub fn get_freq(&self) -> u32 {
         self.kernel_clock_hz() / self.config.prescaler.divisor()
     }
 
-    /// 写自动重装载值（ARR）
+    /// Write the auto-reload value (ARR).
     pub fn set_auto_reload(&self, arr: u16) {
         T::set_auto_reload(arr);
     }
 
-    /// 读当前计数值
+    /// Read the current counter value.
     pub fn now(&self) -> u16 {
         T::counter()
     }
 
-    /// 使能内核（连续计数需先 `set_auto_reload`）
+    /// Enable the core (continuous counting requires `set_auto_reload` first).
     pub fn enable(&self) {
         T::enable_kernel(true);
     }
 
-    /// 停止计数
+    /// Stop counting.
     pub fn stop(&self) {
         T::stop();
     }
 
-    /// 启动连续计数（到 ARR 后自动重载并持续运行）
+    /// Start continuous counting (auto-reload and keep running after reaching ARR).
     pub fn start_continuous(&self, arr: u16) {
         T::stop();
         T::set_auto_reload(arr);
@@ -71,7 +73,7 @@ impl<'d, T: Instance> Counter<'d, T> {
         T::start_continuous();
     }
 
-    /// 启动单次计数（到 ARR 后停止并产生 ARRM，可用于唤醒）
+    /// Start a single count (stop and generate ARRM after reaching ARR; can be used to wake up).
     pub fn start_single(&self, arr: u16) {
         T::stop();
         T::set_auto_reload(arr);
@@ -79,13 +81,13 @@ impl<'d, T: Instance> Counter<'d, T> {
         T::start_single();
     }
 
-    /// 阻塞等待一次自动重装载匹配（ARRM）
+    /// Block until the next auto-reload match (ARRM).
     pub fn wait(&self) {
         while !T::event_flag(Event::AutoreloadMatch) {}
         T::event_clear(Event::AutoreloadMatch);
     }
 
-    /// 阻塞延时（以计数时钟 tick 为单位，单次最多 0xFFFF）
+    /// Blocking delay (in count-clock ticks, at most 0xFFFF per call).
     pub fn delay_ticks(&self, ticks: u16) {
         if ticks == 0 {
             return;
@@ -119,7 +121,6 @@ impl<'d, T: Instance> Counter<'d, T> {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::blocking::delay::DelayUs<u32> for Counter<'d, T> {
     fn delay_us(&mut self, us: u32) {

@@ -23,11 +23,11 @@ async fn main(_spawner: Spawner) {
         defmt::info!("time {} ", cnt);
         iwdg.feed();
         cnt += 1;
-        // 10 秒内喂狗
+        // Feed the watchdog within 10 seconds.
         if cnt <= 10 {
             Timer::after_millis(1000).await;
         } else {
-            // 10秒后等待喂狗超时
+            // After 10 seconds, wait for a watchdog timeout.
             Timer::after_secs(30).await;
         }
     }

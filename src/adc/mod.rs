@@ -2,7 +2,7 @@
 
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 mod pins;
 mod types;
 
@@ -47,7 +47,7 @@ use embassy_sync::waitqueue::AtomicWaker;
 static ADC_INT_WAKER: [AtomicWaker; 1] = [AtomicWaker::new()];
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
 #[derive(PartialEq)]
 pub enum Id {
@@ -93,7 +93,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
 
         T::enable();
 
-        // 异步方式需要打开外设中断
+        // Async mode requires the peripheral interrupt to be enabled.
         if M::is_async() {
             T::id().enable_interrupt();
         }
@@ -104,7 +104,7 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
         })
     }
 
-    /// 校准 adc
+    /// Calibrate the ADC.
     pub fn calibration(config: CalibrationConfig, timeout: usize) -> Result<(), Error> {
         T::set_calibration_content(config.content);
         T::set_calibration_sample_time(config.sample_time);
@@ -145,20 +145,20 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
     ) -> Result<(), Error> {
         const CALIBRATE_TIMEOUT: usize = 1000000;
         T::disable();
-        // 设置时钟
+        // Configure the clock.
         T::set_clock_mode(config.clock);
         T::set_resolution(config.resolution);
         T::set_sample_cycle(config.sample_cycle);
-        // 上电后硬件会自动校准一次
+        // After power-on the hardware auto-calibrates once.
         if config.calibration {
-            // 必须先校准再开启时钟
+            // Calibration must happen before enabling the clock.
             Self::calibration(Default::default(), CALIBRATE_TIMEOUT)?
         }
         T::align(config.align);
 
         Self::channel_config(channel_config);
 
-        // 使能通道
+        // Enable channels.
         for channel in channels {
             T::channel_enable(*channel, true)
         }
@@ -212,8 +212,11 @@ impl<'d, T: Instance, M: Mode> AnyAdc<'d, T, M> {
             },
             alloc::boxed::Box::new(move || {
                 callback(T::data_read());
+                // Clear the latched event so a level-sensitive interrupt can
+                // re-trigger on the next conversion (continuous mode); otherwise
+                // the ISR tail-chains forever and starves `main`.
                 for e in events {
-                    T::event_flag(e);
+                    T::event_clear(e);
                 }
             }),
         );
@@ -277,15 +280,15 @@ pub struct WatchDogConfig {
 }
 
 pub struct Config {
-    /// 是否初始化前是否开始校验
+    /// Whether to calibrate before initialization.
     calibration: bool,
-    /// 采样周期
+    /// Sampling period.
     sample_cycle: SampleCycles,
-    /// adc 精度
+    /// ADC resolution.
     resolution: Resolution,
-    /// 数据对齐
+    /// Data alignment.
     align: Align,
-    ///  adc 时钟源
+    /// ADC clock source.
     clock: ClockMode,
 }
 
@@ -346,15 +349,15 @@ impl Config {
 }
 
 pub struct ChannelConfig {
-    /// 转换模式
+    /// Conversion mode.
     mode: ConversionMode,
-    /// 扫描方向
+    /// Scan direction.
     scan_dir: ScanDir,
-    /// 过写使能
+    /// Overwrite enable.
     over_write: bool,
-    /// 等待读取再开始下一个通道转换
+    /// Wait for a read before starting the next channel conversion.
     wait: bool,
-    /// 触发信号类型
+    /// Trigger signal type.
     signal: TrigleSignal,
 }
 
@@ -378,8 +381,8 @@ impl ChannelConfig {
     pub fn over_write(self, over_write: bool) -> Self {
         Self { over_write, ..self }
     }
-    /// 多通道配置读取推荐配置
-    /// 连续转换/向上扫描/不过写/软件触发
+    /// Recommended config for multi-channel reads.
+    /// Continuous conversion / upward scan / no overwrite / software trigger.
     pub fn new_multiple_channel_perferred() -> Self {
         Self {
             mode: ConversionMode::Continuous,
@@ -390,8 +393,8 @@ impl ChannelConfig {
         }
     }
 
-    /// 单通道读取推荐配置
-    /// 连续转换/向上扫描/过写/软件触发
+    /// Recommended config for single-channel reads.
+    /// Continuous conversion / upward scan / overwrite / software trigger.
     pub fn new_exclusive_perferred() -> Self {
         Self {
             mode: ConversionMode::Continuous,
@@ -402,7 +405,7 @@ impl ChannelConfig {
         }
     }
 
-    /// 单次扫描模式
+    /// Single-scan mode.
     pub fn new_exclusive_single() -> Self {
         Self {
             mode: ConversionMode::Single,

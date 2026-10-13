@@ -6,16 +6,17 @@ use crate::gpio::{self, AnyPin};
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, PeripheralRef};
 
-/// 统一 PWM
+/// Unified PWM.
 ///
-/// TIM1 / TIM3 / TIM14 / TIM16 共用同一实现。通道通过 [`Channel`] 选择，
-/// 越界通道会触发 `assert`（由 `ChannelCount::CHANNELS` 校验）。
+/// TIM1 / TIM3 / TIM14 / TIM16 share a single implementation. Channels are
+/// selected via [`Channel`]; an out-of-range channel triggers an `assert`
+/// (validated by `ChannelCount::CHANNELS`).
 ///
-/// 定时器专有能力按 capability trait 门控：
-/// - 仅主输出引脚：`set_channel_N_pin`（所有定时器）
-/// - 含互补输出引脚：`set_channel_N_pins`（仅 TIM1 / TIM16，`WithComplementary`）
-/// - 刹车/死区：`enable_break`（`WithBreak`）
-/// - 重复计数：`set_repetition`（`WithRepetition`）
+/// Timer-specific capabilities are gated by capability traits:
+/// - Main output pins only: `set_channel_N_pin` (all timers)
+/// - With complementary output pins: `set_channel_N_pins` (TIM1 / TIM16 only, `WithComplementary`)
+/// - Break / dead-time: `enable_break` (`WithBreak`)
+/// - Repetition counter: `set_repetition` (`WithRepetition`)
 pub struct Pwm<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 
@@ -48,17 +49,17 @@ impl<'d, T: Instance> Pwm<'d, T> {
         Default::default()
     }
 
-    /// 校验通道在该定时器上是否存在
+    /// Check whether the channel exists on this timer.
     #[inline]
     fn check_channel(channel: Channel) {
         assert!(
             channel.index() < T::CHANNELS,
-            "该定时器不支持此通道（可用通道数 = {}）",
+            "this timer does not support this channel (available channels = {})",
             T::CHANNELS
         );
     }
 
-    /// 一次性配置 4 个通道（None 表示该通道不启用）
+    /// Configure up to 4 channels at once (None means the channel is disabled).
     pub fn config(
         &mut self,
         channel_1_config: Option<ChannelConfig>,
@@ -119,7 +120,6 @@ impl<'d, T: Instance> Pwm<'d, T> {
         }
     }
 
-    //////////////////////// 引脚绑定（仅主输出，所有定时器可用） ////////////////////////
 
     pub fn set_channel_1_pin<OC_PIN>(&mut self, oc_pin: Option<OC_PIN>)
     where
@@ -154,7 +154,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         });
     }
 
-    /// CH4 无互补输出
+    /// CH4 has no complementary output.
     pub fn set_channel_4_pin<OC_PIN>(&mut self, oc_pin: Option<OC_PIN>)
     where
         OC_PIN: super::TimerChannel4Pin<T> + 'd,
@@ -166,9 +166,8 @@ impl<'d, T: Instance> Pwm<'d, T> {
         });
     }
 
-    //////////////////////// 运行控制 ////////////////////////
 
-    /// 使能通道主输出
+    /// Enable the channel main output.
     pub fn enable(&mut self, channel: Channel) {
         Self::check_channel(channel);
         T::set_enable_channel(channel, ChannelOutput::P, true);
@@ -190,7 +189,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::get_reload()
     }
 
-    /// 设置计数频率（计数器时钟频率，非波形频率）
+    /// Set the counting frequency (counter clock frequency, not the waveform frequency).
     pub fn set_frequency(&mut self, freq: u32) {
         let clk = T::get_time_pclk();
         let freq = if clk <= freq { clk } else { freq };
@@ -198,7 +197,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_prescaler((pre as u16).saturating_sub(1));
     }
 
-    /// 返回当前计数频率
+    /// Return the current counting frequency.
     #[inline]
     pub fn get_freq(&self) -> u32 {
         T::counter_frequency()
@@ -225,7 +224,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::set_channel_compare(channel, duty);
     }
 
-    /// 启动（并使能主输出 MOE；对无 BDTR 的定时器为空操作）
+    /// Start (and enable the main output MOE; a no-op for timers without BDTR).
     #[inline]
     pub fn start(&mut self) {
         T::enable_channel_output(true);
@@ -238,7 +237,7 @@ impl<'d, T: Instance> Pwm<'d, T> {
         T::stop()
     }
 
-    /// 等待更新事件（同步影子寄存器）
+    /// Wait for the update event (sync the shadow registers).
     #[inline]
     pub fn wait_update(&self) {
         while !T::event_flag(Event::UIF) {}
@@ -246,10 +245,9 @@ impl<'d, T: Instance> Pwm<'d, T> {
     }
 }
 
-//////////////// 仅支持互补输出的定时器（TIM1 / TIM16） ////////////////
 
 impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
-    /// 同时指定 CH1 与 CH1N 引脚
+    /// Bind both CH1 and CH1N pins at once.
     pub fn set_channel_1_pins<OC_PIN, OC_N_PIN>(
         &mut self,
         oc_pin: Option<OC_PIN>,
@@ -266,7 +264,7 @@ impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
         });
     }
 
-    /// 同时指定 CH2 与 CH2N 引脚
+    /// Bind both CH2 and CH2N pins at once.
     pub fn set_channel_2_pins<OC_PIN, OC_N_PIN>(
         &mut self,
         oc_pin: Option<OC_PIN>,
@@ -283,7 +281,7 @@ impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
         });
     }
 
-    /// 同时指定 CH3 与 CH3N 引脚
+    /// Bind both CH3 and CH3N pins at once.
     pub fn set_channel_3_pins<OC_PIN, OC_N_PIN>(
         &mut self,
         oc_pin: Option<OC_PIN>,
@@ -300,7 +298,7 @@ impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
         });
     }
 
-    /// 配置通道的互补输出（CHxN）
+    /// Configure the complementary output (CHxN) of a channel.
     pub fn channel_config_n(&self, channel: Channel, config: ChannelOutputConfig) {
         Self::check_channel(channel);
         T::set_channel_output_effective_level(
@@ -312,14 +310,14 @@ impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
         );
     }
 
-    /// 使能/关闭互补输出
+    /// Enable / disable the complementary output.
     #[inline]
     pub fn enable_channel_n(&self, channel: Channel, en: bool) {
         Self::check_channel(channel);
         T::set_enable_channel(channel, ChannelOutput::N, en);
     }
 
-    /// 同时配置主输出与互补输出（互补反相）
+    /// Configure the main and complementary outputs together (complementary inverted).
     pub fn channel_config_complementary(&self, channel: Channel, mode: ChannelMode, duty: u16) {
         Self::check_channel(channel);
         T::set_channel_type(channel, ChannelType::Pwm);
@@ -331,10 +329,9 @@ impl<'d, T: Instance + WithComplementary> Pwm<'d, T> {
     }
 }
 
-//////////////// 仅支持刹车与死区的定时器（TIM1 / TIM16） ////////////////
 
 impl<'d, T: Instance + WithBreak> Pwm<'d, T> {
-    /// 配置刹车与死区，并使能主输出（MOE）
+    /// Configure break & dead-time and enable the main output (MOE).
     pub fn enable_break(&self, config: BreakConfig) {
         T::config_break_deadtime(
             config.dead_time,
@@ -347,24 +344,22 @@ impl<'d, T: Instance + WithBreak> Pwm<'d, T> {
         );
     }
 
-    /// 使能/关闭主输出（BDTR.MOE）
+    /// Enable / disable the main output (BDTR.MOE).
     #[inline]
     pub fn enable_main_output(&self, en: bool) {
         T::enable_channel_output(en);
     }
 }
 
-//////////////// 仅支持重复计数的定时器（TIM1 / TIM16） ////////////////
 
 impl<'d, T: Instance + WithRepetition> Pwm<'d, T> {
-    /// 设置重复计数值
+    /// Set the repetition counter value.
     #[inline]
     pub fn set_repetition(&self, rep: u8) {
         T::set_repetition(rep);
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::Pwm for Pwm<'d, T> {
     type Channel = Channel;

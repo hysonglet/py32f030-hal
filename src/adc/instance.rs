@@ -13,25 +13,25 @@ pub mod sealed {
             }
         }
 
-        /// 开始校准
+        /// Start calibration.
         #[inline]
         fn calibration_start() {
             Self::block().cr.modify(|_, w| w.adcal().set_bit());
         }
 
-        /// 使能 adc 外设
+        /// Enable the ADC peripheral.
         #[inline]
         fn enable() {
             Self::block().cr.modify(|_, w| w.aden().set_bit())
         }
 
-        /// 关闭 adc 使能
+        /// Disable the ADC.
         #[inline]
         fn disable() {
             Self::block().cr.modify(|_, w| w.aden().clear_bit())
         }
 
-        /// 设置时钟模式
+        /// Set the clock mode.
         #[inline]
         fn set_clock_mode(clock: ClockMode) {
             Self::block()
@@ -39,13 +39,13 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.ckmode().bits(clock as u8) })
         }
 
-        /// 启动转换
+        /// Start conversion.
         #[inline]
         fn start() {
             Self::block().cr.modify(|_, w| w.adstart().set_bit());
         }
 
-        /// 停止转换
+        /// Stop conversion.
         #[inline]
         fn stop() {
             Self::block().cr.modify(|_, w| w.adstp().set_bit());
@@ -75,18 +75,18 @@ pub mod sealed {
                 .modify(|_, w| w.discen().bit(discen).cont().bit(cont))
         }
 
-        /// 设置过写
+        /// Set overwrite mode.
         #[inline]
         fn set_overwrite(en: bool) {
             Self::block().cfgr1.modify(|_, w| w.ovrmod().bit(en));
         }
 
-        // /// 设置等待模式
+        // /// Set wait mode.
         // fn wait_mode(en: bool) {
         //     Self::block().cfgr1.modify(|_, w| w.wait().bit(en));
         // }
 
-        /// 触发信号的类型
+        /// Trigger signal type.
         #[inline]
         fn trigle_signal(trigle: TrigleSignal) {
             let (exten, extsel) = match trigle {
@@ -100,19 +100,19 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.exten().bits(exten).extsel().bits(extsel) });
         }
 
-        // /// 配置为软件触发
+        // /// Configure as software trigger.
         // #[inline]
         // fn is_soft_trigle() -> bool {
         //     Self::block().cfgr1.read().exten().bits() == 0
         // }
 
-        /// 阻塞事件时是否等待消除阻塞
+        /// Whether to wait for the blocking condition to clear on an event.
         #[inline]
         fn set_wait(wait: bool) {
             Self::block().cfgr1.modify(|_, w| w.wait().bit(wait));
         }
 
-        /// 设置对齐格式
+        /// Set the data alignment.
         #[inline]
         fn align(align: Align) {
             Self::block()
@@ -120,7 +120,7 @@ pub mod sealed {
                 .modify(|_, w| w.align().bit(Align::Left == align))
         }
 
-        /// 设置 adc 的精度
+        /// Set the ADC resolution.
         #[inline]
         fn set_resolution(bit: Resolution) {
             Self::block()
@@ -135,7 +135,7 @@ pub mod sealed {
                 .modify(|_, w| w.scandir().bit(dir == ScanDir::Down))
         }
 
-        // /// 设置dma模式
+        // /// Set DMA mode.
         // #[inline]
         // fn set_dma_mode(mode: DmaMode) {
         //     Self::block()
@@ -143,13 +143,13 @@ pub mod sealed {
         //         .modify(|_, w| w.dmacfg().bit(mode == DmaMode::Cycle))
         // }
 
-        // /// dma 使能
+        // /// Enable DMA.
         // #[inline]
         // fn dma_enable(en: bool) {
         //     Self::block().cfgr1.modify(|_, w| w.dmaen().bit(en))
         // }
 
-        /// 设置转换的采样周期
+        /// Set the conversion sampling cycle.
         #[inline]
         fn set_sample_cycle(cycle: SampleCycles) {
             Self::block()
@@ -157,7 +157,7 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.smp().bits(cycle as u8) })
         }
 
-        /// 设置看门狗预支
+        /// Set the watchdog thresholds.
         #[inline]
         fn set_watch_dog_threshold(high: u16, low: u16) {
             Self::block()
@@ -165,10 +165,10 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.ht().bits(high).lt().bits(low) })
         }
 
-        /// 通道使能或关闭
+        /// Enable or disable a channel.
         #[inline]
         fn channel_enable(channel: AdcChannel, en: bool) {
-            // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
+            // Only allowed when ADSTART=0 (i.e. no conversion in progress).
             Self::block().chselr.modify(|r, w| unsafe {
                 w.bits(bit_mask_idx_modify::<1>(
                     channel as usize,
@@ -185,7 +185,7 @@ pub mod sealed {
 
         #[allow(dead_code)]
         fn channel_enable_exclusive(channel: AdcChannel) {
-            // 仅当 ADSART=0 时（确保没有正在进行的转换）允许软件写该位
+            // Only allowed when ADSTART=0 (i.e. no conversion in progress).
             Self::block()
                 .chselr
                 .write(|w| unsafe { w.bits(bit_mask_idx::<1>(channel as usize)) });
@@ -196,13 +196,13 @@ pub mod sealed {
             }
         }
 
-        /// 返回转换的数据寄存器内容
+        /// Read the conversion data register.
         #[inline]
         fn data_read() -> u16 {
             Self::block().dr.read().data().bits()
         }
 
-        /// 设置校准采样时间
+        /// Set the calibration sampling time.
         #[inline]
         fn set_calibration_sample_time(time: CalibrationSampleTime) {
             Self::block()
@@ -210,7 +210,7 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.calsmp().bits(time as u8) })
         }
 
-        /// 校准内容
+        /// Calibration selection.
         #[inline]
         fn set_calibration_content(select: CalibrationSelect) {
             Self::block()

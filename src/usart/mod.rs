@@ -1,14 +1,15 @@
-//! 串口（USART）驱动
+//! USART (serial) driver.
 //!
-//! 结构上参考定时器模块：寄存器层由 `hal::sealed::Instance` 封装，
-//! 面向用户的 `UsartRx` / `UsartTx` 分别拆到 `rx.rs` / `tx.rs`，
-//! `AnyUsart` 负责引脚、时钟与 DMA 通道的持有与分发。
+//! Structurally similar to the timer module: the register layer is wrapped by
+//! `instance::sealed::Instance`, the user-facing `UsartRx` / `UsartTx` are split
+//! into `rx.rs` / `tx.rs`, and `AnyUsart` owns and dispatches the pins, clock
+//! and DMA channels.
 //!
-//! USART1 与 USART2 复用同一套寄存器块布局，功能一致。
+//! USART1 and USART2 share the same register-block layout and identical features.
 
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 mod pins;
 mod rx;
 mod tx;
@@ -31,18 +32,18 @@ use crate::syscfg::DmaChannelMap;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 use enumset::EnumSetType;
-use hal::sealed;
+use instance::sealed;
 
 #[allow(private_bounds)]
 pub trait Instance: Peripheral<P = Self> + sealed::Instance + 'static + Send {}
 
-// 定义 串口的特殊引脚 trait
+// Define the USART-specific pin traits.
 pin_af_for_instance_def!(TxPin, Instance);
 pin_af_for_instance_def!(RxPin, Instance);
 pin_af_for_instance_def!(RtsPin, Instance);
 pin_af_for_instance_def!(CtsPin, Instance);
 
-/// 串口号
+/// USART peripheral identifier.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Id {
@@ -72,7 +73,7 @@ impl PeripheralInterrupt for Id {
 }
 
 impl Id {
-    // 返回串口 rx 和 tx 的 dma 映射值
+    // Return the DMA mapping values for the USART rx and tx.
     pub(crate) fn dma_channel_map(&self) -> (DmaChannelMap, DmaChannelMap) {
         match *self {
             Self::USART1 => (DmaChannelMap::USART1_RX, DmaChannelMap::USART1_TX),
@@ -81,37 +82,38 @@ impl Id {
     }
 }
 
-/// 串口事件
+/// USART events.
 #[derive(EnumSetType, Debug)]
 pub enum Event {
-    /// 自动波特率错误标志
+    /// Auto-baud-rate error flag.
     ABRE,
-    /// 自动波特率检测标志
+    /// Auto-baud-rate detection flag.
     ABRF,
-    /// CTS 标志
+    /// CTS flag.
     CTS,
-    /// 发送数据寄存器空标志
+    /// Transmit data register empty flag.
     TXE,
-    /// 发送完成标志
+    /// Transmission complete flag.
     TC,
-    /// 接收数据寄存器非空标志
+    /// Receive data register not-empty flag.
     RXNE,
-    /// 线路空闲标志
+    /// Line-idle flag.
     IDLE,
-    /// 溢出错误标志（与 NE/FE/PE 共用 CR3.EIE）
+    /// Overrun error flag (shares CR3.EIE with NE/FE/PE).
     ORE,
-    /// 噪声错误标志
+    /// Noise error flag.
     NE,
-    /// 帧错误标志
+    /// Framing error flag.
     FE,
-    /// 校验错误标志
+    /// Parity error flag.
     PE,
 }
 
-/// 把可选引脚转为已配置为复用功能的 `AnyPin`
+/// Convert an optional pin into an `AnyPin` configured for the alternate function.
 ///
-/// 写成宏而不是泛型函数：引脚的 `set_instance_af` / `map_into` 来自
-/// `RxPin` / `TxPin` 等 trait 约束，泛型函数无法表达这些约束。
+/// Written as a macro rather than a generic function: the pin's `set_instance_af` /
+/// `map_into` come from the `RxPin` / `TxPin` etc. trait bounds, which a generic
+/// function cannot express.
 macro_rules! into_af_pin {
     ($pin:expr) => {
         $pin.map_or_else(
@@ -125,7 +127,7 @@ macro_rules! into_af_pin {
     };
 }
 
-/// 串口对象
+/// USART object.
 pub struct AnyUsart<'d, T: Instance, M: Mode> {
     pub rx: UsartRx<'d, T, M>,
     pub tx: UsartTx<'d, T, M>,
@@ -133,12 +135,12 @@ pub struct AnyUsart<'d, T: Instance, M: Mode> {
 }
 
 impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
-    /// 拆分为独立的接收与发送对象
+    /// Split into independent receive and transmit objects.
     pub fn split(self) -> (UsartRx<'d, T, M>, UsartTx<'d, T, M>) {
         (self.rx, self.tx)
     }
 
-    /// 新建串口（不使用硬件流控）
+    /// Create a USART (without hardware flow control).
     pub fn new(
         usart: impl Peripheral<P = T> + 'd,
         rxd: Option<impl Peripheral<P = impl RxPin<T>> + 'd>,
@@ -149,9 +151,9 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
 
         config: Config,
     ) -> Self {
-        // 初始化 rxd 引脚
+        // Initialize the rxd pin.
         let rxd = into_af_pin!(rxd);
-        // 初始化 txd 引脚
+        // Initialize the txd pin.
         let txd = into_af_pin!(txd);
 
         into_ref!(usart);
@@ -159,10 +161,11 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         Self::new_inner(usart, rxd, txd, None, None, rx_dma, tx_dma, config)
     }
 
-    /// 新建串口并指定硬件流控引脚（RTS / CTS）
+    /// Create a USART and specify the hardware flow-control pins (RTS / CTS).
     ///
-    /// 使用硬件流控时，`config.hw_flow_ctrl` 需配置为对应的
-    /// `HwFlowCtrl::Rts` / `Cts` / `RtsCts`，且传入对应引脚。
+    /// When using hardware flow control, `config.hw_flow_ctrl` must be set to the
+    /// corresponding `HwFlowCtrl::Rts` / `Cts` / `RtsCts`, and the matching pins
+    /// must be supplied.
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_flow_control(
         usart: impl Peripheral<P = T> + 'd,
@@ -211,42 +214,41 @@ impl<'d, T: Instance, M: Mode> AnyUsart<'d, T, M> {
         }
     }
 
-    /// 停止串口并关闭外设时钟
+    /// Stop the USART and turn off the peripheral clock.
     ///
-    /// 说明：`AnyUsart` 未实现 `Drop`（`split()` 需要移出字段），
-    /// 需要释放外设时请显式调用本方法。
+    /// Note: `AnyUsart` does not implement `Drop` (because `split()` needs to move
+    /// out its fields); call this method explicitly when the peripheral must be freed.
     pub fn deinit(self) {
         T::stop();
         T::disable();
     }
 
-    /// 停止串口（保留时钟，可再次 `start()`）
+    /// Stop the USART (keeps the clock so it can be `start()`ed again).
     pub fn stop(&self) {
         T::stop();
     }
 
-    /// 启动串口
+    /// Start the USART.
     pub fn start(&self) {
         T::start();
     }
 
-    /// 重新配置串口参数
+    /// Reconfigure the USART parameters.
     pub fn reconfig(&self, config: Config) {
         T::config(config);
     }
 
-    /// 读取自动波特率测量结果（BRR 值）
+    /// Read the auto-baud-rate measurement result (the BRR value).
     pub fn auto_baud_result(&self) -> u16 {
         T::auto_baud_result()
     }
 
-    /// 触发一次自动波特率测量
+    /// Trigger a single auto-baud-rate measurement.
     pub fn request_auto_baud(&self) {
         T::request_auto_baud()
     }
 }
 
-////////////////////////////// trait 实现 //////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::serial::Read<u8> for AnyUsart<'d, T, Blocking> {
     type Error = Error;

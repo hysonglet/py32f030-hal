@@ -1,6 +1,6 @@
 use super::types::*;
 use crate::clock::peripheral::PeripheralInterrupt;
-use crate::exti::hal::sealed::{ExtiImpl, Instance};
+use crate::exti::instance::sealed::{ExtiImpl, Instance};
 use crate::gpio::{AnyPin, GpioPort};
 use crate::pac::interrupt;
 
@@ -22,13 +22,13 @@ pub struct ExtiInputFuture<'a> {
 impl<'a> ExtiInputFuture<'a> {
     pub fn new(port: GpioPort, pin: usize, edge: Edge) -> Self {
         let line: Line = pin.into();
-        // line 选择
+        // line select
         ExtiImpl::exit_channle_select(line, port.into());
 
         critical_section::with(|_| {
-            // 设置上升沿触发条件
+            // Set the rising-edge trigger condition
             ExtiImpl::line_ring_edge(line, edge.is_rising());
-            // 设置下降沿的触发条件
+            // Set the falling-edge trigger condition
             ExtiImpl::line_falling_edge(line, edge.is_falling());
 
             // clear pending bit

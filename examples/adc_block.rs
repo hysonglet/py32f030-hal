@@ -23,7 +23,7 @@ fn main() -> ! {
         Config::default().sample(SampleCycles::Cycle_239_5),
         ChannelConfig::default()
             .over_write(false)
-            .wait(true) // 转换完成后等待读取完毕再开始转换
+            .wait(true) // Wait for conversion to finish and reading to complete before starting the next conversion
             .singal(TrigleSignal::Soft)
             .mode(ConversionMode::Continuous),
         &[AdcChannel::Channel11, AdcChannel::Channel12],
@@ -32,7 +32,7 @@ fn main() -> ! {
 
     adc.start();
     loop {
-        // 按通道顺序读取即可
+        // Just read in channel order.
         let temp = adc.read_block(1000000).unwrap();
         // adc.start();
         let vol = adc.read_block(1000000).unwrap();

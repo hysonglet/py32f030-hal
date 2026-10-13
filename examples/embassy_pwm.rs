@@ -35,7 +35,7 @@ async fn main(_spawner: Spawner) {
 
     let channel_1_pin = gpioa.PA3;
 
-    // 引脚指定方式1
+    // Pin assignment method 1.
     // let _oc1_pin = Af::new(
     //     channel_1_pin, //gpioa.PA3,
     //     PinAF::AF13,
@@ -43,32 +43,32 @@ async fn main(_spawner: Spawner) {
     //     PinIoType::PullUp,
     // );
 
-    // 引脚指定方式2
+    // Pin assignment method 2.
     // channel_1_pin.set_instance_af(PinSpeed::VeryHigh, PinIoType::PullUp);
 
-    // 引脚指定方式3
-    // PA0，指定为OC_N, 当为None时候不会被使用，当引脚没有被模版冲突则不需要指定模版类型
+    // Pin assignment method 3.
+    // PA0 assigned as OC_N; unused when None, and no template type is needed if the pin has no template conflict.
     pwm.set_channel_1_pins::<_, PA0>(Some(channel_1_pin), None);
 
-    // 配置定时器
+    // Configure the timer.
     pwm.config(
-        /* 配置通道1 */
+        /* configure channel 1 */
         Some(ChannelConfig::default().ch(ChannelOutputConfig::default())),
         None,
         None,
         None,
     );
 
-    // 计数频率为1M
+    // Counting frequency is 1 MHz.
     pwm.set_frequency(1_000_000);
-    // 设置计数周期为1000，则波形的频率为 1000_000/1000 = 1K
+    // Set the counting period to 1000, so the waveform frequency is 1000_000/1000 = 1K.
     pwm.set_period(1000u16 - 1);
     let max_duty = pwm.get_max_duty();
-    // 33%的占空比
+    // 33% duty cycle.
     pwm.set_duty(Channel::CH1, max_duty / 3);
-    // 使能通道
+    // Enable the channel.
     pwm.enable(Channel::CH1);
-    // 开始计数器
+    // Start the counter.
     pwm.start();
 
     loop {

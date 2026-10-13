@@ -1,6 +1,6 @@
 use enumset::EnumSetType;
 
-/// 传输的优先级
+/// Transfer priority.
 pub enum Priorities {
     Low = 0,
     Medium = 1,
@@ -8,7 +8,7 @@ pub enum Priorities {
     VeryHigh = 3,
 }
 
-/// DMA 传输的宽度
+/// DMA transfer width.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Burst {
     // 1 byte
@@ -19,14 +19,14 @@ pub enum Burst {
     World = 2,
 }
 
-/// DMA模式，单次或循环
+/// DMA mode: one-shot or circular.
 #[derive(PartialEq)]
 pub enum RepeatMode {
     OneTime(u16),
     Repeat(u16),
 }
 
-/// DMA传输方向
+/// DMA transfer direction.
 #[derive(PartialEq)]
 pub enum Direction {
     PeriphToMemory,

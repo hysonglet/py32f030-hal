@@ -1,6 +1,6 @@
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 mod types;
 
 use crate::clock::peripheral::{
@@ -19,9 +19,9 @@ use future::EventFuture;
 pub use types::*;
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
-/// 串口号定义
+/// DMA peripheral identifier definition.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Id {
     DMA,
@@ -37,7 +37,7 @@ impl PeripheralIdToClockIndex for Id {
     }
 }
 
-/// 通道 id
+/// DMA channel identifier.
 #[derive(PartialEq, Clone, Copy)]
 #[derive(Debug, Eq)]
 pub enum Channel {
@@ -68,7 +68,7 @@ pub struct Config {
 }
 
 impl Config {
-    // 新建配置结构体
+    // Create a new configuration struct.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         diretion: Direction,
@@ -94,7 +94,7 @@ impl Config {
         }
     }
 
-    /// 新建内存到内存的配置
+    /// Create a memory-to-memory configuration.
     pub fn new_mem2mem(
         src_addr: u32,
         src_inc: bool,
@@ -117,7 +117,7 @@ impl Config {
         )
     }
 
-    /// 新建内存到外设的配置
+    /// Create a memory-to-peripheral configuration.
     #[allow(clippy::too_many_arguments)]
     pub fn new_mem2periph(
         src_addr: u32,
@@ -142,7 +142,7 @@ impl Config {
         )
     }
 
-    /// 新建外设到内存的配置
+    /// Create a peripheral-to-memory configuration.
     #[allow(clippy::too_many_arguments)]
     pub fn new_periph2mem(
         src_addr: u32,
@@ -207,7 +207,7 @@ pub struct DmaChannel<'d, T: Instance, M: Mode> {
 }
 
 impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
-    /// 新建
+    /// Create a new DMA channel.
     pub(super) fn new(channel: Channel) -> Self {
         Self {
             _t: PhantomData,
@@ -216,62 +216,62 @@ impl<'d, T: Instance, M: Mode> DmaChannel<'d, T, M> {
         }
     }
 
-    /// 绑定通道到外设
+    /// Bind the channel to a peripheral.
     pub fn bind(&mut self, map: DmaChannelMap) {
         syscfg::set_dma_channel_map(self.channel, map);
     }
 
-    /// 使能dma快速响应
+    /// Enable the DMA fast-response mode.
     pub fn en_fast_response(&mut self, en: bool) {
         syscfg::en_dma_channel_fast_response(self.channel, en);
     }
 
-    /// 配置dma通道
+    /// Configure the DMA channel.
     #[inline]
     pub fn config(&mut self, config: Config) {
         T::config(self.channel, config)
     }
 
-    /// 开始dma
+    /// Start the DMA transfer.
     #[inline]
     pub fn start(&mut self) {
         T::enable(self.channel, true);
     }
 
-    /// 停止或取消dma
+    /// Stop or cancel the DMA transfer.
     #[inline]
     pub fn stop(&mut self) {
         T::enable(self.channel, false);
     }
 
-    /// 返回剩余的数量
+    /// Return the remaining transfer count.
     pub fn remain(&self) -> u16 {
         T::remain_count(self.channel)
     }
 }
 
 impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
-    /// 返回是否结束
+    /// Return whether the transfer has finished.
     pub fn is_finish(&self) -> bool {
         T::event_flag(self.channel, Event::TCIF)
     }
 
-    /// 返回是否发生错误
+    /// Return whether an error occurred.
     pub fn is_error(&self) -> bool {
         T::event_flag(self.channel, Event::TEIF)
     }
 
-    /// 清除状态标志
+    /// Clear the status flags.
     pub fn clear_flag(&mut self, events: EnumSet<Event>) {
         for e in events {
             T::event_clear(self.channel, e);
         }
     }
 
-    /// 等待传输完成
+    /// Wait for the transfer to complete.
     pub fn wait_complet(&self) -> Result<(), Error> {
         while !T::event_flag(self.channel, Event::TCIF) {
-            // 检查是否出错
+            // Check whether an error occurred.
             if T::event_flag(self.channel, Event::TEIF) {
                 T::event_clear(self.channel, Event::TEIF);
                 return Err(Error::Others);
@@ -281,10 +281,10 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
         Ok(())
     }
 
-    /// 等待半完成
+    /// Wait for the half-transfer to complete.
     pub fn wait_half_complet(&self) -> Result<(), Error> {
         while !T::event_flag(self.channel, Event::HTIF) {
-            // 检查是否出错
+            // Check whether an error occurred.
             if T::event_flag(self.channel, Event::TEIF) {
                 T::event_clear(self.channel, Event::TEIF);
                 return Err(Error::Others);
@@ -297,7 +297,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Blocking> {
 
 #[cfg(feature = "embassy")]
 impl<'d, T: Instance> DmaChannel<'d, T, Async> {
-    /// 等待完成
+    /// Wait for completion.
     pub async fn wait_complet(&self) -> Result<(), Error> {
         if EventFuture::<T>::new(self.channel, Event::TCIF | Event::TEIF).await != Event::TCIF {
             return Err(Error::Others);
@@ -306,7 +306,7 @@ impl<'d, T: Instance> DmaChannel<'d, T, Async> {
         Ok(())
     }
 
-    /// 等待半完成
+    /// Wait for half completion.
     pub async fn wait_half_complet(&self) -> Result<(), Error> {
         if EventFuture::<T>::new(self.channel, Event::HTIF | Event::TEIF).await != Event::HTIF {
             return Err(Error::Others);

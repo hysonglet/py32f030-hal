@@ -27,12 +27,12 @@ async fn main(_spawner: Spawner) {
     let mut rx_buf: [u8; 10] = [0; 10];
 
     loop {
-        // 使用标准接口来发送串口数据
+        // Use the standard interface to send serial data.
         // let _ = write!(tx, "example for usart\r\n");
         let _rst = rx.read(&mut rx_buf).await;
         // let rst = rx.read_with_idle(&mut rx_buf).await;
         // defmt::info!("recv: rst: {:?} {:x}", Debug2Format(&rst), rx_buf);
-        // 使用自定义的驱动接口发送串口数据
+        // Use the custom driver interface to send serial data.
         let rst = tx.write(buf.as_bytes()).await;
 
         defmt::info!("send: rst:{} {:x} ", Debug2Format(&rst), buf.as_bytes());

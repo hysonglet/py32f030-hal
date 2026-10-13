@@ -3,14 +3,14 @@
 //! Output
 //!
 //! ```rust, ignore
-//! let p = hal::init(Default::default());
+//! let p = instance::init(Default::default());
 //! let gpioa = p.GPIOA.split();
 //! let mut led = Output::new(gpioa.PA10, PinIoType::PullDown, PinSpeed::Low);
 //! ```
 //!
 //! Input
 //! ```rust, ignore
-//! let p = hal::init(Default::default());
+//! let p = instance::init(Default::default());
 //! let gpioa = p.GPIOA.split();
 //! let key = Input::new(gpioa.PA12, PinPullUpDown::PullUp, PinSpeed::Low);
 //! ```
@@ -27,11 +27,11 @@
 //! Mco::select(clock::McoSelect::SysClk, clock::McoDIV::DIV1);
 //! ```
 
-pub(crate) mod hal;
+pub(crate) mod instance;
 mod types;
 
 use embedded_hal::digital::PinState;
-use hal::*;
+use instance::*;
 
 pub use types::*;
 
@@ -88,10 +88,11 @@ impl Pin for AnyPin {
 
 /// Flexible GPIO pin.
 ///
-/// Flex 接口的 pin
-/// 该结构体不对 api 调用做任何保护，例如引脚调用输出配置后，再读取，也许硬件不支持这种使用，但
-/// 这个对象依旧不阻止调用，如果希望更强的保护，推荐使用 `Input,Output,Analog` 等对象，保证
-/// 接口不被乱用
+/// A pin driven through the Flex interface. This struct provides no API-level
+/// protection: for example, after configuring the pin as output you may still read
+/// from it. The hardware may not support such usage, but this object does not prevent
+/// it. For stronger protection, prefer the typed `Input`, `Output`, `Analog` objects,
+/// which guard against misuse.
 pub struct Flex<'d> {
     pub(crate) pin: PeripheralRef<'d, AnyPin>,
 }
@@ -299,7 +300,6 @@ impl<'d> Analog<'d> {
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl<'d> embedded_hal::digital::ErrorType for Input<'d> {
     type Error = core::convert::Infallible;
@@ -492,7 +492,7 @@ mod v027 {
     }
 }
 
-/// 所有 gpio 引脚定义和功能复用定义的宏
+/// Macro that defines all GPIO pins and their alternate-function definitions.
 macro_rules! gpio_pin_def {
     (
         $gpio_mod: ident, $gpio_port: ident
@@ -527,7 +527,6 @@ macro_rules! gpio_pin_def {
 
             impl peripherals::$gpio_port {
                 pub fn split(self) -> Pins {
-                    // 开启电平
                     self.enable();
                     Pins {
                         $(

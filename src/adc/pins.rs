@@ -1,5 +1,5 @@
 use super::{AdcChannel, AnalogPin};
-use crate::gpio::hal::sealed::Pin;
+use crate::gpio::instance::sealed::Pin;
 use crate::gpio::{gpioa, gpiob};
 use crate::mcu::peripherals;
 

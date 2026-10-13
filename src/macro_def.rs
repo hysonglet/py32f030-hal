@@ -47,7 +47,7 @@ macro_rules! impl_sealed_peripheral_id {
     ) => {
         impl Instance for $crate::mcu::peripherals::$peripheral {}
 
-        impl hal::sealed::Instance for $crate::mcu::peripherals::$peripheral {
+        impl instance::sealed::Instance for $crate::mcu::peripherals::$peripheral {
             fn id() -> Id {
                 Id::$id
             }

@@ -9,9 +9,9 @@ use embassy_hal_internal::PeripheralRef;
 
 const TIMEOUT: usize = 10000;
 
-/// Slave 角色
+/// Slave role.
 ///
-/// 从机由外部主机提供时钟，读写均以阻塞方式等待 RXNE / TXE。
+/// The slave is clocked by the external master; reads/writes block waiting for RXNE / TXE.
 pub struct Slave<'d, T: Instance, M: Mode> {
     _t: PhantomData<(&'d T, M)>,
 
@@ -45,31 +45,31 @@ impl<'d, T: Instance, M: Mode> Slave<'d, T, M> {
         }
     }
 
-    /// 是否配置了发送 DMA 通道
+    /// Whether a transmit DMA channel is configured.
     #[inline]
     pub fn has_tx_dma(&self) -> bool {
         self.tx_dma.is_some()
     }
 
-    /// 是否配置了接收 DMA 通道
+    /// Whether a receive DMA channel is configured.
     #[inline]
     pub fn has_rx_dma(&self) -> bool {
         self.rx_dma.is_some()
     }
 
-    /// 总线是否忙
+    /// Whether the bus is busy.
     #[inline]
     pub fn is_busy(&self) -> bool {
         T::is_busy()
     }
 
-    /// 是否发生溢出
+    /// Whether an overrun occurred.
     #[inline]
     pub fn is_overflow(&self) -> bool {
         T::is_overflow()
     }
 
-    /// 清除错误标志
+    /// Clear error flags.
     #[inline]
     pub fn clear_errors(&self) {
         T::clear_errors()
@@ -77,7 +77,7 @@ impl<'d, T: Instance, M: Mode> Slave<'d, T, M> {
 }
 
 impl<'d, T: Instance> Slave<'d, T, Blocking> {
-    /// 阻塞读取主机发来的数据（等待 RXNE）
+    /// Blocking read of data from the master (wait for RXNE).
     pub fn read_block(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         if self._miso.is_none() {
             return Err(Error::Read);
@@ -91,7 +91,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
         Ok(buf.len())
     }
 
-    /// 阻塞向主机发送数据（等待 TXE）
+    /// Blocking send of data to the master (wait for TXE).
     pub fn write_block(&mut self, buf: &[u8]) -> Result<usize, Error> {
         if self._mosi.is_none() {
             return Err(Error::Write);
@@ -105,7 +105,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
         Ok(buf.len())
     }
 
-    /// 全双工传输（收发同时进行）
+    /// Full-duplex transfer (simultaneous send and receive).
     pub fn transfer_block(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Error> {
         if self._mosi.is_none() || self._miso.is_none() {
             return Err(Error::Write);
@@ -131,7 +131,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
         Ok(())
     }
 
-    /// 仅接收模式下的数据发送缓冲预填（用于下一次传输）
+    /// Pre-fill the transmit buffer in receive-only mode (used for the next transfer).
     #[inline]
     pub fn preload_tx(&self, data: u16) {
         T::data_write(data);

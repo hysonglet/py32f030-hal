@@ -1,48 +1,48 @@
 use crate::clock;
 use embedded_hal::spi::{Mode, Phase, Polarity};
 
-/// SPI 错误
+/// SPI error
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Error {
-    /// 初始化失败
+    /// Initialization failed
     Init,
-    /// 读失败
+    /// Read failed
     Read,
-    /// 写失败
+    /// Write failed
     Write,
-    /// 等待超时
+    /// Wait timeout
     Timeout,
-    /// 总线忙
+    /// Bus busy
     Busy,
-    /// 溢出（OVR）
+    /// Overrun (OVR)
     Overrun,
-    /// 模式错误（MODF，NSS 被拉低）
+    /// Mode fault (MODF, NSS pulled low)
     ModeFault,
-    /// DMA 传输错误（或未配置 DMA 通道却使用 DMA 接口）
+    /// DMA transfer error (or DMA interface used without a configured DMA channel)
     Dma,
 }
 
-/// 双向数据模式
+/// Bidirectional data mode
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum BidirectionalMode {
-    /// 双线单向
+    /// Two-line unidirectional
     #[default]
     Line2Unidirectional = 0,
-    /// 单线双向
+    /// One-line bidirectional
     Line1Bidirectional = 1,
 }
 
-/// 帧格式（MSB / LSB 先发）
+/// Frame format (MSB / LSB first)
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum BitOrder {
-    /// 高位先发
+    /// Most significant bit first
     #[default]
     MSB = 0,
-    /// 低位先发
+    /// Least significant bit first
     LSB = 1,
 }
 
-/// 波特率分频
+/// Baud rate divider
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum BaudRateDiv {
     /// fPCLK/2
@@ -65,7 +65,7 @@ pub enum BaudRateDiv {
 }
 
 impl BaudRateDiv {
-    /// 返回实际波特率
+    /// Return the actual baud rate.
     pub fn baud_rate(&self) -> u32 {
         clock::sys_pclk() / (0x02 << (*self as usize))
     }
@@ -87,58 +87,59 @@ impl From<u8> for BaudRateDiv {
     }
 }
 
-/// 主从角色
+/// Master/slave role
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum Rule {
-    /// 从机
+    /// Slave
     Slave = 0,
-    /// 主机
+    /// Master
     #[default]
     Master = 1,
 }
 
-/// 从机速度模式
+/// Slave speed mode
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum SlaveSpeedMode {
-    /// 普通模式（最快 pclk/4 以下）
+    /// Normal mode (up to pclk/4)
     #[default]
     Normal = 0,
-    /// 快速模式
+    /// Fast mode
     Fast = 1,
 }
 
-/// 数据帧长度
+/// Data frame length
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub enum DataLength {
-    /// 8 位
+    /// 8 bits
     #[default]
     Length8 = 0,
-    /// 16 位
+    /// 16 bits
     Length16 = 1,
 }
 
-/// SPI 配置
+/// SPI configuration
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Config {
-    /// 时钟极性与相位（CPOL/CPHA）
+    /// Clock polarity and phase (CPOL/CPHA)
     pub mode: Mode,
-    /// 帧格式（MSB / LSB 先发）
+    /// Frame format (MSB / LSB first)
     pub bit_order: BitOrder,
-    /// 波特率分频
+    /// Baud rate divider
     pub baud_rate_div: BaudRateDiv,
-    /// 数据帧长度（8 / 16 位）
+    /// Data frame length (8 / 16 bits)
     pub data_len: DataLength,
-    /// 双向数据模式；单线双向时 MOSI 兼作收发
+    /// Bidirectional data mode; in one-line mode MOSI is used for both TX and RX
     pub bidirectional: BidirectionalMode,
-    /// 只接收（关闭输出，RXONLY）
+    /// Receive only (output disabled, RXONLY)
     pub rx_only: bool,
-    /// 从机速度模式
+    /// Slave speed mode
     pub slave_speed_mode: SlaveSpeedMode,
-    /// 使能 SS 输出（SSOE），主机模式下由硬件驱动 NSS
+    /// Enable SS output (SSOE); in master mode NSS is driven by hardware
     pub ss_output_enable: bool,
-    /// 软件从设备管理（SSM）。未接 NSS 引脚时必须为 true，否则会误报 MODF
+    /// Software slave management (SSM). Must be true when NSS is not connected,
+    /// otherwise a spurious MODF is reported
     pub software_slave_management: bool,
-    /// 接收 FIFO 阈值：true 表示 8 位即产生 RXNE，false 表示 16 位
+    /// RX FIFO threshold: true raises RXNE at 8 bits, false at 16 bits
     pub fifo_rx_threshold_8bit: bool,
 }
 

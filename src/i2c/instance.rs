@@ -6,10 +6,10 @@ pub(super) mod sealed {
     use crate::pac;
     pub const WAIT_FLAG_TIMEOUT: usize = 100_000;
 
-    // 总线标志等待超时， 100 ms
+    // Bus flag wait timeout: 100 ms.
 
     pub trait Instance {
-        // 考虑以后其他单片机可能有多个IIC
+        // Other MCUs might have multiple I2C peripherals in the future.
         fn id() -> Id;
 
         #[inline]
@@ -19,59 +19,60 @@ pub(super) mod sealed {
             }
         }
 
-        /// 使能配置
+        /// Enable configuration.
         fn enable_config(en: bool) {
             Self::block().cr1.modify(|_, w| w.pe().bit(en))
         }
 
-        /// 重启 I2c外设
+        /// Reset the I2C peripheral.
         #[inline]
         fn reset() {
             Self::id().clock().reset()
         }
 
-        /// 查看总线是否释放
+        /// Check whether the bus is released (software reset bit).
         #[inline]
         fn is_bus_release() -> bool {
             Self::block().cr1.read().swrst().bit()
         }
 
-        /// 生成开始信号
+        /// Generate a start signal.
         #[inline]
         fn start() {
             Self::block().cr1.modify(|_, w| w.start().set_bit())
         }
 
-        /// 生成停止信号
+        /// Generate a stop signal.
         #[inline]
         fn stop() {
             Self::block().cr1.modify(|_, w| w.stop().set_bit())
         }
 
-        /// 软重启
-        /// 当被置位时，I2C 处于复位状态。在复位释放前，要确保 I2C 的引脚被释放，总线是空闲状态。
-        /// - 0：I2C 模块不处于复位状态
-        ///
-        /// - 1：I2C 模块处于复位状态
-        ///   注：该位可以用于 error 或 locked 状态时重新初始化 I2C。如 BUSY 位为 1，在总线上又没有检测到停止条件时。
+        /// Software reset.
+        /// When set, I2C is in the reset state. Before releasing the reset, make sure
+        /// the I2C pins are released and the bus is idle.
+        /// - 0: I2C module is not in the reset state.
+        /// - 1: I2C module is in the reset state.
+        ///   Note: this bit can be used to re-initialize I2C after an error or lock-up,
+        ///   e.g. when BUSY=1 but no stop condition is detected on the bus.
         #[inline]
         fn soft_reset() {
             Self::block().cr1.modify(|_, w| w.swrst().set_bit())
         }
 
-        /// 将数据写入传输寄存器
+        /// Write data into the data register.
         #[inline]
         fn transmit(data: u8) {
             Self::block().dr.modify(|_, w| unsafe { w.dr().bits(data) });
         }
 
-        /// 设置回复ack或nack
+        /// Set ACK or NACK.
         #[inline]
         fn ack(is_ack: bool) {
             Self::block().cr1.modify(|_, w| w.ack().bit(is_ack))
         }
 
-        /// 写入从地址寄存器
+        /// Write the slave address register.
         #[inline]
         fn address(address: u8) {
             Self::block()
@@ -79,62 +80,62 @@ pub(super) mod sealed {
                 .modify(|_, w| unsafe { w.add().bits(address) });
         }
 
-        /// 使能广播呼叫（CR1.ENGC）
+        /// Enable general call (CR1.ENGC).
         #[inline]
         fn set_general_call(en: bool) {
             Self::block().cr1.modify(|_, w| w.engc().bit(en));
         }
 
-        /// 禁止时钟延展（CR1.NOSTRETCH）
+        /// Disable clock stretching (CR1.NOSTRETCH).
         #[inline]
         fn set_no_stretch(en: bool) {
             Self::block().cr1.modify(|_, w| w.nostretch().bit(en));
         }
 
-        /// 使能 PEC 校验（CR1.ENPEC）
+        /// Enable PEC check (CR1.ENPEC).
         #[inline]
         fn set_pec(en: bool) {
             Self::block().cr1.modify(|_, w| w.enpec().bit(en));
         }
 
-        /// 使能 DMA 请求（CR2.DMAEN）
+        /// Enable DMA request (CR2.DMAEN).
         #[inline]
         fn dma_enable(en: bool) {
             Self::block().cr2.modify(|_, w| w.dmaen().bit(en));
         }
 
-        /// 下一次 DMA 传输为最后一次（CR2.LAST）
+        /// The next DMA transfer is the last one (CR2.LAST).
         #[inline]
         fn set_last_dma(en: bool) {
             Self::block().cr2.modify(|_, w| w.last().bit(en));
         }
 
-        /// 清除地址匹配标志（ADDR）：先读 SR1 再读 SR2
+        /// Clear the address-matched flag (ADDR): read SR1 then SR2.
         #[inline]
         fn clear_addr() {
             let _ = Self::block().sr1.read().bits();
             let _ = Self::block().sr2.read().bits();
         }
 
-        /// 是否为广播呼叫地址（SR2.GENCALL）
+        /// Whether the address is a general-call address (SR2.GENCALL).
         #[inline]
         fn is_general_call() -> bool {
             Self::block().sr2.read().gencall().bit()
         }
 
-        /// 当前处于发送还是接收（SR2.TRA）：true 表示发送
+        /// Whether currently transmitting or receiving (SR2.TRA): true means transmitting.
         #[inline]
         fn is_transmitter() -> bool {
             Self::block().sr2.read().tra().bit()
         }
 
-        /// 总线忙
+        /// Bus busy.
         #[inline]
         fn busy() -> bool {
             Self::block().sr2.read().busy().bit()
         }
 
-        /// 开启或关闭中断事件
+        /// Enable or disable the event interrupt.
         #[inline]
         fn event_config(event: Event, en: bool) {
             let cr2 = &Self::block().cr2;
@@ -150,8 +151,8 @@ pub(super) mod sealed {
             }
         }
 
-        /// 返回是否匹配到中断事件了，
-        /// 如果开启了事件中断并且存在事件标志，则返回true
+        /// Return whether the interrupt event was matched,
+        /// i.e. the event interrupt is enabled and the event flag is set.
         #[inline]
         fn is_event_match(event: Event) -> bool {
             let sr1 = Self::block().sr1.read();
@@ -193,32 +194,38 @@ pub(super) mod sealed {
         fn event_clear(event: Event) {
             Self::block().sr1.modify(|r, w| match event {
                 Event::SB => {
-                    //软件读取 I2C_SR1 寄存器后，对数据寄存器的写操作将清除该位； 或当 PE=0 时，由硬件清除
+                    // Cleared by reading I2C_SR1 then writing the data register;
+                    // or cleared by hardware when PE=0.
                     w
                 }
                 Event::ADD => {
-                    //软件读取 I2C_SR1 寄存器后，再读 I2C_SR2 寄存器将清除该位；当 PE=0 时，由硬件清除。
+                    // Cleared by reading I2C_SR1 then reading I2C_SR2; or cleared by
+                    // hardware when PE=0.
                     let r = r.bits();
                     let _ = Self::block().sr2.read();
                     unsafe { w.bits(r) }
                 }
                 Event::STOPF => {
-                    // 软件读取 I2C_SR1 寄存器后，对 I2C_CR1 寄存器的写操作将清除该位，或当 PE=0 时，硬件清除该位。
+                    // Cleared by reading I2C_SR1 then writing I2C_CR1, or by hardware
+                    // when PE=0.
                     w
                 }
                 Event::BTF => {
-                    // 软件读取 I2C_SR1 寄存器后，对数据寄存器的读或写操作将清除该位；或发送一个起始或停止条件后，或当 PE=0 时，由硬件清除。
+                    // Cleared by reading I2C_SR1 then reading or writing the data
+                    // register, or after a start/stop condition, or by hardware when PE=0.
                     w
                 }
                 Event::RXNE => {
-                    // 在接收时，当数据寄存器不为空，置位该寄存器。在接收地址阶段，该寄存器不置位。软件对数据寄存器的读写操作会清除该寄存器，
-                    // 或当 PE=0 时由硬件清除。
-                    // 注：当设置了 BTF 时，读取数据不能清除 RxNE
-                    // 位，因为此时数据寄存器仍为满。
+                    // Set when the data register is not empty during reception (not set
+                    // during address phase). Cleared by reading/writing the data register,
+                    // or by hardware when PE=0.
+                    // Note: when BTF is set, reading data does not clear RxNE because the
+                    // data register is still full.
                     w
                 }
                 Event::TXE => {
-                    //软件写数据到 DR 寄存器可清除该位，或在发生一个起始或停止条件后，或当 PE=0 时由硬件自动清除。
+                    // Cleared by writing the data register, or after a start/stop
+                    // condition, or automatically by hardware when PE=0.
                     w
                 }
                 Event::BERR => w.berr().clear_bit(),
@@ -229,26 +236,32 @@ pub(super) mod sealed {
             });
         }
 
-        /// ACK/PEC 位置（用于数据接收），软件可置位/清零该寄存器，或 PE=0 时由硬件清零。
+        /// ACK/PEC position (for data reception). Software can set/clear this register,
+        /// or it is cleared by hardware when PE=0.
         ///
-        /// - 0：ACK 位控制当前移位寄存器内正在接收的字节的(N)ACK。PEC 位表明当前移位寄存器内的字节是 PEC
-        /// - 1：ACK 位控制在移位寄存器里接收的下一个字节的(N)ACK。PEC 位表明在移位寄存器里接收的下一个字节是 PEC
+        /// - 0: the ACK bit controls (N)ACK of the byte currently in the shift
+        ///   register; the PEC bit indicates the current shift-register byte is PEC.
+        /// - 1: the ACK bit controls (N)ACK of the next byte to be received in the
+        ///   shift register; the PEC bit indicates the next received byte is PEC.
         ///
-        /// 注：POS 位只能用在 2 字节的接收配置中，必须在接收数据之前配置。为了 NACK 第 2 个字节，必须在清除 ADDR 之后清除 ACK 位。为了检测第 2 个字节的 PEC，必须在配置了POS 位之后，ADDR stretch 事件时设置 PEC位。
+        /// Note: the POS bit is only used in 2-byte receive configuration and must be
+        /// set before receiving data. To NACK the 2nd byte, the ACK bit must be
+        /// cleared after clearing ADDR. To detect the 2nd byte's PEC, the PEC bit must
+        /// be set at the ADDR-stretch event after POS is configured.
         #[inline]
         fn clear_pos() {
             Self::block().cr1.modify(|_, w| w.pos().clear_bit());
         }
 
         fn master_transmit_block(address: u8, buf: &[u8]) -> Result<usize, Error> {
-            // 如果总线处于busy状态，则退出
+            // If the bus is busy, exit.
             // wait_for_flag_timeout(WAIT_FLAG_TIMEOUT_US, || Self::busy() == false)
             //     .map_err(|_| Error::Busy)?;
 
             Self::clear_pos();
 
             Self::start();
-            // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
+            // SB=1: cleared by reading SR1 then writing the data register.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::SB))
                 .map_err(|_| {
                     Self::event_clear(Event::ARLO);
@@ -257,30 +270,31 @@ pub(super) mod sealed {
 
             Self::transmit(address << 1);
 
-            // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
+            // ADDR=1: cleared by reading SR1 then SR2.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::ADD))
                 .map_err(|_| {
                     // Self::debug();
-                    // 清除 af 置位
+                    // Clear the AF flag.
                     Self::event_clear(Event::AF);
                     Self::stop();
                     Error::Address
                 })?;
             Self::event_clear(Event::ADD);
 
-            // TRA 位指示主设备是在接收器模式还是发送器模式。
+            // The TRA bit indicates whether the master is in receiver or transmitter mode.
 
             let mut iter = buf.iter();
             if let Some(d) = iter.next() {
-                // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
+                // EV8_1: TxE=1, shift register empty, data register empty, write Data1 to DR.
                 wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
                     .map_err(|_| Error::Tx)?;
                 Self::transmit(*d);
             }
 
-            // 接着将后面的数据发送出去
+            // Then send the remaining data.
             for t in iter {
-                // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
+                // EV8: TxE=1, shift register not empty, data register empty, write Data2
+                // to DR, this bit is cleared.
                 wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
                     .map_err(|_| {
                         Self::stop();
@@ -289,7 +303,8 @@ pub(super) mod sealed {
                 Self::transmit(*t);
             }
 
-            // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
+            // EV8_2: TxE=1, BTF=1, write the Stop bit; when hardware sends the Stop bit,
+            // TxE and BTF are cleared.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::TXE))
                 .map_err(|_| {
                     Self::stop();
@@ -318,13 +333,13 @@ pub(super) mod sealed {
             Self::clear_pos();
 
             Self::start();
-            // EV5：SB=1, 先读 SR1 寄存器，再写 DR 寄存器，清零该位
+            // EV5: SB=1, read SR1 then write DR to clear this bit.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::SB))
                 .map_err(|_| Error::Start)?;
 
             Self::transmit((address << 1) | 1);
 
-            // EV6：ADDR，先读 SR1，再读 SR2，清零该位
+            // EV6: ADDR, read SR1 then SR2 to clear this bit.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || Self::event_flag(Event::ADD))
                 .map_err(|_| Error::Address)?;
             Self::event_clear(Event::ADD);
@@ -336,13 +351,13 @@ pub(super) mod sealed {
                 let remain = len - idx;
                 if remain > 2 {
                     Self::ack(true);
-                    // EV7：RxNE=1, 读 DR 寄存器清零该位
+                    // EV7: RxNE=1, read DR to clear this bit.
                     wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
                         Self::event_flag(Event::RXNE)
                     })
                     .map_err(|_| Error::RX)?;
 
-                    // 读取数据
+                    // Read the data.
                     *p = block.dr.read().dr().bits();
 
                     if Self::event_flag(Event::BTF) {
@@ -353,12 +368,12 @@ pub(super) mod sealed {
                 } else if remain == 2 {
                     Self::ack(false);
 
-                    // EV7：RxNE=1, 读 DR 寄存器清零该位
+                    // EV7: RxNE=1, read DR to clear this bit.
                     wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
                         Self::event_flag(Event::RXNE)
                     })
                     .map_err(|_| Error::RX)?;
-                    // 读取数据
+                    // Read the data.
                     *p = block.dr.read().dr().bits();
                     if Self::event_flag(Event::BTF) {
                         Self::ack(false);
@@ -367,12 +382,12 @@ pub(super) mod sealed {
                     }
                 } else if remain == 1 {
                     Self::ack(false);
-                    // EV7：RxNE=1, 读 DR 寄存器清零该位
+                    // EV7: RxNE=1, read DR to clear this bit.
                     wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || {
                         Self::event_flag(Event::RXNE)
                     })
                     .map_err(|_| Error::RX)?;
-                    // 读取数据
+                    // Read the data.
                     *p = block.dr.read().dr().bits();
                 }
             }
@@ -388,13 +403,13 @@ pub(super) mod sealed {
             Self::enable_config(false);
 
             let plk = sys_pclk();
-            // 标准模式下为：2MHz, 快速模式下为：4MHz
-            // iic模块时钟，需要使用pclk的hz来匹配
-            // 标准模式下 freq >= 4
-            // 快速模式下 freq >= 12
+            // In standard mode: 2 MHz; in fast mode: 4 MHz.
+            // The I2C module clock must match the PCLK in Hz.
+            // Standard mode: freq >= 4.
+            // Fast mode: freq >= 12.
             let freq = plk / 1000 / 1000;
 
-            //freq
+            // freq
             block
                 .cr2
                 .modify(|_, w| unsafe { w.freq().bits(freq as u8) });
@@ -408,7 +423,7 @@ pub(super) mod sealed {
                 if ccr <= 0x04 {
                     return Err(Error::PClock);
                 }
-                // fs bit, false: 标准模式， true：快速模式
+                // F/S bit, false: standard mode, true: fast mode.
                 block.ccr.modify(|_, w| w.f_s().bit(false));
                 ccr
             } else {
@@ -425,14 +440,14 @@ pub(super) mod sealed {
                     }
                 };
 
-                // fs bit, false: 标准模式， true：快速模式
+                // F/S bit, false: standard mode, true: fast mode.
                 block.ccr.modify(|_, w| w.f_s().bit(true));
-                // busy 位只在快速模式下有效
+                // The duty bit is only valid in fast mode.
                 block.ccr.modify(|_, w| w.duty().bit(duty));
                 ccr
             };
 
-            // 设置时钟分频参数
+            // Set the clock divider parameter.
             block.ccr.modify(|_, w| unsafe { w.ccr().bits(ccr as u16) });
 
             let rise = if config.speed <= SPEED_HZ_STAND {
@@ -442,7 +457,7 @@ pub(super) mod sealed {
             } as u8;
             block.trise.modify(|_, w| unsafe { w.trise().bits(rise) });
 
-            // 从机自身地址、广播呼叫、时钟延展与 PEC
+            // Own slave address, general call, clock stretching and PEC.
             Self::address(config.own_address);
             Self::set_general_call(config.general_call);
             Self::set_no_stretch(config.no_stretch);

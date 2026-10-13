@@ -2,20 +2,20 @@ use crate::clock::peripheral::PeripheralClockIndex;
 use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral};
 
-mod hal;
+mod instance;
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
 impl Instance for crate::mcu::peripherals::CRC {}
-impl hal::sealed::Instance for crate::mcu::peripherals::CRC {}
+impl instance::sealed::Instance for crate::mcu::peripherals::CRC {}
 
 pub struct Crc<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 }
 
 impl<'d, T: Instance> Crc<'d, T> {
-    /// 新建CRC实例
+    /// Create a new CRC instance.
     pub fn new(_crc: impl Peripheral<P = T>) -> Self {
         into_ref!(_crc);
 
@@ -25,30 +25,30 @@ impl<'d, T: Instance> Crc<'d, T> {
         Self { _t: PhantomData }
     }
 
-    /// 多次积累计算
+    /// Accumulate and compute over multiple buffers.
     pub fn accumulat(&self, buf: &[u32]) -> u32 {
         buf.iter().for_each(|v| T::write_data(*v));
         T::read_data()
     }
 
-    /// 单词计算数组的crc值
+    /// Compute the CRC of a whole buffer in a single call.
     pub fn calculate(&self, buf: &[u32]) -> u32 {
         T::reset();
         self.accumulat(buf)
     }
 
-    /// 复位结果
+    /// Reset the result.
     pub fn reset(&self) {
         T::reset()
     }
 
-    /// 写入独立数据寄存器（IDR），可用于暂存用户数据
+    /// Write the independent data register (IDR), usable as scratch space.
     #[inline]
     pub fn set_idr(&self, v: u8) {
         T::set_idr(v);
     }
 
-    /// 读取独立数据寄存器（IDR）
+    /// Read the independent data register (IDR).
     #[inline]
     pub fn get_idr(&self) -> u8 {
         T::get_idr()

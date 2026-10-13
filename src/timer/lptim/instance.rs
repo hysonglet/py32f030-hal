@@ -6,7 +6,7 @@ pub(crate) mod sealed {
     use crate::pac::lptim::RegisterBlock;
 
     pub trait Instance {
-        /// 定时器索引
+        /// Timer index.
         fn id() -> LpTimer;
 
         #[inline]
@@ -14,7 +14,7 @@ pub(crate) mod sealed {
             unsafe { &*(crate::pac::LPTIM::ptr()) }
         }
 
-        /// 选择内核时钟源（仅当 LPTIM 禁用时有效；写 RCC_CCIPR.LPTIMSEL）
+        /// Select the core clock source (valid only when LPTIM is disabled; writes RCC_CCIPR.LPTIMSEL).
         #[inline]
         fn set_clock_source(src: ClockSource) {
             let rcc = unsafe { crate::pac::RCC::PTR.as_ref().unwrap() };
@@ -22,13 +22,13 @@ pub(crate) mod sealed {
                 .modify(|_, w| unsafe { w.lptim1sel().bits(src as u8) });
         }
 
-        /// 使能/禁止 LPTIM 内核
+        /// Enable / disable the LPTIM core.
         #[inline]
         fn enable_kernel(en: bool) {
             Self::block().cr.modify(|_, w| w.enable().bit(en));
         }
 
-        /// 启动单次计数（软件触发）：置 ENABLE 并写 SNGSTRT
+        /// Start a single count (software trigger): set ENABLE and write SNGSTRT.
         #[inline]
         fn start_single() {
             let b = Self::block();
@@ -36,7 +36,7 @@ pub(crate) mod sealed {
             b.cr.modify(|_, w| w.sngstrt().set_bit());
         }
 
-        /// 启动连续计数（到 ARR 后自动重载并持续运行）
+        /// Start continuous counting (auto-reload and keep running after reaching ARR).
         #[inline]
         fn start_continuous() {
             Self::block()
@@ -44,7 +44,7 @@ pub(crate) mod sealed {
                 .modify(|_, w| w.sngstrt().clear_bit().enable().set_bit());
         }
 
-        /// 设置预分频系数（仅当 LPTIM 禁用时有效）
+        /// Set the prescaler (valid only when LPTIM is disabled).
         #[inline]
         fn set_prescaler(p: Prescaler) {
             Self::block()
@@ -52,37 +52,37 @@ pub(crate) mod sealed {
                 .modify(|_, w| unsafe { w.presc().bits(p as u8) });
         }
 
-        /// 设置 ARR 预装载使能（仅当 LPTIM 禁用时有效）
+        /// Set the ARR preload enable (valid only when LPTIM is disabled).
         #[inline]
         fn set_preload(en: bool) {
             Self::block().cfgr.modify(|_, w| w.preload().bit(en));
         }
 
-        /// 写自动重装载寄存器
+        /// Write the auto-reload register.
         #[inline]
         fn set_auto_reload(arr: u16) {
             Self::block().arr.write(|w| unsafe { w.arr().bits(arr) });
         }
 
-        /// 读自动重装载寄存器
+        /// Read the auto-reload register.
         #[inline]
         fn get_auto_reload() -> u16 {
             Self::block().arr.read().arr().bits()
         }
 
-        /// 读当前计数值
+        /// Read the current counter value.
         #[inline]
         fn counter() -> u16 {
             Self::block().cnt.read().cnt().bits()
         }
 
-        /// 停止计数（禁止内核）
+        /// Stop counting (disable the core).
         #[inline]
         fn stop() {
             Self::enable_kernel(false);
         }
 
-        /// 使能/禁止中断事件
+        /// Enable / disable an interrupt event.
         #[inline]
         fn event_config(event: Event, en: bool) {
             match event {
@@ -92,7 +92,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// 查询事件标志
+        /// Query the event flag.
         #[inline]
         fn event_flag(event: Event) -> bool {
             match event {
@@ -100,7 +100,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// 清除事件标志
+        /// Clear the event flag.
         #[inline]
         fn event_clear(event: Event) {
             match event {

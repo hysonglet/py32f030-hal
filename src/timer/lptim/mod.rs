@@ -1,5 +1,5 @@
 mod counter;
-mod hal;
+mod instance;
 mod types;
 
 pub use counter::Counter;
@@ -10,7 +10,7 @@ use crate::clock::peripheral::{PeripheralClockIndex, PeripheralIdToClockIndex};
 use embassy_hal_internal::{into_ref, Peripheral};
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,14 +26,15 @@ impl PeripheralIdToClockIndex for LpTimer {
     }
 }
 
-// 注：PAC 的 `Interrupt` 枚举缺少 `LPTIM1` 变体（硬件向量 17 存在），
-// 因此本模块暂不实现 `PeripheralInterrupt` / embassy 异步，仅提供阻塞轮询 API。
+// Note: the PAC `Interrupt` enum lacks the `LPTIM1` variant (hardware vector 17 exists),
+// so this module does not implement `PeripheralInterrupt` / embassy async yet, and only
+// provides a blocking polling API.
 
 macro_rules! impl_sealed_timer {
     (
         $peripheral: ident, $id: ident
     ) => {
-        impl hal::sealed::Instance for crate::mcu::peripherals::$peripheral {
+        impl instance::sealed::Instance for crate::mcu::peripherals::$peripheral {
             fn id() -> LpTimer {
                 LpTimer::$id
             }
@@ -49,17 +50,16 @@ pub struct AnyLpTimer<'d, T: Instance> {
 }
 
 impl<'d, T: Instance> AnyLpTimer<'d, T> {
-    /// 新建一个低功耗定时器
+    /// Create a new low-power timer.
     pub fn new(_timer: impl Peripheral<P = T>) -> Result<Self, Error> {
         into_ref!(_timer);
 
-        // 开启外设时钟
         T::id().clock().open();
 
         Ok(Self { _t: PhantomData })
     }
 
-    /// 转换成计数/延时模式
+    /// Convert into counter / delay mode.
     pub fn as_counter(self, config: LpTimerConfig) -> Counter<'d, T> {
         Counter::new(config)
     }

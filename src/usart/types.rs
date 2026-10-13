@@ -1,70 +1,70 @@
 use embedded_time::rate::{Baud, Extensions};
 
-/// 串口错误
+/// USART errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
-    /// 起始位超时
+    /// Start-bit timeout.
     StartTimeout,
-    /// 读超时
+    /// Read timeout.
     ReadTimeout,
-    /// 写超时
+    /// Write timeout.
     WriteTimeout,
-    /// DMA 传输错误（或未配置 DMA 通道却使用 DMA 接口）
+    /// DMA transfer error (or a DMA interface used without a DMA channel configured).
     DMA,
-    /// 检测到噪声
+    /// Noise detected.
     Noise,
-    /// 帧错误
+    /// Framing error.
     Frame,
-    /// 校验错误
+    /// Parity error.
     Parity,
-    /// 溢出错误
+    /// Overrun error.
     Overrun,
-    /// 其它错误
+    /// Other error.
     Others,
 }
 
-/// 停止位
+/// Stop bits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum StopBits {
-    /// 1 个停止位
+    /// 1 stop bit.
     #[default]
     One = 0,
-    /// 2 个停止位
+    /// 2 stop bits.
     Two = 1,
 }
 
-/// 校验方式
+/// Parity mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Parity {
-    /// 无校验
+    /// No parity.
     #[default]
     None = 0,
-    /// 偶校验
+    /// Even parity.
     Even = 1,
-    /// 奇校验
+    /// Odd parity.
     Odd = 2,
 }
 
 impl Parity {
-    /// 是否使能校验（PCE）
+    /// Whether parity is enabled (PCE).
     #[inline]
     pub fn is_enable(self) -> bool {
         self != Parity::None
     }
 }
 
-/// 过采样
+/// Oversampling.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum OverSampling {
-    /// 16 倍过采样
+    /// 16x oversampling.
     #[default]
     Sixteen = 0,
-    /// 8 倍过采样
+    /// 8x oversampling.
     Eight = 1,
 }
 
 impl OverSampling {
-    /// 返回采样倍数（16 或 8）
+    /// Return the oversampling factor (16 or 8).
     #[inline]
     pub fn div(&self) -> u32 {
         if *self == Self::Sixteen {
@@ -81,13 +81,13 @@ impl From<OverSampling> for bool {
     }
 }
 
-/// 数据位长度
+/// Data bit length.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum DataBits {
-    /// 8 位数据
+    /// 8 data bits.
     #[default]
     Eight = 0,
-    /// 9 位数据
+    /// 9 data bits.
     Nine = 1,
 }
 
@@ -98,17 +98,17 @@ impl From<DataBits> for bool {
     }
 }
 
-/// 硬件流控
+/// Hardware flow control.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum HwFlowCtrl {
-    /// 不使用硬件流控
+    /// No hardware flow control.
     #[default]
     None,
-    /// 仅 RTS
+    /// RTS only.
     Rts,
-    /// 仅 CTS
+    /// CTS only.
     Cts,
-    /// RTS + CTS
+    /// RTS + CTS.
     RtsCts,
 }
 
@@ -123,58 +123,58 @@ impl HwFlowCtrl {
     }
 }
 
-/// 自动波特率检测模式（CR3.ABRMOD）
+/// Auto-baud-rate detection mode (CR3.ABRMOD).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum AutoBaudMode {
-    /// 模式 0：从起始位开始测量，检测任意字符
+    /// Mode 0: measure from the start bit, detect any character.
     #[default]
     StartBit = 0,
-    /// 模式 1：检测 RX 线上下降沿之间的时间
+    /// Mode 1: measure the time between falling edges on the RX line.
     FallingEdge = 1,
-    /// 模式 2：检测 0x7F 帧
+    /// Mode 2: detect a 0x7F frame.
     Frame0x7F = 2,
-    /// 模式 3：检测 0x55 帧
+    /// Mode 3: detect a 0x55 frame.
     Frame0x55 = 3,
 }
 
-/// IrDA 工作模式（CR3.IRLP）
+/// IrDA operating mode (CR3.IRLP).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum IrdaMode {
-    /// 正常模式
+    /// Normal mode.
     #[default]
     Normal = 0,
-    /// 低功耗模式
+    /// Low-power mode.
     LowPower = 1,
 }
 
-/// 同步模式时钟输出极性（CR2.CPOL）
+/// Synchronous-mode clock output polarity (CR2.CPOL).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum ClockPolarity {
-    /// 空闲时 CK 为低电平
+    /// CK idle low.
     #[default]
     IdleLow = 0,
-    /// 空闲时 CK 为高电平
+    /// CK idle high.
     IdleHigh = 1,
 }
 
-/// 同步模式时钟相位（CR2.CPHA）
+/// Synchronous-mode clock phase (CR2.CPHA).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum ClockPhase {
-    /// 第一个时钟沿进行数据捕获
+    /// Data captured on the first clock edge.
     #[default]
     FirstEdge = 0,
-    /// 第二个时钟沿进行数据捕获
+    /// Data captured on the second clock edge.
     SecondEdge = 1,
 }
 
-/// 同步模式（CK 引脚）配置
+/// Synchronous-mode (CK pin) configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct SyncClockConfig {
-    /// 时钟极性
+    /// Clock polarity.
     pub polarity: ClockPolarity,
-    /// 时钟相位
+    /// Clock phase.
     pub phase: ClockPhase,
-    /// 最后一个数据位是否输出时钟脉冲（LBCL）
+    /// Whether to output a clock pulse on the last data bit (LBCL).
     pub last_bit_clock: bool,
 }
 
@@ -188,47 +188,47 @@ impl Default for SyncClockConfig {
     }
 }
 
-/// 接收唤醒方式（CR1.WAKE），仅在静默模式下有效
+/// Receive wake-up method (CR1.WAKE), valid only in mute mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum WakeMethod {
-    /// 空闲线路唤醒
+    /// Idle-line wake-up.
     #[default]
     IdleLine = 0,
-    /// 地址标记唤醒
+    /// Address-mark wake-up.
     AddressMark = 1,
 }
 
-/// 串口配置
+/// USART configuration.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Config {
-    /// 波特率
+    /// Baud rate.
     pub baud_rate: Baud,
-    /// 停止位
+    /// Stop bits.
     pub stop_bit: StopBits,
-    /// 校验方式
+    /// Parity mode.
     pub parity: Parity,
-    /// 数据位
+    /// Data bits.
     pub data_bits: DataBits,
-    /// 过采样
+    /// Oversampling.
     pub over_sampling: OverSampling,
-    /// 硬件流控
+    /// Hardware flow control.
     pub hw_flow_ctrl: HwFlowCtrl,
-    /// 自动波特率检测；`Some(mode)` 时使能 ABR 并按该模式测量
+    /// Auto-baud-rate detection; `Some(mode)` enables ABR and measures in that mode.
     pub auto_baud: Option<AutoBaudMode>,
-    /// 半双工（单线）模式，置位 CR3.HDSEL
+    /// Half-duplex (single-wire) mode, sets CR3.HDSEL.
     pub half_duplex: bool,
-    /// IrDA 模式；`Some(mode)` 时使能 CR3.IREN
+    /// IrDA mode; `Some(mode)` enables CR3.IREN.
     pub irda: Option<IrdaMode>,
-    /// 同步模式时钟输出；`Some(cfg)` 时使能 CR2.CLKEN
+    /// Synchronous-mode clock output; `Some(cfg)` enables CR2.CLKEN.
     pub sync_clock: Option<SyncClockConfig>,
-    /// 静默模式（CR1.RWU）与唤醒方式（CR1.WAKE）
+    /// Mute mode (CR1.RWU) and wake-up method (CR1.WAKE).
     pub mute: Option<WakeMethod>,
-    /// 多处理器通信的节点地址（CR2.ADD，仅地址标记唤醒时使用）
+    /// Node address for multiprocessor communication (CR2.ADD, used only with address-mark wake-up).
     pub address: u8,
 }
 
 impl Default for Config {
-    /// 默认 115200 Bd、8 位数据、无校验、1 停止位、16 倍过采样
+    /// Defaults: 115200 Bd, 8 data bits, no parity, 1 stop bit, 16x oversampling.
     #[inline]
     fn default() -> Self {
         Self {

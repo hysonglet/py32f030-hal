@@ -10,10 +10,11 @@ use core::marker::PhantomData;
 use enumset::EnumSet;
 use fugit::MicrosDurationU32;
 
-/// 统一计数器 / 阻塞延时
+/// Unified counter / blocking delay.
 ///
-/// TIM1 / TIM3 / TIM14 / TIM16 共用同一套实现；只有部分定时器具备的
-/// 能力（重复计数、中心对齐）通过 capability trait 在编译期门控。
+/// TIM1 / TIM3 / TIM14 / TIM16 share a single implementation; capabilities that
+/// only some timers have (repetition counter, center-aligned mode) are gated at
+/// compile time through capability traits.
 pub struct Counter<'d, T: Instance, M: Mode> {
     _t: PhantomData<&'d T>,
     _m: PhantomData<M>,
@@ -24,7 +25,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::enable_auto_reload_buff(false);
 
         if M::is_async() {
-            // TIM1 有两个中断向量，这里会全部 unmask
+            // TIM1 has two interrupt vectors; this unmarks both of them.
             T::id().enable_interrupts();
         }
 
@@ -34,31 +35,32 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         }
     }
 
-    /// 返回定时器外设时钟
+    /// Returns the timer peripheral clock.
     #[inline]
     pub fn get_timer_clock(&self) -> u32 {
         T::get_time_pclk()
     }
 
-    /// 获取当前计数频率
+    /// Get the current counting frequency.
     #[inline]
     pub fn get_freq(&self) -> u32 {
         T::counter_frequency()
     }
 
-    /// 读取当前计数值
+    /// Read the current counter value.
     #[inline]
     pub fn now(&self) -> u16 {
         T::get_cnt()
     }
 
-    /// 停止计数
+    /// Stop counting.
     #[inline]
     pub fn stop(&self) {
         T::stop();
     }
 
-    /// 由微秒换算 (PSC, ARR)。不依赖重复计数器，因此所有定时器通用。
+    /// Convert microseconds into (PSC, ARR). Independent of the repetition counter,
+    /// so it is common to all timers.
     fn us_to_psc_arr(us: u64) -> (u16, u16) {
         let ticks = us * T::get_time_pclk() as u64 / 1_000_000;
         let psc = (ticks / 0x1_0000).min(0xFFFF) as u16;
@@ -73,7 +75,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         (psc, arr)
     }
 
-    /// 以给定时长启动一次计数（不阻塞）
+    /// Start a single count for the given duration (non-blocking).
     fn start_us(&mut self, us: u64) {
         let (psc, arr) = Self::us_to_psc_arr(us);
         T::stop();
@@ -83,7 +85,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::start();
     }
 
-    /// 以纳秒启动一次计数（不阻塞）
+    /// Start a single count for the given nanoseconds (non-blocking).
     pub fn start_ns(&mut self, nano: u64) {
         let (psc, arr) = Self::ns_to_psc_arr(nano);
         T::stop();
@@ -93,7 +95,7 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
         T::start();
     }
 
-    /// 阻塞等待更新事件
+    /// Block until the update event.
     #[inline]
     pub fn wait(&self) {
         while !T::event_flag(Event::UIF) {}
@@ -101,26 +103,24 @@ impl<'d, T: Instance, M: Mode> Counter<'d, T, M> {
     }
 }
 
-//////////////// 仅具备重复计数器的定时器（TIM1 / TIM16） ////////////////
 
 impl<'d, T: Instance + WithRepetition, M: Mode> Counter<'d, T, M> {
-    /// 设置重复计数值（更新事件在重复 N+1 次后产生）
+    /// Set the repetition counter (the update event is generated after N+1 repetitions).
     #[inline]
     pub fn set_repetition(&self, rep: u8) {
         T::set_repetition(rep);
     }
 }
 
-//////////////// 仅具备中心对齐/向下计数的定时器（TIM1 / TIM3） ////////////////
 
 impl<'d, T: Instance + WithCenterAlign, M: Mode> Counter<'d, T, M> {
-    /// 设置中心对齐模式
+    /// Set the center-aligned mode.
     #[inline]
     pub fn set_center_aligned(&self, mode: super::CenterAlignedMode) {
         T::set_cms(mode);
     }
 
-    /// 设置计数方向
+    /// Set the count direction.
     #[inline]
     pub fn set_direction(&self, dir: super::CountDirection) {
         T::set_dir(dir);
@@ -136,7 +136,7 @@ impl<'d, T: Instance, M: Mode> Drop for Counter<'d, T, M> {
 }
 
 impl<'d, T: Instance> Counter<'d, T, Blocking> {
-    /// 阻塞延时（微秒）
+    /// Blocking delay (microseconds).
     #[inline]
     pub fn delay_us_blocking(&mut self, us: u32) {
         self.start_us(us as u64);
@@ -145,14 +145,13 @@ impl<'d, T: Instance> Counter<'d, T, Blocking> {
         T::stop();
     }
 
-    /// 阻塞延时（毫秒）
+    /// Blocking delay (milliseconds).
     #[inline]
     pub fn delay_ms_blocking(&mut self, ms: u32) {
         self.delay_us_blocking(ms.saturating_mul(1000));
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::blocking::delay::DelayUs<u32>
     for Counter<'d, T, Blocking>

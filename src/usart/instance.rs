@@ -6,7 +6,7 @@ pub mod sealed {
     pub trait Instance {
         fn id() -> Id;
 
-        /// USART1 / USART2 共用 `usart1` 寄存器块布局，仅基址不同
+        /// USART1 / USART2 share the `usart1` register-block layout; only the base address differs.
         #[inline]
         fn block() -> &'static pac::usart1::RegisterBlock {
             match Self::id() {
@@ -15,7 +15,6 @@ pub mod sealed {
             }
         }
 
-        ////////////////// 时钟 / 使能与停止 //////////////////
 
         #[inline]
         fn enable() {
@@ -42,14 +41,13 @@ pub mod sealed {
             Self::block().cr1.modify(|_, w| w.ue().bit(false))
         }
 
-        ////////////////// 基本收发 //////////////////
 
         #[inline]
         fn read() -> u8 {
             Self::block().dr.read().dr().bits() as u8
         }
 
-        /// 读取 9 位数据（DR 为 9 位宽，用于 9 位数据位模式）
+        /// Read 9-bit data (DR is 9 bits wide, used in 9-bit data mode).
         #[inline]
         fn read_u16() -> u16 {
             Self::block().dr.read().dr().bits()
@@ -62,7 +60,7 @@ pub mod sealed {
                 .write(|w| unsafe { w.dr().bits(data as u16) });
         }
 
-        /// 写入 9 位数据（低 9 位有效）
+        /// Write 9-bit data (low 9 bits valid).
         #[inline]
         fn write_u16(data: u16) {
             Self::block()
@@ -102,9 +100,9 @@ pub mod sealed {
                     if Self::event_flag(Event::RXNE) {
                         break;
                     }
-                    // 线路空闲：本次传输结束
+                    // Line idle: this transfer has ended.
                     if Self::event_flag(Event::IDLE) {
-                        // 读 SR 再读 DR 以清除 IDLE，读到的字节无效
+                        // Read SR then DR to clear IDLE; the byte read is invalid.
                         Self::event_clear(Event::IDLE);
                         return cnt;
                     }
@@ -135,19 +133,18 @@ pub mod sealed {
             while !Self::event_flag(Event::TC) {}
         }
 
-        /// 发送断开符（置位 CR1.SBK）
+        /// Send a break character (set CR1.SBK).
         #[inline]
         fn send_break() {
             Self::block().cr1.modify(|_, w| w.sbk().set_bit());
         }
 
-        /// 停止发送断开符
+        /// Stop sending the break character.
         #[inline]
         fn clear_break() {
             Self::block().cr1.modify(|_, w| w.sbk().clear_bit());
         }
 
-        ////////////////// 收发使能 //////////////////
 
         #[inline]
         fn rx_enable(en: bool) {
@@ -169,7 +166,7 @@ pub mod sealed {
             Self::block().cr3.modify(|_, w| w.ctse().bit(en))
         }
 
-        /// 同时设置 RTS / CTS（CR3.RTSE / CR3.CTSE）
+        /// Set RTS / CTS together (CR3.RTSE / CR3.CTSE).
         #[inline]
         fn set_flow_control(rts: bool, cts: bool) {
             Self::block()
@@ -177,7 +174,6 @@ pub mod sealed {
                 .modify(|_, w| w.ctse().bit(cts).rtse().bit(rts))
         }
 
-        ////////////////// DMA //////////////////
 
         #[inline]
         fn rx_dma_enable(en: bool) {
@@ -189,15 +185,14 @@ pub mod sealed {
             Self::block().cr3.modify(|_, w| w.dmat().bit(en));
         }
 
-        ////////////////// 半双工 / IrDA / 同步时钟 / 静默 //////////////////
 
-        /// 半双工（单线）模式：CR3.HDSEL
+        /// Half-duplex (single-wire) mode: CR3.HDSEL.
         #[inline]
         fn set_half_duplex(en: bool) {
             Self::block().cr3.modify(|_, w| w.hdsel().bit(en));
         }
 
-        /// IrDA 模式：`Some(mode)` 使能 CR3.IREN 并设置低功耗位 IRLP
+        /// IrDA mode: `Some(mode)` enables CR3.IREN and sets the low-power bit IRLP.
         #[inline]
         fn set_irda(mode: Option<IrdaMode>) {
             let en = mode.is_some();
@@ -207,7 +202,7 @@ pub mod sealed {
                 .modify(|_, w| w.iren().bit(en).irlp().bit(low_power));
         }
 
-        /// 同步模式时钟输出（CR2.CLKEN / CPOL / CPHA / LBCL）
+        /// Synchronous-mode clock output (CR2.CLKEN / CPOL / CPHA / LBCL).
         #[inline]
         fn set_sync_clock(cfg: Option<SyncClockConfig>) {
             Self::block().cr2.modify(|_, w| {
@@ -231,7 +226,7 @@ pub mod sealed {
             });
         }
 
-        /// 静默模式（CR1.RWU）与唤醒方式（CR1.WAKE）
+        /// Mute mode (CR1.RWU) and wake-up method (CR1.WAKE).
         #[inline]
         fn set_mute(mode: Option<WakeMethod>) {
             Self::block().cr1.modify(|_, w| {
@@ -242,7 +237,7 @@ pub mod sealed {
             });
         }
 
-        /// 多处理器通信节点地址（CR2.ADD）
+        /// Multiprocessor communication node address (CR2.ADD).
         #[inline]
         fn set_address(address: u8) {
             Self::block()
@@ -250,9 +245,8 @@ pub mod sealed {
                 .modify(|_, w| unsafe { w.add().bits(address) });
         }
 
-        ////////////////// 自动波特率 //////////////////
 
-        /// 使能自动波特率检测并设置测量模式（CR3.ABREN / ABRMOD）
+        /// Enable auto-baud-rate detection and set the measurement mode (CR3.ABREN / ABRMOD).
         #[inline]
         fn set_auto_baud(mode: Option<AutoBaudMode>) {
             Self::block().cr3.modify(|_, w| {
@@ -261,24 +255,23 @@ pub mod sealed {
             });
         }
 
-        /// 请求重新进行自动波特率测量（写 1 到 SR.ABRRQ）
+        /// Request a new auto-baud-rate measurement (write 1 to SR.ABRRQ).
         #[inline]
         fn request_auto_baud() {
             Self::block().sr.modify(|_, w| w.abrrq().set_bit());
         }
 
-        /// 读取自动波特率测量结果对应的 BRR 值
+        /// Read the BRR value corresponding to the auto-baud-rate measurement result.
         #[inline]
         fn auto_baud_result() -> u16 {
             Self::block().brr.read().bits() as u16
         }
 
-        ////////////////// 事件 //////////////////
 
-        /// 清除事件标志
+        /// Clear the event flag.
         fn event_clear(event: Event) {
             Self::block().sr.modify(|r, w| match event {
-                // PE / FE / NE / ORE / IDLE：需先读 SR 再读 DR 才能清零
+                // PE / FE / NE / ORE / IDLE: must read SR then DR to clear.
                 Event::PE | Event::FE | Event::NE | Event::ORE | Event::IDLE => {
                     let _ = r.bits();
                     let _ = Self::read();
@@ -286,17 +279,17 @@ pub mod sealed {
                 }
                 Event::RXNE => w.rxne().clear_bit(),
                 Event::TC => w.tc().clear_bit(),
-                // TXE 由写 DR 清零
+                // TXE is cleared by writing DR.
                 Event::TXE => w,
                 Event::CTS => w.cts().clear_bit(),
-                // ABRE：写 1 到 ABRRQ 请求重新测量
+                // ABRE: write 1 to ABRRQ to request a re-measurement.
                 Event::ABRE => w.abrrq().set_bit(),
-                // ABRF 由硬件在下次测量时清零
+                // ABRF is cleared by hardware on the next measurement.
                 Event::ABRF => w,
             });
         }
 
-        /// 返回事件标志
+        /// Return the event flag.
         fn event_flag(event: Event) -> bool {
             let sr = Self::block().sr.read();
             match event {
@@ -315,12 +308,12 @@ pub mod sealed {
             .bit()
         }
 
-        /// 开启或关闭事件中断
+        /// Enable or disable the event interrupt.
         fn event_config(event: Event, en: bool) {
             let block = Self::block();
             match event {
                 Event::PE => block.cr1.modify(|_, w| w.peie().bit(en)),
-                // FE / NE / ORE 共用 CR3.EIE
+                // FE / NE / ORE share CR3.EIE.
                 Event::FE | Event::NE | Event::ORE => {
                     block.cr3.modify(|_, w| w.eie().bit(en));
                 }
@@ -328,20 +321,21 @@ pub mod sealed {
                 Event::RXNE => block.cr1.modify(|_, w| w.rxneie().bit(en)),
                 Event::TC => block.cr1.modify(|_, w| w.tcie().bit(en)),
                 Event::TXE => block.cr1.modify(|_, w| w.txeie().bit(en)),
-                // CTS 中断：CR3.CTSIE
+                // CTS interrupt: CR3.CTSIE.
                 Event::CTS => block.cr3.modify(|_, w| w.ctsie().bit(en)),
-                // ABRE / ABRF 无独立中断使能位，随 ABR 过程由硬件置位
+                // ABRE / ABRF have no dedicated interrupt-enable bit; they are set by
+                // hardware along with the ABR process.
                 Event::ABRE => {}
                 Event::ABRF => {}
             }
         }
 
-        /// 返回事件中断是否已使能
+        /// Return whether the event interrupt is enabled.
         fn is_event_enable(event: Event) -> bool {
             let block = Self::block();
             match event {
                 Event::PE => block.cr1.read().peie().bit(),
-                // 三者共用 CR3.EIE
+                // These three share CR3.EIE.
                 Event::FE | Event::NE | Event::ORE => block.cr3.read().eie().bit(),
                 Event::IDLE => block.cr1.read().idleie().bit(),
                 Event::RXNE => block.cr1.read().rxneie().bit(),
@@ -353,12 +347,12 @@ pub mod sealed {
             }
         }
 
-        ////////////////// 波特率 //////////////////
 
-        /// 整数方式计算 BRR，避免引入浮点运算
+        /// Compute BRR using integer arithmetic to avoid floating-point.
         ///
-        /// 过采样 16 时：`USARTDIV = f_PCLK / (16 * baud)`
-        /// 过采样 8  时：`USARTDIV = f_PCLK / (8 * baud)`（小数位仅 3 位有效，bit3 保持 0）
+        /// With 16x oversampling: `USARTDIV = f_PCLK / (16 * baud)`.
+        /// With 8x oversampling:  `USARTDIV = f_PCLK / (8 * baud)` (only the low 3
+        /// fraction bits are valid, bit3 stays 0).
         fn set_baud_rate(baud_rate: u32, over_sampling: OverSampling) {
             let pclk = clock::sys_pclk() as u64;
             let mul: u64 = if over_sampling == OverSampling::Eight {
@@ -367,7 +361,7 @@ pub mod sealed {
                 1
             };
 
-            // USARTDIV 以 1/16 为单位，并做四舍五入
+            // USARTDIV is measured in 1/16 units, with rounding.
             let div16 = (pclk * mul + baud_rate as u64 / 2) / baud_rate as u64;
             let mantissa = (div16 / 16) as u16;
             let mut fraction = (div16 % 16) as u8;
@@ -383,20 +377,19 @@ pub mod sealed {
             });
         }
 
-        ////////////////// 配置 //////////////////
 
-        /// 配置串口（必须在 UE=0 时写入，故先停止再启动）
+        /// Configure the USART (must be written while UE=0, so stop first then start).
         fn config(config: Config) {
             let block = Self::block();
 
             Self::stop();
 
-            // 停止位
+            // Stop bits.
             block
                 .cr2
                 .modify(|_, w| unsafe { w.stop().bits(config.stop_bit as u8) });
 
-            // 数据位 + 校验使能 + 校验极性（PS：0 偶校验，1 奇校验）
+            // Data bits + parity enable + parity polarity (PS: 0 even, 1 odd).
             block.cr1.modify(|_, w| {
                 w.m()
                     .bit(config.data_bits.into())
@@ -406,31 +399,31 @@ pub mod sealed {
                     .bit(config.parity == Parity::Odd)
             });
 
-            // 过采样
+            // Oversampling.
             block
                 .cr3
                 .modify(|_, w| w.over8().bit(config.over_sampling.into()));
 
-            // 硬件流控
+            // Hardware flow control.
             Self::set_flow_control(config.hw_flow_ctrl.rts(), config.hw_flow_ctrl.cts());
 
-            // 自动波特率
+            // Auto baud rate.
             Self::set_auto_baud(config.auto_baud);
 
-            // 半双工
+            // Half-duplex.
             Self::set_half_duplex(config.half_duplex);
 
-            // IrDA
+            // IrDA.
             Self::set_irda(config.irda);
 
-            // 同步时钟输出
+            // Synchronous clock output.
             Self::set_sync_clock(config.sync_clock);
 
-            // 静默模式与唤醒方式 + 节点地址
+            // Mute mode & wake-up method + node address.
             Self::set_mute(config.mute);
             Self::set_address(config.address);
 
-            // 波特率
+            // Baud rate.
             Self::set_baud_rate(config.baud_rate.0, config.over_sampling);
 
             Self::start();

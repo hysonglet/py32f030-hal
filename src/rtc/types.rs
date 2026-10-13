@@ -8,11 +8,11 @@ pub enum Error {
 
 /// Alarm or second output selection
 // pub enum PinSignal {
-//     /// Pin 上输出的是 alarm 信号
+//     /// Alarm signal output on the pin
 //     AlarmPulse,
-//     /// Pin 上输出的是秒信号
+//     /// Second signal output on the pin
 //     SecondPulse,
-//     /// Pin 上输出的是RTC clock 信号
+//     /// RTC clock signal output on the pin
 //     Clock,
 // }
 

@@ -1,64 +1,65 @@
-/// 比较器迟滞（CSR.HYST）
+/// Comparator hysteresis (CSR.HYST)
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Hysteresis {
-    /// 无迟滞
+    /// No hysteresis
     #[default]
     None = 0,
-    /// 低迟滞
+    /// Low hysteresis
     Low = 1,
-    /// 中迟滞
+    /// Medium hysteresis
     Medium = 2,
-    /// 高迟滞
+    /// High hysteresis
     High = 3,
 }
 
-/// 比较器功耗/速度模式（CSR.PWRMODE）
+/// Comparator power/speed mode (CSR.PWRMODE)
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PowerMode {
-    /// 高速（功耗最高）
+    /// High speed (highest power)
     #[default]
     HighSpeed = 0,
-    /// 中速
+    /// Medium speed
     MediumSpeed = 1,
-    /// 低速（低功耗）
+    /// Low speed (low power)
     LowSpeed = 2,
-    /// 极低速（最低功耗）
+    /// Ultra-low speed (lowest power)
     UltraLowSpeed = 3,
 }
 
-/// 输出极性（CSR.POLARITY）
+/// Output polarity (CSR.POLARITY)
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Polarity {
-    /// 同相输出
+    /// Non-inverted output
     #[default]
     NonInverted = 0,
-    /// 反相输出
+    /// Inverted output
     Inverted = 1,
 }
 
-/// 比较器配置
+/// Comparator configuration
 ///
-/// `inpsel` / `inmsel` 分别为同相/反相输入源选择，取值请参考数据手册的
-/// COMP 输入映射表（不同封装可选的输入引脚不同），此处保留原始寄存器值。
+/// `inpsel` / `inmsel` select the non-inverting / inverting input source
+/// respectively. See the reference manual COMP input mapping table (available
+/// pins differ by package); the raw register value is kept here.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Config {
-    /// 迟滞
+    /// Hysteresis
     pub hysteresis: Hysteresis,
-    /// 功耗/速度模式
+    /// Power/speed mode
     pub power_mode: PowerMode,
-    /// 输出极性
+    /// Output polarity
     pub polarity: Polarity,
-    /// 同相输入选择（CSR.INPSEL）
+    /// Non-inverting input select (CSR.INPSEL)
     pub inpsel: u8,
-    /// 反相输入选择（CSR.INMSEL）
+    /// Inverting input select (CSR.INMSEL)
     pub inmsel: u8,
-    /// 使能缩放器（CSR.SCALER_EN）
+    /// Enable the scaler (CSR.SCALER_EN)
     pub scaler_en: bool,
-    /// 窗口模式（CSR.WINMODE，仅部分输入组合有效）
+    /// Window mode (CSR.WINMODE; only valid for some input combinations)
     pub window_mode: bool,
-    /// 滤波使能（FR.FLTEN）
+    /// Filter enable (FR.FLTEN)
     pub filter_enable: bool,
-    /// 滤波计数（FR.FLTCNT）
+    /// Filter count (FR.FLTCNT)
     pub filter_count: u8,
 }
 
@@ -114,9 +115,9 @@ impl Config {
     }
 }
 
-/// COMP 错误
+/// COMP error
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Error {
-    /// 该实例不支持窗口模式
+    /// This instance does not support window mode
     WindowModeUnsupported,
 }

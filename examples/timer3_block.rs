@@ -19,7 +19,7 @@ fn main() -> ! {
 
     let mut cnt = 0;
     loop {
-        // 延时 5s
+        // Delay 5 s.
         defmt::info!("repeat...{} ", cnt);
         counter.start(60 * 5u32.secs());
         let _ = counter.wait();

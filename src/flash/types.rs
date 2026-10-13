@@ -1,13 +1,13 @@
 #[derive(Debug)]
 pub enum Error {
-    /// 忙
+    /// Busy
     Busy,
-    /// flash解锁
+    /// Flash unlock
     Unlock,
-    /// flash锁定
+    /// Flash lock
     Lock,
-    /// 地址未对齐
+    /// Address not aligned
     Addr,
-    /// 超时
+    /// Timeout
     Timeout,
 }

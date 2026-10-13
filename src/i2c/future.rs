@@ -20,16 +20,12 @@ impl<T: Instance> EventFuture<T> {
         }
     }
 
-    /// 中断函数调用
+    /// Called from the interrupt handler.
     #[inline]
     unsafe fn on_interrupt() {
-        // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
-            /* 匹配到中断了 */
             if T::is_event_match(event) {
-                // 清除标志
                 T::event_clear(event);
-                // 关闭该中断
                 T::event_config(event, false);
             }
         });

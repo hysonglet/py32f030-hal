@@ -4,16 +4,16 @@ use super::{
 };
 use core::marker::PhantomData;
 
-/// 输入捕获通道配置
+/// Input-capture channel configuration.
 #[derive(Clone, Copy)]
 pub struct InputCaptureConfig {
-    /// 输入映射（CCxS）
+    /// Input mapping (CCxS).
     pub selection: InputCaptureSelection,
-    /// 捕获边沿
+    /// Capture edge.
     pub polarity: InputCapturePolarity,
-    /// 输入预分频（每 N 个事件捕获一次）
+    /// Input prescaler (capture once every N events).
     pub prescaler: InputCapturePrescaler,
-    /// 数字滤波器
+    /// Digital filter.
     pub filter: InputCaptureFilter,
 }
 
@@ -28,7 +28,7 @@ impl Default for InputCaptureConfig {
     }
 }
 
-/// 通道过捕获事件
+/// Channel over-capture event.
 #[inline]
 fn overcapture_event(channel: Channel) -> Event {
     match channel {
@@ -39,7 +39,7 @@ fn overcapture_event(channel: Channel) -> Event {
     }
 }
 
-/// 统一输入捕获
+/// Unified input capture.
 pub struct InputCapture<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 }
@@ -53,12 +53,12 @@ impl<'d, T: Instance> InputCapture<'d, T> {
     fn check_channel(channel: Channel) {
         assert!(
             channel.index() < T::CHANNELS,
-            "该定时器不支持此通道（可用通道数 = {}）",
+            "this timer does not support this channel (available channels = {})",
             T::CHANNELS
         );
     }
 
-    /// 配置输入捕获通道
+    /// Configure an input-capture channel.
     pub fn channel_config(&self, channel: Channel, config: InputCaptureConfig) {
         Self::check_channel(channel);
         T::set_channel_type(channel, ChannelType::Capture1);
@@ -69,52 +69,52 @@ impl<'d, T: Instance> InputCapture<'d, T> {
             config.prescaler,
             config.filter,
         );
-        // 使能捕获
+        // Enable capture.
         T::set_enable_channel(channel, super::ChannelOutput::P, true);
     }
 
-    /// 读取捕获值（CCR）
+    /// Read the captured value (CCR).
     #[inline]
     pub fn capture(&self, channel: Channel) -> u16 {
         Self::check_channel(channel);
         T::get_channel_capture(channel)
     }
 
-    /// 是否已捕获
+    /// Whether a capture has occurred.
     #[inline]
     pub fn is_captured(&self, channel: Channel) -> bool {
         Self::check_channel(channel);
         T::event_flag(channel_event(channel))
     }
 
-    /// 清除捕获标志
+    /// Clear the capture flag.
     #[inline]
     pub fn clear_capture(&self, channel: Channel) {
         Self::check_channel(channel);
         T::event_clear(channel_event(channel));
     }
 
-    /// 是否发生过捕获
+    /// Whether an over-capture has occurred.
     #[inline]
     pub fn is_overcaptured(&self, channel: Channel) -> bool {
         Self::check_channel(channel);
         T::event_flag(overcapture_event(channel))
     }
 
-    /// 清除过捕获标志
+    /// Clear the over-capture flag.
     #[inline]
     pub fn clear_overcapture(&self, channel: Channel) {
         Self::check_channel(channel);
         T::event_clear(overcapture_event(channel));
     }
 
-    /// 设置周期（ARR），用于限制计数上限
+    /// Set the period (ARR), used to limit the counter ceiling.
     #[inline]
     pub fn set_period(&self, arr: u16) {
         T::set_auto_reload(arr);
     }
 
-    /// 读取当前计数值
+    /// Read the current counter value.
     #[inline]
     pub fn now(&self) -> u16 {
         T::get_cnt()

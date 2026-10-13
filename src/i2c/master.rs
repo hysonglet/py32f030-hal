@@ -3,7 +3,7 @@ use enumset::EnumSet;
 
 #[cfg(feature = "embassy")]
 use super::future::EventFuture;
-use super::hal::sealed::WAIT_FLAG_TIMEOUT;
+use super::instance::sealed::WAIT_FLAG_TIMEOUT;
 use super::{Error, Event, Instance};
 use crate::delay::wait_for_true_timeout_block;
 #[cfg(feature = "embassy")]
@@ -15,7 +15,7 @@ use crate::{
 use core::marker::PhantomData;
 use embedded_hal::i2c::Operation;
 
-/// Master 角色
+/// Master role.
 pub struct Master<'d, T: Instance, M: Mode> {
     _t: PhantomData<(&'d T, M)>,
 }
@@ -42,7 +42,7 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
         T::clear_pos();
 
         T::start();
-        // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
+        // SB=1: cleared by reading SR1 then writing the data register.
         wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::SB)).map_err(
             |_| {
                 T::event_clear(Event::ARLO);
@@ -52,11 +52,11 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
 
         T::transmit(address << 1);
 
-        // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
+        // ADDR=1: cleared by reading SR1 then SR2.
         wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::ADD)).map_err(
             |_| {
                 // Self::debug();
-                // 清除 af 置位
+                // Clear the AF flag.
                 T::event_clear(Event::AF);
                 T::stop();
                 Error::Address
@@ -64,19 +64,20 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
         )?;
         T::event_clear(Event::ADD);
 
-        // TRA 位指示主设备是在接收器模式还是发送器模式。
+        // The TRA bit indicates whether the master is in receiver or transmitter mode.
 
         let mut iter = buf.iter();
         if let Some(d) = iter.next() {
-            // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
+            // EV8_1: TxE=1, shift register empty, data register empty, write Data1 to DR.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE))
                 .map_err(|_| Error::Tx)?;
             T::transmit(*d);
         }
 
-        // 接着将后面的数据发送出去
+        // Then send the remaining data.
         for t in iter {
-            // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
+            // EV8: TxE=1, shift register not empty, data register empty, write Data2 to DR,
+            // this bit is cleared.
             wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE)).map_err(
                 |_| {
                     T::stop();
@@ -86,7 +87,8 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
             T::transmit(*t);
         }
 
-        // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
+        // EV8_2: TxE=1, BTF=1, write the Stop bit; when hardware sends the Stop bit,
+        // TxE and BTF are cleared.
         wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::TXE)).map_err(
             |_| {
                 T::stop();
@@ -118,7 +120,6 @@ impl<'d, T: Instance> Master<'d, T, Blocking> {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
 impl<'d, T: Instance> embedded_hal::i2c::ErrorType for Master<'d, T, Blocking> {
     type Error = Error;
@@ -176,7 +177,7 @@ impl<'d, T: Instance> embedded_hal_027::blocking::i2c::WriteRead for Master<'d, 
     }
 }
 
-////////
+///////
 
 #[cfg(feature = "embassy")]
 impl<'d, T: Instance> Master<'d, T, Async> {
@@ -185,12 +186,12 @@ impl<'d, T: Instance> Master<'d, T, Async> {
 
         T::start();
 
-        // EV5：SB=1, 先读 SR1 寄存器，再写 DR 寄存器，清零该位
+        // EV5: SB=1, read SR1 then write DR to clear this bit.
         EventFuture::<T>::new(EnumSet::empty() | Event::SB).await?;
 
         T::transmit((address << 1) | 1);
 
-        // EV6：ADDR，先读 SR1，再读 SR2，清零该位
+        // EV6: ADDR, read SR1 then SR2 to clear this bit.
         EventFuture::<T>::new(EnumSet::empty() | Event::ADD).await?;
 
         let len = buf.len();
@@ -200,10 +201,10 @@ impl<'d, T: Instance> Master<'d, T, Async> {
             let remain = len - idx;
             if remain > 2 {
                 T::ack(true);
-                // EV7：RxNE=1, 读 DR 寄存器清零该位
+                // EV7: RxNE=1, read DR to clear this bit.
                 EventFuture::<T>::new(EnumSet::empty() | Event::RXNE).await?;
 
-                // 读取数据
+                // Read the data.
                 *p = block.dr.read().dr().bits();
 
                 if T::event_flag(Event::BTF) {
@@ -213,9 +214,9 @@ impl<'d, T: Instance> Master<'d, T, Async> {
                 }
             } else if remain == 2 {
                 T::ack(false);
-                // EV7：RxNE=1, 读 DR 寄存器清零该位
+                // EV7: RxNE=1, read DR to clear this bit.
                 EventFuture::<T>::new(EnumSet::empty() | Event::RXNE).await?;
-                // 读取数据
+                // Read the data.
                 *p = block.dr.read().dr().bits();
                 if T::event_flag(Event::BTF) {
                     T::ack(false);
@@ -224,10 +225,9 @@ impl<'d, T: Instance> Master<'d, T, Async> {
                 }
             } else if remain == 1 {
                 T::ack(false);
-                // EV7：RxNE=1, 读 DR 寄存器清零该位
-                // EV7：RxNE=1, 读 DR 寄存器清零该位
+                // EV7: RxNE=1, read DR to clear this bit.
                 EventFuture::<T>::new(EnumSet::empty() | Event::RXNE).await?;
-                // 读取数据
+                // Read the data.
                 *p = block.dr.read().dr().bits();
             }
         }
@@ -238,15 +238,15 @@ impl<'d, T: Instance> Master<'d, T, Async> {
     }
 
     pub async fn write(&mut self, address: u8, buf: &[u8]) -> Result<usize, Error> {
-        // 如果总线处于busy状态，则退出
+        // If the bus is busy, exit.
         T::clear_pos();
         T::start();
-        // SB=1，通过读 SR1，再向 DR 寄存器写数据，实现对该位的清零
+        // SB=1: cleared by reading SR1 then writing the data register.
         EventFuture::<T>::new(EnumSet::empty() | Event::SB).await?;
 
         T::transmit(address << 1);
 
-        // ADDR=1，通过读 SR1，再读 SR2，实现对该位的清零
+        // ADDR=1: cleared by reading SR1 then SR2.
         EventFuture::<T>::new(EnumSet::empty() | Event::ADD)
             .await
             .inspect_err(|_| {
@@ -255,17 +255,18 @@ impl<'d, T: Instance> Master<'d, T, Async> {
             })?;
         T::event_clear(Event::ADD);
 
-        // TRA 位指示主设备是在接收器模式还是发送器模式。
+        // The TRA bit indicates whether the master is in receiver or transmitter mode.
         let mut iter = buf.iter();
         if let Some(d) = iter.next() {
-            // EV8_1：TxE=1, shift 寄存器 empty，数据寄存器 empty，向 DR 寄存器写 Data1
+            // EV8_1: TxE=1, shift register empty, data register empty, write Data1 to DR.
             EventFuture::<T>::new(EnumSet::empty() | Event::TXE).await?;
             T::transmit(*d);
         }
 
-        // 接着将后面的数据发送出去
+        // Then send the remaining data.
         for t in iter {
-            // EV8：TxE=1, shift 寄存器不 empty，数据寄存器 empty，向 DR 寄存器写 Data2，该位被清零
+            // EV8: TxE=1, shift register not empty, data register empty, write Data2 to DR,
+            // this bit is cleared.
             EventFuture::<T>::new(EnumSet::empty() | Event::TXE | Event::BTF)
                 .await
                 .inspect_err(|_| {
@@ -275,7 +276,8 @@ impl<'d, T: Instance> Master<'d, T, Async> {
             T::transmit(*t);
         }
 
-        // EV8_2：TxE=1, BTF=1, 写 Stop 位寄存器，当硬件发出 Stop 位时，TxE 和 BTF 被清零
+        // EV8_2: TxE=1, BTF=1, write the Stop bit; when hardware sends the Stop bit,
+        // TxE and BTF are cleared.
         EventFuture::<T>::new(EnumSet::empty() | Event::TXE)
             .await
             .inspect_err(|_| {
@@ -329,6 +331,8 @@ impl<'d, T: Instance> embedded_hal_async::i2c::ErrorType for Master<'d, T, Async
     type Error = Error;
 }
 
-// 注：当前 Master 的异步 I2C 传输尚未实现（原 `embedded_hal_async::i2c::I2c`
-// 实现充斥 `todo!()`，调用即 panic）。出于安全起见暂不实现该 trait，使不支持
-// 的能力在编译期即可被发现，而非运行时崩溃。如需异步 I2C，请实现下方逻辑。
+// Note: the async I2C transfer for Master is not yet implemented (the original
+// `embedded_hal_async::i2c::I2c` impl was full of `todo!()` and would panic on
+// call). For safety this trait is intentionally not implemented, so the
+// unsupported capability is caught at compile time rather than panicking at
+// runtime. To support async I2C, implement the logic below.

@@ -1,10 +1,10 @@
 use enumset::EnumSetType;
 
-/// 定时器错误（当前操作无失败分支）
+/// Timer error (current operations have no failure branch).
 #[derive(Debug)]
 pub enum Error {}
 
-/// 统一的 APB 定时器标识（用于时钟索引、中断向量、异步 Waker 数组索引）
+/// Unified APB timer identifier (used for clock index, interrupt vector, and async Waker array index).
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TimerId {
@@ -12,11 +12,11 @@ pub enum TimerId {
     TIM3 = 1,
     TIM14 = 2,
     TIM16 = 3,
-    /// TIM17 与 TIM16 功能完全一致，共用同一套寄存器布局
+    /// TIM17 is functionally identical to TIM16 and shares the same register layout.
     TIM17 = 4,
 }
 
-/// 输入捕获和输出 pwm 通道（统一枚举；单通道定时器仅 CH1 有效）
+/// Input-capture and PWM output channels (unified enum; single-channel timers only have CH1).
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Channel {
     CH1,
@@ -26,7 +26,7 @@ pub enum Channel {
 }
 
 impl Channel {
-    /// 通道序号（0 起）
+    /// Channel index (0-based).
     #[inline]
     pub fn index(self) -> usize {
         match self {
@@ -37,7 +37,7 @@ impl Channel {
         }
     }
 
-    /// 由序号构造通道，越界返回 None
+    /// Construct a channel from an index; returns None if out of range.
     #[inline]
     pub fn from_index(index: usize) -> Option<Self> {
         match index {
@@ -52,69 +52,69 @@ impl Channel {
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ChannelOutput {
-    /// 主输出
+    /// Main output
     P,
-    /// 互补输出（仅 TIM1 / TIM16 支持）
+    /// Complementary output (only TIM1 / TIM16 support it)
     N,
 }
 
-/// 通道类型
+/// Channel type
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ChannelType {
-    /// 通道被配置为输出
+    /// Channel configured as output
     Pwm = 0,
-    /// 通道被配置为输入，ICx 映射在 TIx 上
+    /// Channel configured as input, ICx mapped to TIx
     Capture1 = 1,
-    /// 通道被配置为输入，ICx 映射在 TIy 上
+    /// Channel configured as input, ICx mapped to TIy
     Capture2 = 2,
-    /// 通道被配置为输入，ICx 映射在 TRC 上
+    /// Channel configured as input, ICx mapped to TRC
     Capture3 = 3,
 }
 
 #[derive(Default, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum ChannelMode {
-    /// 冻结：CCRx 与 CNT 的比较对 OCxREF 不起作用
+    /// Frozen: the CCRx vs CNT comparison has no effect on OCxREF
     #[default]
     Mode0 = 0,
-    /// 匹配时强制 OCxREF 为高
+    /// Force OCxREF high on match
     Mode1 = 1,
-    /// 匹配时强制 OCxREF 为低
+    /// Force OCxREF low on match
     Mode2 = 2,
-    /// 匹配时翻转 OCxREF
+    /// Toggle OCxREF on match
     Mode3 = 3,
-    /// 强制为无效电平
+    /// Force to inactive level
     Mode4 = 4,
-    /// 强制为有效电平
+    /// Force to active level
     Mode5 = 5,
-    /// PWM 模式 1
+    /// PWM mode 1
     PWM1 = 6,
-    /// PWM 模式 2
+    /// PWM mode 2
     PWM2 = 7,
 }
 
-/// 记数方向
+/// Counting direction
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum CountDirection {
-    /// 向上计数
+    /// Count up
     Up = 0,
-    /// 向下计数
+    /// Count down
     Down = 1,
 }
 
-/// 中央对齐模式
+/// Center-aligned mode
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CenterAlignedMode {
-    /// 边沿对齐
+    /// Edge-aligned
     EdgeAligned = 0,
-    /// 中央对齐模式 1
+    /// Center-aligned mode 1
     CenterAligned1 = 1,
-    /// 中央对齐模式 2
+    /// Center-aligned mode 2
     CenterAligned2 = 2,
-    /// 中央对齐模式 3
+    /// Center-aligned mode 3
     CenterAligned3 = 3,
 }
 
-/// 软件触发事件（EGR）
+/// Software trigger events (EGR)
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Triggle {
     UG = 0,
@@ -127,36 +127,36 @@ pub enum Triggle {
     BG = 7,
 }
 
-/// 定时器事件（统一枚举；不支持的事件在对应定时器上恒为 false / 配置无效）
+/// Timer events (unified enum; unsupported events are always false / ignored on a given timer).
 #[derive(EnumSetType, Debug)]
 pub enum Event {
-    /// 更新中断标记
+    /// Update interrupt flag
     UIF,
-    /// 捕获/比较 1 中断标记
+    /// Capture/compare 1 interrupt flag
     CC1IF,
-    /// 捕获/比较 2 中断标记
+    /// Capture/compare 2 interrupt flag
     CC2IF,
-    /// 捕获/比较 3 中断标记
+    /// Capture/compare 3 interrupt flag
     CC3IF,
-    /// 捕获/比较 4 中断标记
+    /// Capture/compare 4 interrupt flag
     CC4IF,
-    /// COM 中断标记
+    /// COM interrupt flag
     COMIF,
-    /// 触发中断标记
+    /// Trigger interrupt flag
     TIF,
-    /// 刹车中断标记
+    /// Break interrupt flag
     BIF,
-    /// 捕获/比较 1 过捕获标记
+    /// Capture/compare 1 over-capture flag
     CC1OF,
-    /// 捕获/比较 2 过捕获标记
+    /// Capture/compare 2 over-capture flag
     CC2OF,
-    /// 捕获/比较 3 过捕获标记
+    /// Capture/compare 3 over-capture flag
     CC3OF,
-    /// 捕获/比较 4 过捕获标记
+    /// Capture/compare 4 over-capture flag
     CC4OF,
 }
 
-/// 时钟分频因子（tDTS）
+/// Clock prescaler factor (tDTS)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ClockDiv {
     /// tDTS = tCK_INT
@@ -167,29 +167,29 @@ pub enum ClockDiv {
     Div4 = 2,
 }
 
-/// 输入捕获极性
+/// Input capture polarity
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InputCapturePolarity {
-    /// 上升沿捕获
+    /// Capture on rising edge
     Rising = 0,
-    /// 下降沿捕获
+    /// Capture on falling edge
     Falling = 1,
-    /// 双沿捕获
+    /// Capture on both edges
     BothEdge = 2,
 }
 
-/// 输入捕获选择（CCxS）
+/// Input capture selection (CCxS)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InputCaptureSelection {
-    /// 直连：ICx 映射到 TIx
+    /// Direct: ICx mapped to TIx
     DirectTI = 1,
-    /// 非直连：ICx 映射到 TIy
+    /// Indirect: ICx mapped to TIy
     IndirectTI = 2,
-    /// ICx 映射到 TRC
+    /// ICx mapped to TRC
     TRC = 3,
 }
 
-/// 输入捕获预分频
+/// Input capture prescaler
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InputCapturePrescaler {
     Div1 = 0,
@@ -198,7 +198,7 @@ pub enum InputCapturePrescaler {
     Div8 = 3,
 }
 
-/// 输入捕获数字滤波器
+/// Input capture digital filter
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct InputCaptureFilter(pub u8);
 
@@ -211,56 +211,56 @@ impl InputCaptureFilter {
     }
 }
 
-/// 编码器模式
+/// Encoder mode
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EncoderMode {
-    /// 仅在 TI1 边沿计数（x2）
+    /// Count on TI1 edges only (x2)
     Ti1 = 1,
-    /// 仅在 TI2 边沿计数（x2）
+    /// Count on TI2 edges only (x2)
     Ti2 = 2,
-    /// TI1 与 TI2 边沿都计数（x4）
+    /// Count on both TI1 and TI2 edges (x4)
     Ti12 = 3,
 }
 
-/// 从模式选择（SMS）
+/// Slave mode selection (SMS)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SlaveMode {
-    /// 禁止从模式
+    /// Slave mode disabled
     Disable = 0,
-    /// 编码器模式 1
+    /// Encoder mode 1
     EncoderTi1 = 1,
-    /// 编码器模式 2
+    /// Encoder mode 2
     EncoderTi2 = 2,
-    /// 编码器模式 3
+    /// Encoder mode 3
     EncoderTi12 = 3,
-    /// 复位模式
+    /// Reset mode
     Reset = 4,
-    /// 门控模式
+    /// Gated mode
     Gated = 5,
-    /// 触发模式
+    /// Trigger mode
     Trigger = 6,
-    /// 外部时钟模式 1（仅 TIM1 有 ETR）
+    /// External clock mode 1 (only TIM1 has ETR)
     ExternalClock1 = 7,
 }
 
-/// 触发输入选择（TS）
+/// Trigger input selection (TS)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TriggerSelection {
     ITR0 = 0,
     ITR1 = 1,
     ITR2 = 2,
     ITR3 = 3,
-    /// TI1 边沿检测器
+    /// TI1 edge detector
     TI1F_ED = 4,
-    /// 滤波后的 TI1FP1
+    /// Filtered TI1FP1
     TI1FP1 = 5,
-    /// 滤波后的 TI2FP2
+    /// Filtered TI2FP2
     TI2FP2 = 6,
-    /// 外部触发（仅 TIM1 支持）
+    /// External trigger (only TIM1 supports it)
     ETRF = 7,
 }
 
-/// 主模式触发输出（TRGO，MMS）
+/// Master mode trigger output (TRGO, MMS)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MasterOutputTrigger {
     Reset = 0,
@@ -273,16 +273,16 @@ pub enum MasterOutputTrigger {
     Oc4Ref = 7,
 }
 
-/// OCREF 清除源
+/// OCREF clear source
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum OcRefClearSource {
-    /// 使用 ETR 作为 OCREF_CLR 输入
+    /// Use ETR as the OCREF_CLR input
     Etc = 1,
-    /// 不使用
+    /// Not used
     None = 0,
 }
 
-/// 死区时间（DTG）
+/// Dead time (DTG)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct DeadTime(pub u8);
 
@@ -292,7 +292,7 @@ impl DeadTime {
     }
 }
 
-/// 锁定级别
+/// Lock level
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LockLevel {
     Off = 0,
@@ -301,71 +301,70 @@ pub enum LockLevel {
     Level3 = 3,
 }
 
-/// 刹车/空闲时输出关闭行为
+/// Output idle/break behavior
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum OffState {
-    /// 输出禁止
+    /// Output disabled
     Disable = 0,
-    /// 输出使能，由空闲态决定
+    /// Output enabled, determined by idle state
     Idle = 1,
 }
 
-/// 刹车极性
+/// Break polarity
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BreakPolarity {
-    /// 低电平有效
+    /// Active low
     Low = 0,
-    /// 高电平有效
+    /// Active high
     High = 1,
 }
 
-/// TIM14 TI1 输入重映射（TIM14_OR）
+/// TIM14 TI1 input remap (TIM14_OR)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Ti1Remap {
-    /// TI1 来自 TIM14_CH1 引脚
+    /// TI1 comes from the TIM14_CH1 pin
     Channel1 = 0,
-    /// TI1 来自备选输入
+    /// TI1 comes from the alternate input
     Alternative = 1,
 }
 
-/// 单脉冲模式
+/// One-pulse mode
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum OnePulseMode {
-    /// 单次：发生更新事件后计数器停止（OPM=1）
+    /// Single: the counter stops after an update event (OPM=1)
     Single = 1,
-    /// 重复：计数器持续运行（OPM=0）
+    /// Repetitive: the counter keeps running (OPM=0)
     Repetitive = 0,
 }
 
-////////////////////// 配置结构 //////////////////////
 
-/// 通道输出配置（极性 / 使能 / 空闲态）
+/// Channel output configuration (polarity / enable / idle state)
 #[derive(Default, Clone, Copy)]
 pub struct ChannelOutputConfig {
-    /// 输出使能
+    /// Output enable
     pub state: bool,
-    /// 有效极性：true 为高电平有效
+    /// Active polarity: true means active-high
     pub polarity: bool,
-    /// 空闲态（OIS，仅 TIM1 / TIM16 有效）
+    /// Idle state (OIS, only valid for TIM1 / TIM16)
     pub idle_state: bool,
 }
 
-/// 通道配置（输出比较 / PWM）
+/// Channel configuration (output compare / PWM)
 #[derive(Default, Clone, Copy)]
 pub struct ChannelConfig {
-    /// 通道模式
+    /// Channel mode
     pub mode: ChannelMode,
-    /// 是否允许外部事件清除 OCREF
+    /// Whether external events may clear OCREF
     pub clear: bool,
-    /// 输出比较快速使能
+    /// Output compare fast enable
     pub fast: bool,
-    /// 输出比较预装载使能
+    /// Output compare preload enable
     pub preload: bool,
-    /// 捕获/比较值（占空比）
+    /// Capture/compare value (duty cycle)
     pub compare: u16,
-    /// 主输出（CHx）配置
+    /// Main output (CHx) configuration
     pub ch: Option<ChannelOutputConfig>,
-    /// 互补输出（CHxN）配置，仅 TIM1 / TIM16 有效
+    /// Complementary output (CHxN) configuration, only valid for TIM1 / TIM16
     pub n_ch: Option<ChannelOutputConfig>,
 }
 
@@ -390,19 +389,19 @@ impl ChannelConfig {
         self.preload = preload;
         self
     }
-    /// 设置主输出配置
+    /// Set the main output configuration.
     pub fn ch(mut self, ch: ChannelOutputConfig) -> Self {
         self.ch = Some(ch);
         self
     }
-    /// 设置互补输出配置（仅 TIM1 / TIM16）
+    /// Set the complementary output configuration (only TIM1 / TIM16).
     pub fn n_ch(mut self, n_ch: ChannelOutputConfig) -> Self {
         self.n_ch = Some(n_ch);
         self
     }
 }
 
-/// 制动与死区配置（仅 TIM1 / TIM16）
+/// Break and dead-time configuration (only TIM1 / TIM16)
 #[derive(Clone, Copy)]
 pub struct BreakConfig {
     pub dead_time: DeadTime,

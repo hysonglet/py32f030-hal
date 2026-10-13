@@ -24,7 +24,7 @@ pub(crate) mod sealed {
             Self::block().sr.read().bsy().bit()
         }
 
-        /// 锁定 main flash
+        /// Lock the main flash.
         #[inline]
         fn lock() -> Result<(), Error> {
             let block = Self::block();
@@ -37,7 +37,7 @@ pub(crate) mod sealed {
             Ok(())
         }
 
-        /// 解锁 main flash
+        /// Unlock the main flash.
         #[inline]
         fn unlock() -> Result<(), Error> {
             const KEY1: u32 = 0x4567_0123;
@@ -57,7 +57,7 @@ pub(crate) mod sealed {
             Ok(())
         }
 
-        /// 锁定 ob flash
+        /// Lock the option-byte (OB) flash.
         #[allow(unused)]
         #[inline]
         fn lock_ob() -> Result<(), Error> {
@@ -78,13 +78,13 @@ pub(crate) mod sealed {
                 return Err(Error::Lock);
             }
 
-            // 重载 op 到 flash， 成功系统将会重启
+            // Reload the option bytes into flash; on success the system reboots.
             block.cr.modify(|_, w| w.obl_launch().set_bit());
 
             Ok(())
         }
 
-        /// 解锁 ob flash
+        /// Unlock the option-byte (OB) flash.
         #[allow(unused)]
         #[inline]
         fn unlock_ob() -> Result<(), Error> {
@@ -105,7 +105,7 @@ pub(crate) mod sealed {
             Ok(())
         }
 
-        /// 使能扇区写保护
+        /// Enable sector write protection.
         #[allow(unused)]
         #[inline]
         fn en_sector_protect(sector: usize, en: bool) {
@@ -119,7 +119,7 @@ pub(crate) mod sealed {
             });
         }
 
-        /// 删除整个 main flash
+        /// Erase the entire main flash.
         #[inline]
         fn mass_erase() {
             Self::block().cr.modify(|_, w| w.mer().set_bit());
@@ -128,7 +128,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// page 擦除
+        /// Erase a page.
         #[inline]
         fn page_erase(page_addr: u32) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
@@ -139,7 +139,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// sector 擦除
+        /// Erase a sector.
         #[inline]
         fn sector_erase(sector_addr: u32) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&sector_addr));
@@ -151,7 +151,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// page 编程
+        /// Program a page.
         #[inline]
         fn page_program(page_addr: u32, content: [u32; FLASH_PAGE_SIZE / 4]) {
             assert!((FLASH_BASE_ADDR..FLASH_END_ADDR).contains(&page_addr));
@@ -159,10 +159,10 @@ pub(crate) mod sealed {
 
             let block = Self::block();
 
-            // 开启 编程
+            // Start programming.
             block.cr.modify(|_, w| w.pg().set_bit());
 
-            //  避免中断干扰
+            // Avoid interruption.
             critical_section::with(|_cs| {
                 content.iter().enumerate().for_each(|(i, v)| unsafe {
                     core::ptr::write_volatile((page_addr + i as u32 * 4) as _, *v);
@@ -172,14 +172,14 @@ pub(crate) mod sealed {
                 });
             });
 
-            // 等待写完
+            // Wait for programming to finish.
             while Self::busy() {}
 
-            // disable 编程
+            // Disable programming.
             block.cr.modify(|_, w| w.pg().clear_bit());
         }
 
-        /// 设置 Flash 读等待周期（ACR.LATENCY）：0–1 个等待状态
+        /// Set the Flash read wait states (ACR.LATENCY): 0–1 wait states.
         #[inline]
         fn set_latency(ws: u8) {
             Self::block()
@@ -187,19 +187,19 @@ pub(crate) mod sealed {
                 .modify(|_, w| w.latency().bit(ws.min(1) != 0));
         }
 
-        /// 读取当前 Flash 读等待周期
+        /// Read the current Flash read wait states.
         #[inline]
         fn get_latency() -> u8 {
             Self::block().acr.read().latency().bit() as u8
         }
 
-        /// 读取选项字节寄存器（OPTR）原始值
+        /// Read the raw option byte register (OPTR) value.
         #[inline]
         fn read_option_byte() -> u32 {
             Self::block().optr.read().bits()
         }
 
-        /// 读取当前读保护等级（OPTR.RDP）
+        /// Read the current read-protection level (OPTR.RDP).
         #[inline]
         fn get_read_protection() -> u8 {
             Self::block().optr.read().rdp().bits()

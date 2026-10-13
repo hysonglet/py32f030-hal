@@ -16,7 +16,7 @@ fn main() -> ! {
     let mut led = Output::new(gpioa.PA9, PinIoType::PullDown, Speed::Low);
 
     loop {
-        // 翻转led
+        // Toggle the LED.
         let _ = led.toggle();
         cortex_m::asm::delay(10_000_000);
     }

@@ -5,12 +5,12 @@ use core::marker::PhantomData;
 
 const WAIT_FLAG_TIMEOUT: usize = 10000;
 
-/// Slave 角色
+/// Slave role.
 ///
-/// 从机流程：
-/// 1. 等待主机寻址（`ADDR` 置位），读 SR1 + SR2 清除该标志；
-/// 2. 根据 `TRA` 位判断主机要读还是写；
-/// 3. 传输结束由 `STOPF`（主机停止）或 `AF`（主机 NACK）标识。
+/// Slave flow:
+/// 1. Wait for the master to address this slave (`ADDR` set); read SR1 + SR2 to clear it.
+/// 2. Decide whether the master wants to read or write based on the `TRA` bit.
+/// 3. The transfer ends when `STOPF` (master stops) or `AF` (master NACK) is set.
 pub struct Slave<'d, T: Instance, M: Mode> {
     _t: PhantomData<(&'d T, M)>,
 }
@@ -20,13 +20,13 @@ impl<'d, T: Instance, M: Mode> Slave<'d, T, M> {
         Self { _t: PhantomData }
     }
 
-    /// 总线是否忙
+    /// Whether the bus is busy.
     #[inline]
     pub fn is_busy(&self) -> bool {
         T::busy()
     }
 
-    /// 是否收到广播呼叫地址
+    /// Whether a general-call address was received.
     #[inline]
     pub fn is_general_call(&self) -> bool {
         T::is_general_call()
@@ -34,28 +34,30 @@ impl<'d, T: Instance, M: Mode> Slave<'d, T, M> {
 }
 
 impl<'d, T: Instance> Slave<'d, T, Blocking> {
-    /// 等待主机寻址本从机，返回主机本次要读（true）还是要写（false）
+    /// Wait for the master to address this slave; returns whether the master wants to
+    /// read (true) or write (false) this time.
     ///
-    /// 主机写从机 → `TRA=0`；主机读从机 → `TRA=1`
+    /// Master writes to slave → `TRA=0`; master reads from slave → `TRA=1`.
     pub fn wait_addressed(&mut self) -> Result<bool, Error> {
         if wait_for_true_timeout_block(WAIT_FLAG_TIMEOUT, || T::event_flag(Event::ADD)).is_err() {
             return Err(Error::Timeout);
         }
 
-        // 读 SR1 + SR2 清除 ADDR
+        // Read SR1 + SR2 to clear ADDR.
         T::clear_addr();
 
         Ok(T::is_transmitter())
     }
 
-    /// 从主机接收数据（主机写、从机收）
+    /// Receive data from the master (master writes, slave receives).
     ///
-    /// 收到停止条件或缓冲区满即结束，返回实际接收字节数。
+    /// Ends when a stop condition is received or the buffer is full; returns the number
+    /// of bytes actually received.
     pub fn read_block(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         let len = buf.len();
         let mut cnt = 0;
         for v in buf.iter_mut() {
-            // 最后一个字节回复 NACK，提示主机停止
+            // Reply NACK on the last byte to tell the master to stop.
             if cnt + 1 == len {
                 T::ack(false);
             } else {
@@ -71,7 +73,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
             *v = T::block().dr.read().dr().bits();
             cnt += 1;
 
-            // 主机提前发出停止条件
+            // The master sent a stop condition early.
             if T::event_flag(Event::STOPF) {
                 Self::clear_stop();
                 return Ok(cnt);
@@ -80,7 +82,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
         Ok(cnt)
     }
 
-    /// 向主机发送数据（主机读、从机发）
+    /// Send data to the master (master reads, slave transmits).
     pub fn write_block(&mut self, buf: &[u8]) -> Result<usize, Error> {
         let mut cnt = 0;
         for v in buf.iter() {
@@ -93,7 +95,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
             T::transmit(*v);
             cnt += 1;
 
-            // 主机回复 NACK 表示不再接收
+            // A NACK from the master means it will not receive any more.
             if T::event_flag(Event::AF) {
                 T::event_clear(Event::AF);
                 break;
@@ -107,7 +109,7 @@ impl<'d, T: Instance> Slave<'d, T, Blocking> {
         Ok(cnt)
     }
 
-    /// 清除停止条件标志（STOPF）：读 SR1 后写 CR1
+    /// Clear the stop-condition flag (STOPF): read SR1 then write CR1.
     fn clear_stop() {
         let _ = T::block().sr1.read().bits();
         T::block().cr1.modify(|_, w| w.pe().set_bit());

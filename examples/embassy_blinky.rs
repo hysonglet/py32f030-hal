@@ -1,4 +1,4 @@
-//! 在不同的任务中闪烁不同的 LED， 学习多任务操作
+//! Blink different LEDs in different tasks to learn multitasking.
 //!
 
 #![no_std]

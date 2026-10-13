@@ -23,7 +23,7 @@ fn main() -> ! {
 
     // let _sysclk = clock::SysClock::<clock::PLL<clock::HSE>>::config().unwrap();
 
-    // PA1 输出 16M
+    // PA1 outputs 16 MHz.
     let _sysclk = clock::SysClock::<clock::PLL<clock::HSI>>::config().unwrap();
 
     cortex_m::asm::delay(1000 * 5);

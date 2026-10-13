@@ -36,7 +36,7 @@ pub enum PeripheralClockIndex {
 }
 
 impl PeripheralClockIndex {
-    /// 返回时钟开启状态
+    /// Returns whether the clock is enabled.
     pub fn is_open(&self) -> bool {
         let idx = *self as usize;
         if idx < 32 {
@@ -50,7 +50,7 @@ impl PeripheralClockIndex {
         }
     }
 
-    /// 设置时钟开启或关闭
+    /// Enable or disable the clock.
     pub fn clock(&self, en: bool) {
         let idx = *self as usize;
         if idx < 32 {
@@ -72,19 +72,19 @@ impl PeripheralClockIndex {
         }
     }
 
-    /// 关闭外设时钟
+    /// Disable the peripheral clock.
     #[inline]
     pub fn close(&self) {
         self.clock(false);
     }
 
-    /// 开启外设时钟
+    /// Enable the peripheral clock.
     #[inline]
     pub fn open(&self) {
         self.clock(true);
     }
 
-    /// 复位外设
+    /// Reset the peripheral.
     pub fn reset(&self) {
         let idx = *self as usize;
         if idx < 32 {

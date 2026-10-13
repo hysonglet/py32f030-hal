@@ -24,7 +24,7 @@ fn main() -> ! {
 
     loop {
         let _ = led.toggle();
-        // 延时 1s
+        // Delay 1 s.
         counter.delay_us_blocking(1_000_000);
         defmt::info!("{}", cnt);
         cnt += 1;

@@ -44,7 +44,7 @@ async fn main(_spawner: Spawner) {
     let scl = gpioa.PA3;
     let config = Config::default().speed(200_000);
 
-    // 配置 200K的速度
+    // Configure the speed to 200K.
     let i2c1 = AnyI2c::<_, Blocking>::new(p.I2C, scl, sda, config).unwrap();
     let master = i2c1.as_master();
 

@@ -1,6 +1,6 @@
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 pub mod master;
 mod pins;
 pub mod slave;
@@ -18,9 +18,9 @@ pub use master::Master;
 pub use slave::Slave;
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::Instance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::Instance + 'static + Send {}
 
-///  mcu i2c 的索引
+/// MCU I2C index.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Id {
     I2c1,
@@ -42,18 +42,18 @@ impl PeripheralInterrupt for Id {
     }
 }
 
-/// IIC 标准模式最快速度: 100K
+/// I2C standard-mode maximum speed: 100K.
 pub const SPEED_HZ_STAND: usize = 100_000;
-/// IIC 快速模式最快速度: 400K
+/// I2C fast-mode maximum speed: 400K.
 pub const SPEED_HZ_FAST: usize = 400_000;
 
-/// 主从模式
+/// Master / slave mode.
 pub enum Rule {
     Master,
     Slave,
 }
 
-/// IIC 配置和运行的错误类型
+/// Error type for I2C configuration and operation.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Error {
     Busy,
@@ -62,19 +62,19 @@ pub enum Error {
     SpeedMode,
     Start,
     Address,
-    /// 应答失败（AF）
+    /// Acknowledge failure (AF).
     Acknowledge,
-    /// 停止条件
+    /// Stop condition.
     Stop,
     Tx,
     RX,
-    /// 等待超时
+    /// Wait timeout.
     Timeout,
-    /// 仲裁丢失（ARLO）
+    /// Arbitration lost (ARLO).
     ArbitrationLost,
-    /// 总线错误（BERR）
+    /// Bus error (BERR).
     Bus,
-    /// 过载/欠载（OVR）
+    /// Overrun / underrun (OVR).
     Overrun,
 }
 
@@ -101,7 +101,7 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
         Master::<'_, T, M>::new()
     }
 
-    /// 转换为从机（会自动写入配置中的自身地址）
+    /// Convert into slave mode (the own address from the config is written automatically).
     pub fn as_slave(self, address: u8) -> Slave<'d, T, M> {
         T::address(address & 0x7f);
         Slave::<'_, T, M>::new()
@@ -116,11 +116,11 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
         into_ref!(_i2c, scl, sda);
 
         // od + pullup
-        // 配置引脚功能为AF功能，开漏模式
+        // Configure the pins to the alternate function, open-drain mode.
         scl.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
         sda.set_instance_af(gpio::Speed::VeryHigh, gpio::PinIoType::OpenDrain);
 
-        // 初始化
+        // Initialize.
         Self::new_inner(config)?;
 
         Ok(Self {
@@ -132,24 +132,24 @@ impl<'d, T: Instance, M: Mode> AnyI2c<'d, T, M> {
     }
 }
 
-/// I2C 外设配置
+/// I2C peripheral configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Config {
-    /// 通信速率（Hz），最大 400K
+    /// Communication speed (Hz), up to 400K.
     speed: usize,
-    /// 从机模式下的自身地址（7 位）
+    /// Own address in slave mode (7-bit).
     own_address: u8,
-    /// 使能广播呼叫（ENGC）
+    /// Enable general call (ENGC).
     general_call: bool,
-    /// 禁止时钟延展（NOSTRETCH）
+    /// Disable clock stretching (NOSTRETCH).
     no_stretch: bool,
-    /// 使能 PEC 校验
+    /// Enable PEC check.
     pec: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        // 默认速度100K
+        // Default speed 100K.
         Self {
             speed: 100_000,
             own_address: 0,
@@ -161,12 +161,12 @@ impl Default for Config {
 }
 
 impl Config {
-    /// 设置通信速率
+    /// Set the communication speed.
     pub fn speed(self, speed: usize) -> Self {
         Self { speed, ..self }
     }
 
-    /// 设置从机自身地址（7 位）
+    /// Set the slave own address (7-bit).
     pub fn own_address(self, address: u8) -> Self {
         Self {
             own_address: address & 0x7f,
@@ -174,7 +174,7 @@ impl Config {
         }
     }
 
-    /// 使能广播呼叫
+    /// Enable general call.
     pub fn general_call(self, en: bool) -> Self {
         Self {
             general_call: en,
@@ -182,7 +182,7 @@ impl Config {
         }
     }
 
-    /// 禁止时钟延展
+    /// Disable clock stretching.
     pub fn no_stretch(self, en: bool) -> Self {
         Self {
             no_stretch: en,
@@ -190,7 +190,7 @@ impl Config {
         }
     }
 
-    /// 使能 PEC 校验
+    /// Enable PEC check.
     pub fn pec(self, en: bool) -> Self {
         Self { pec: en, ..self }
     }
@@ -198,29 +198,29 @@ impl Config {
 
 #[derive(EnumSetType)]
 pub enum Event {
-    /// 起始位已发送(Master)                        // 开启控制bit: ITEVTEN
+    /// Start bit sent (Master).  // enable bit: ITEVTEN
     SB,
-    /// 地址已发送(Master) 或 地址匹配(Slave)
+    /// Address sent (Master) or address matched (Slave).
     ADD,
-    /// 已收到停止(Slave)
+    /// Stop received (Slave).
     STOPF,
-    /// 数据字节传输完成
+    /// Data byte transfer finished (BTF).
     BTF,
 
-    /// 接收缓冲区非空                              // 开启控制 bit: ITEVTEN 和ITBUFEN
+    /// Receive buffer not empty (RXNE).  // enable bits: ITEVTEN and ITBUFEN
     RXNE,
-    /// 发送缓冲区空
+    /// Transmit buffer empty (TXE).
     TXE,
 
-    /// 总线错误                                   // 开启控制 bit: ITERREN
+    /// Bus error (BERR).  // enable bit: ITERREN
     BERR,
-    /// 仲裁丢失(Master)
+    /// Arbitration lost (Master).
     ARLO,
-    /// 响应失败
+    /// Acknowledge failure (AF).
     AF,
-    /// 过载/欠载
+    /// Overrun / underrun (OVR).
     OVR,
-    /// PEC错误
+    /// PEC error (PECERR).
     PECERR,
 }
 

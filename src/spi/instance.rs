@@ -160,41 +160,41 @@ pub(super) mod sealed {
             Self::block().cr2.modify(|_, w| w.ssoe().bit(en))
         }
 
-        /// 接收 FIFO 阈值（FRXTH）
+        /// Receive FIFO threshold (FRXTH).
         ///
-        /// false：RXNE 在 FIFO 达到 16 位时置位；true：达到 8 位即置位
+        /// false: RXNE is set when the FIFO reaches 16 bits; true: set as soon as 8 bits are reached.
         #[inline]
         fn set_fifo_rx_threshold_8bit(en: bool) {
             Self::block().cr2.modify(|_, w| w.frxth().bit(en))
         }
 
-        /// 最后一次 DMA 传输（LDMA_TX）：本次 DMA 结束后关闭 DMA 请求
+        /// Last DMA transfer (LDMA_TX): stop the DMA request after this DMA transfer ends.
         #[inline]
         fn set_last_dma_tx(en: bool) {
             Self::block().cr2.modify(|_, w| w.ldma_tx().bit(en))
         }
 
-        /// 最后一次 DMA 传输（LDMA_RX）
+        /// Last DMA transfer (LDMA_RX).
         #[inline]
         fn set_last_dma_rx(en: bool) {
             Self::block().cr2.modify(|_, w| w.ldma_rx().bit(en))
         }
 
-        // dma option
+        // DMA options
 
-        /// 发送 DMA 请求使能（TXDMAEN）
+        /// Transmit DMA request enable (TXDMAEN).
         #[inline]
         fn tx_dma_enable(en: bool) {
             Self::block().cr2.modify(|_, w| w.txdmaen().bit(en))
         }
 
-        /// 接收 DMA 请求使能（RXDMAEN）
+        /// Receive DMA request enable (RXDMAEN).
         #[inline]
         fn rx_dma_enable(en: bool) {
             Self::block().cr2.modify(|_, w| w.rxdmaen().bit(en))
         }
 
-        /// busy?
+        /// Busy flag.
         #[inline]
         fn is_busy() -> bool {
             // Busy flag
@@ -212,28 +212,28 @@ pub(super) mod sealed {
             Self::block().sr.read().ovr().bit()
         }
 
-        /// 模式错误（MODF）：主机模式下 NSS 被外部拉低
+        /// Mode fault (MODF): NSS pulled low externally in master mode.
         #[inline]
         fn is_mode_fault() -> bool {
             Self::block().sr.read().modf().bit()
         }
 
-        /// 接收 FIFO 水位（FRLVL）
+        /// Receive FIFO level (FRLVL).
         #[inline]
         fn fifo_rx_level() -> u8 {
             Self::block().sr.read().frlvl().bits()
         }
 
-        /// 发送 FIFO 水位（FTLVL）
+        /// Transmit FIFO level (FTLVL).
         #[inline]
         fn fifo_tx_level() -> u8 {
             Self::block().sr.read().ftlvl().bits()
         }
 
-        /// 清除错误标志
+        /// Clear error flags.
         ///
-        /// - OVR：先读 SR 再读 DR 清零
-        /// - MODF：先读 SR 再写 CR1 清零（这里通过关/开 SPE 复位）
+        /// - OVR: cleared by reading SR then DR.
+        /// - MODF: cleared by reading SR then writing CR1 (here done via disabling/re-enabling SPE).
         fn clear_errors() {
             let block = Self::block();
 
@@ -244,7 +244,7 @@ pub(super) mod sealed {
 
             if block.sr.read().modf().bit() {
                 let _ = block.sr.read().bits();
-                // 读 SR 后写 CR1 清除 MODF
+                // Read SR then write CR1 to clear MODF.
                 block.cr1.modify(|_, w| w.spe().bit(false));
                 block.cr1.modify(|_, w| w.spe().bit(true));
             }
@@ -288,7 +288,7 @@ pub(super) mod sealed {
             Self::block().dr.read().dr().bits()
         }
 
-        /// 返回 master 模式下spi的总线频率
+        /// Return the SPI bus frequency in master mode.
         #[inline]
         fn get_baud_rate() -> u32 {
             let div: BaudRateDiv = Self::block().cr1.read().br().bits().into();

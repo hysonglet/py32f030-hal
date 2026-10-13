@@ -9,7 +9,7 @@ use core::marker::PhantomData;
 use embassy_hal_internal::PeripheralRef;
 use enumset::EnumSet;
 
-/// 串口发送对象
+/// USART transmit object.
 pub struct UsartTx<'d, T: Instance, M: Mode> {
     _p: PhantomData<(T, M)>,
     _txd: Option<PeripheralRef<'d, AnyPin>>,
@@ -35,29 +35,28 @@ impl<'d, T: Instance, M: Mode> UsartTx<'d, T, M> {
         }
     }
 
-    /// 是否配置了 DMA 通道
+    /// Whether a DMA channel is configured.
     #[inline]
     pub fn has_dma(&self) -> bool {
         self.tx_dma.is_some()
     }
 
-    /// 发送断开符（常用于 LIN / 帧起始标识）
+    /// Send a break character (commonly used for LIN / frame start markers).
     #[inline]
     pub fn send_break(&self) {
         T::send_break()
     }
 
-    /// 停止发送断开符
+    /// Stop sending the break character.
     #[inline]
     pub fn clear_break(&self) {
         T::clear_break()
     }
 }
 
-////////////////////////////// Blocking //////////////////////////////
 
 impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
-    /// 阻塞发送；若配置了 DMA 通道则走 DMA
+    /// Blocking send; uses DMA if a DMA channel is configured.
     pub fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
         if self.tx_dma.is_none() {
             self.write_bytes_blocking(buf)
@@ -74,7 +73,7 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
         if let Some(dma) = &mut self.tx_dma {
             let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
 
-            // 不管成功与否都关闭 dma 触发
+            // Close the DMA trigger whether or not it succeeds.
             let _tx_dmp_close = drop_move::DropGuard::new(|| T::tx_dma_enable(false));
 
             dma.clear_flag(EnumSet::all());
@@ -101,18 +100,17 @@ impl<'d, T: Instance> UsartTx<'d, T, Blocking> {
         }
     }
 
-    /// 阻塞等待发送完成（TC 置位）
+    /// Blocking wait for the transmission to complete (TC set).
     pub fn flush(&self) -> nb::Result<(), Error> {
         T::tx_flush();
         Ok(())
     }
 }
 
-////////////////////////////// Async //////////////////////////////
 
 #[cfg(feature = "embassy")]
 impl<'d, T: Instance> UsartTx<'d, T, AsyncMode> {
-    /// 异步发送；若配置了 DMA 通道则走 DMA
+    /// Async send; uses DMA if a DMA channel is configured.
     pub async fn write(&mut self, buf: &[u8]) -> Result<(), Error> {
         if self.tx_dma.is_some() {
             self.write_bytes_dma(buf).await
@@ -133,7 +131,7 @@ impl<'d, T: Instance> UsartTx<'d, T, AsyncMode> {
         Ok(())
     }
 
-    /// 通过 dma 异步发送数据
+    /// Send data asynchronously via DMA.
     async fn write_bytes_dma(&mut self, buf: &[u8]) -> Result<(), Error> {
         if let Some(dma) = &mut self.tx_dma {
             let (_rx_dma_map, tx_dma_map) = T::id().dma_channel_map();
@@ -164,14 +162,13 @@ impl<'d, T: Instance> UsartTx<'d, T, AsyncMode> {
         }
     }
 
-    /// 异步等待发送完成
+    /// Async wait for the transmission to complete.
     pub async fn flush(&mut self) -> Result<(), Error> {
         EventFuture::<T>::new(EnumSet::empty() | Event::TC).await;
         Ok(())
     }
 }
 
-////////////////////////////// trait 实现 //////////////////////////////
 
 impl<'d, T: Instance> embedded_hal_027::serial::Write<u8> for UsartTx<'d, T, Blocking> {
     type Error = Error;

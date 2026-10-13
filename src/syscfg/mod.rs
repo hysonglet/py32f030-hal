@@ -25,7 +25,7 @@ impl syscfg {
         Self::clock().close();
     }
 
-    /// 设置dma通道映射
+    /// Set the DMA channel mapping.
     pub fn set_dma_channel_map(channel: Channel, map: DmaChannelMap) {
         Self::block().cfgr3.modify(|r, w| unsafe {
             w.bits(bit_mask_idx_modify::<5>(
@@ -36,7 +36,7 @@ impl syscfg {
         });
     }
 
-    /// 使能dma快速响应
+    /// Enable DMA fast response.
     pub fn en_dma_channel_fast_response(channel: Channel, en: bool) {
         Self::block().cfgr3.modify(|r, w| unsafe {
             w.bits(bit_mask_idx_modify::<1>(
@@ -47,7 +47,7 @@ impl syscfg {
         });
     }
 
-    /// 设置系统启动引导的地址
+    /// Set the system boot mode.
     pub fn set_boot_mode(mode: BootMode) {
         Self::block()
             .cfgr1

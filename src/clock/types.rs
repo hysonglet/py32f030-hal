@@ -6,18 +6,18 @@ pub enum Error {
     SysTimeout,
 }
 
-/// HSI 频率选择
+/// HSI frequency selection.
 #[derive(PartialEq)]
 pub enum HsiHz {
-    /// 000: 4MHz
+    /// 000: 4 MHz
     MHz4 = 0x00,
-    /// 001: 8MHz
+    /// 001: 8 MHz
     MHz8 = 0x01,
-    /// 010: 16MHz
+    /// 010: 16 MHz
     MHz16 = 0x03,
-    /// 011: 22.12Mhz
+    /// 011: 22.12 MHz
     MHz22_12 = 0x04,
-    /// 100: 24MHz
+    /// 100: 24 MHz
     MHz24 = 0x05,
 }
 
@@ -63,7 +63,7 @@ impl From<u32> for HsiDiv {
     }
 }
 
-/// PLK 时钟分频
+/// PCLK clock prescaler.
 #[derive(Clone, Copy, PartialEq)]
 pub enum PclkDiv {
     Div1 = 1,
@@ -73,7 +73,7 @@ pub enum PclkDiv {
     Div16 = 7,
 }
 
-/// Hcl 时钟分频
+/// HCLK clock prescaler.
 #[derive(Clone, Copy)]
 pub enum HclkDiv {
     Div1 = 1,
@@ -133,7 +133,7 @@ impl HclkDiv {
     }
 }
 
-/// MCO 输出选择器
+/// MCO output selector.
 pub enum McoSelect {
     Disable = 0,
     SysClk = 1,

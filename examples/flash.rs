@@ -19,17 +19,17 @@ fn main() -> ! {
 
     let addr = Flash::<FLASH>::get_page_addr(15, 0).unwrap();
 
-    // 擦除 15 号 sector 0号 page
+    // Erase sector 15, page 0.
     let rst = flash.erase_page_by_index(15, 0);
     defmt::info!("erase_page_by_index: rst: {}", Debug2Format(&rst));
 
     let mut page_buf: [u32; 32] = [0x12345678; 32];
 
-    // 编程 15 号 sector 0号 page
+    // Program sector 15, page 0.
     let rst = flash.program_page(addr, page_buf);
     defmt::info!("program_page rst: {}", Debug2Format(&rst));
 
-    // 读取 15 号 sector 0号 page
+    // Read sector 15, page 0.
     let rst = flash.read_page_by_index(15, 0, &mut page_buf);
 
     defmt::info!(

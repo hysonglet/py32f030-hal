@@ -30,14 +30,12 @@ impl<T: Instance> EventFuture<T> {
         }
     }
 
-    /// 中断函数调用
+    /// Called from the interrupt handler.
     #[inline]
     unsafe fn on_interrupt(_cs: CriticalSection, id: usize) {
-        // 关闭已经发生的中断事件
         EnumSet::all().iter().for_each(|event| {
-            /* 匹配到中断了 */
             if T::is_event_enable(event) && T::event_flag(event) {
-                // 关闭触发的中断，防止重复响应
+                // Disable the triggered interrupt to avoid repeated responses.
                 T::event_config(event, false);
                 EVENT_WAKERS[id * _EVENT_COUNT + event as usize].wake()
             }
@@ -52,7 +50,7 @@ impl<T: Instance> Future for EventFuture<T> {
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
         let mut events = EnumSet::empty();
-        // 消除所有关注的中断标志
+        // Clear all watched interrupt flags.
         for event in self.events {
             if T::event_flag(event) {
                 T::event_clear(event);
@@ -67,7 +65,7 @@ impl<T: Instance> Future for EventFuture<T> {
         self.events.iter().for_each(|e| {
             EVENT_WAKERS[T::id() as usize * _EVENT_COUNT + e as usize].register(cx.waker());
         });
-        // 没有任何事件
+        // No events occurred.
         Poll::Pending
     }
 }

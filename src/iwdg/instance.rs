@@ -73,7 +73,7 @@ pub(super) mod sealed {
         #[inline]
         fn set_window(window: u16) {
             assert!(window <= RELOAD_MAX);
-            // WINR 在 PAC 中未标记为 Writable，使用裸指针写入
+            // WINR is not marked Writable in the PAC, so write via a raw pointer.
             let winr = Self::block().winr.as_ptr() as *mut u32;
             unsafe { core::ptr::write_volatile(winr, window as u32) };
         }

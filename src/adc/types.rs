@@ -59,14 +59,14 @@ pub enum AdcChannel {
 /// discontinuous mode and Single/Continuous Conversion Mode
 #[derive(PartialEq)]
 pub enum ConversionMode {
-    /// 单次转换模式 (CONT=0, DISCEN=0)
-    /// ﻿可以转换 1 个单通道或者可以扫描一系列通道
+    /// Single conversion mode (CONT=0, DISCEN=0)
+    /// Converts one single channel or scans a sequence of channels.
     Single,
-    /// 连续转换模式 (CONT=1)
-    /// ﻿连续模式(continuous mode)： 连续转换被选择的通道
+    /// Continuous conversion mode (CONT=1)
+    /// Continuous mode: continuously converts the selected channels.
     Continuous,
-    /// 非连续转换模式 (DISCEN=1)
-    /// ﻿不连续模式(discontinuous mode)： 每次触发， 转换被选择的通道 1 次
+    /// Discontinuous conversion mode (DISCEN=1)
+    /// Discontinuous mode: on each trigger, converts the selected channels once.
     Discontinuous,
 }
 
@@ -148,14 +148,14 @@ pub enum CalibrationSelect {
 
 #[derive(EnumSetType, Debug)]
 pub enum Event {
-    /// 采样结束标志
+    /// End of sampling flag
     EOSMP,
-    /// 转换结束标志
+    /// End of conversion flag
     EOC,
-    /// 序列结束标志
+    /// End of sequence flag
     EOSEQ,
-    /// ADC 过载
+    /// ADC overrun
     OVR,
-    /// 模拟看门狗
+    /// Analog watchdog
     AWD,
 }

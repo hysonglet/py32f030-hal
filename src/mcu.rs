@@ -1,4 +1,4 @@
-// 单片机所有抽象的外设资源入口
+// Entry point for all abstracted MCU peripheral resources
 embassy_hal_internal::peripherals! {
     /// GPIO
     GPIOA,

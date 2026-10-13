@@ -16,7 +16,7 @@ pub enum Speed {
     VeryHigh = 3,
 }
 
-/// Gpio pin 功能复用
+/// GPIO pin alternate function.
 #[derive(Debug, Clone, Copy)]
 pub enum PinAF {
     AF0 = 0,
@@ -61,7 +61,7 @@ impl From<u32> for PinAF {
     }
 }
 
-/// Gpio pin 上下拉
+/// GPIO pin pull-up/down.
 #[derive(Clone, Copy)]
 pub enum Pull {
     None = 0,
@@ -69,14 +69,14 @@ pub enum Pull {
     Down = 2,
 }
 
-/// Gpio pin 输出类型
+/// GPIO pin output type.
 #[derive(Clone, Copy)]
 pub enum PinOutputType {
     PushPull = 0,
     OpenDrain = 1,
 }
 
-/// Gpio io 类型，综合了上拉和输出开漏模式
+/// GPIO IO type, combining pull-up/down and output open-drain mode.
 #[derive(Clone, Copy, PartialEq)]
 pub enum PinIoType {
     Floating,
@@ -97,7 +97,7 @@ impl PinIoType {
     }
 }
 
-/// gpio 锁配置
+/// GPIO lock configuration
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum PinLock {
     Unlock = 0,

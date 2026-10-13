@@ -1,6 +1,6 @@
 #[cfg(feature = "embassy")]
 mod future;
-mod hal;
+mod instance;
 mod pins;
 mod types;
 
@@ -9,10 +9,10 @@ use embedded_hal::digital::PinState;
 
 pub use types::*;
 
-// 内部寄存器访问标记类型（位于 hal.rs::sealed，始终编译）
-use crate::exti::hal::sealed::{ExtiImpl as ExtiReg, Instance as _};
+// Internal register-access marker type (in instance.rs::sealed, always compiled).
+use crate::exti::instance::sealed::{ExtiImpl as ExtiReg, Instance as _};
 
-// use self::hal::sealed::Instance;
+// use self::instance::sealed::Instance;
 use crate::gpio::Pin;
 use crate::gpio::{Input, Pull, Speed};
 #[cfg(feature = "embassy")]
@@ -46,7 +46,7 @@ impl<'d, M: Mode> ExtiInput<'d, M> {
         }
     }
 
-    /// 返回引脚的电平
+    /// Return the pin level.
     #[inline]
     fn get_level(&self) -> PinState {
         self.pin.read()
@@ -54,33 +54,33 @@ impl<'d, M: Mode> ExtiInput<'d, M> {
 }
 
 impl<'d> ExtiInput<'d, Blocking> {
-    /// 等待引脚电平变低
+    /// Wait until the pin level goes low.
     #[inline]
     pub fn wait_for_low(&self) {
         while self.get_level() == PinState::High {}
     }
 
-    /// 等待引脚电平变高
+    /// Wait until the pin level goes high.
     #[inline]
     pub fn wait_for_high(&self) {
         while self.get_level() == PinState::Low {}
     }
 
-    /// 等待上升沿信号
+    /// Wait for a rising edge.
     #[inline]
     pub fn wait_for_rising_edge(&self) {
         self.wait_for_low();
         self.wait_for_high();
     }
 
-    /// 等待下降沿信号
+    /// Wait for a falling edge.
     #[inline]
     pub fn wait_for_falling_edge(&self) {
         self.wait_for_high();
         self.wait_for_low();
     }
 
-    /// 等待上升沿和下降沿信号
+    /// Wait for any edge (rising or falling).
     #[inline]
     pub fn wait_for_any_edge(&self) {
         let last = self.get_level();
@@ -90,7 +90,7 @@ impl<'d> ExtiInput<'d, Blocking> {
 
 #[cfg(feature = "embassy")]
 impl<'d> ExtiInput<'d, Async> {
-    /// 等待引脚电平变低
+    /// Wait until the pin level goes low.
     pub async fn wait_for_low(&self) {
         if self.get_level() == PinState::Low {
             return;
@@ -99,7 +99,7 @@ impl<'d> ExtiInput<'d, Async> {
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling).await
     }
 
-    /// 等待引脚电平变高
+    /// Wait until the pin level goes high.
     pub async fn wait_for_high(&self) {
         if self.get_level() == PinState::High {
             return;
@@ -107,17 +107,17 @@ impl<'d> ExtiInput<'d, Async> {
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising).await
     }
 
-    /// 等待上升沿信号
+    /// Wait for a rising edge.
     pub async fn wait_for_rising_edge(&self) {
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Rising).await
     }
 
-    /// 等待下降沿信号
+    /// Wait for a falling edge.
     pub async fn wait_for_falling_edge(&self) {
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::Falling).await
     }
 
-    /// 等待上升沿和下降沿信号
+    /// Wait for any edge (rising or falling).
     pub async fn wait_for_any_edge(&self) {
         future::ExtiInputFuture::new(self.pin.pin.port(), self.pin.pin.pin(), Edge::RisingFalling)
             .await
@@ -151,51 +151,51 @@ impl<'a, M: Mode> embedded_hal_027::digital::v2::InputPin for ExtiInput<'a, M> {
     }
 }
 
-/// 直接操作 EXTI 外设（线使能、边沿、软件触发、挂起标志）
+/// Directly drive the EXTI peripheral (line enable, edges, software trigger, pending flags).
 ///
-/// `ExtiInput` 是面向 GPIO 引脚的便捷封装；需要更底层控制（如软件触发、
-/// 清除挂起、配置内部线 PVD/RTC/COMP）时，可使用本结构。
+/// `ExtiInput` is a GPIO-pin-oriented convenience wrapper; for lower-level control
+/// (software trigger, pending clear, internal lines PVD/RTC/COMP), use this struct.
 pub struct Exti;
 
 impl Exti {
-    /// 选择 GPIO 线与端口的映射（写 SYSCFG EXTICR），仅对 Line0–15 有效
+    /// Select the GPIO line-to-port mapping (write SYSCFG EXTICR); valid for Line0–15 only.
     #[inline]
     pub fn select_gpio_source(line: Line, port: crate::gpio::GpioPort) {
         ExtiReg::exit_channle_select(line, port.into());
     }
 
-    /// 设置边沿触发条件（上升/下降/双沿）
+    /// Set the edge trigger condition (rising / falling / both).
     #[inline]
     pub fn set_edge(line: Line, edge: Edge) {
         ExtiReg::line_ring_edge(line, edge.is_rising());
         ExtiReg::line_falling_edge(line, edge.is_falling());
     }
 
-    /// 使能 / 屏蔽某线的中断与事件（IMR）
+    /// Enable / mask a line's interrupt and event (IMR).
     #[inline]
     pub fn enable(line: Line, en: bool) {
         ExtiReg::line_pend_enable(line, en);
     }
 
-    /// 软件触发某 EXTI 线（置 SWIER，硬件在 PR 中置位后自动清零）
+    /// Software-trigger an EXTI line (sets SWIER; the hardware clears it after setting PR).
     #[inline]
     pub fn software_trigger(line: Line) {
         ExtiReg::software_trigger(line);
     }
 
-    /// 读取某线的挂起状态
+    /// Read a line's pending status.
     #[inline]
     pub fn is_pending(line: Line) -> bool {
         ExtiReg::pending_raw(line)
     }
 
-    /// 清除某线的挂起标志（PR）
+    /// Clear a line's pending flag (PR).
     #[inline]
     pub fn clear_pending(line: Line) {
         ExtiReg::clear_pending(line);
     }
 
-    /// 等待某线挂起（阻塞轮询）
+    /// Wait for a line to become pending (blocking poll).
     #[inline]
     pub fn wait_pending(line: Line) {
         while !Self::is_pending(line) {}

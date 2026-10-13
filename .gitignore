@@ -19,5 +19,8 @@ Cargo.lock
 # CodeBuddy agent internal data
 .codebuddy/
 
+# WorkBuddy agent internal data (memory logs, not source)
+.workbuddy/
+
 # Reference documents / large binaries
 doc/

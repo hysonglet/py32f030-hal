@@ -3,13 +3,13 @@ use crate::gpio::{self, gpioa, gpiob, gpiof};
 use crate::macro_def::impl_pin_af;
 use crate::mcu::peripherals;
 
-// 指定 引脚功能，生成与外设功能绑定的引脚 trait
-// 为所有具有 I2c 功能的引脚实现相应功能的 trait
+// Associate a pin function, generating the pin trait bound to a peripheral function.
+// Implement the corresponding function trait for all pins with I2C capability.
 impl_pin_af!(gpiof, PF0_OSC_IN, I2C, SdaPin, AF12);
 impl_pin_af!(gpiof, PF1_OSC_OUT, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA2, I2C, SdaPin, AF12);
-// PA3 的 I2C_SCL 复用功能为 AF12（此前缺失，导致 PA2+PA3 组合无法编译）
+// PA3's I2C_SCL alternate function is AF12 (previously missing, so the PA2+PA3 combo failed to compile).
 impl_pin_af!(gpioa, PA3, I2C, SclPin, AF12);
 
 impl_pin_af!(gpioa, PA7, I2C, SdaPin, AF12);

@@ -20,10 +20,10 @@ fn main() -> ! {
     info!("usart start...");
     let buf: String<20> = "hello rust\r\n".into();
     loop {
-        // 使用标准接口来发送串口数据
+        // Use the standard interface to send serial data.
         let _ = write!(tx, "example for usart\r\n");
 
-        // 使用自定义的驱动接口发送串口数据
+        // Use the custom driver interface to send serial data.
         let _ = tx.write(buf.as_bytes());
 
         info!("send: {} ", buf.as_bytes());

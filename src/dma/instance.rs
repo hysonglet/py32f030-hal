@@ -33,7 +33,7 @@ pub(crate) mod sealed {
         //     }
         // }
 
-        // 读取剩余数量的
+        // Read the remaining transfer count.
         fn remain_count(channel: Channel) -> u16 {
             let block = Self::block();
             let cnt = match channel {
@@ -54,28 +54,30 @@ pub(crate) mod sealed {
                     block.ccr1.modify(|_, w| unsafe {
                         w.mem2mem()
                             .bit(config.diretion == Direction::MemoryToMemory)
-                            .pl() // 优先级
+                            .pl() // priority
                             .bits(config.prioritie as u8)
-                            .msize() // 存储器宽度
+                            .msize() // memory data width
                             .bits(config.memDataSize as u8)
-                            .psize() // 外设传输宽度
+                            .psize() // peripheral data width
                             .bits(config.periphDataSize as u8)
-                            .minc() // 存储器地址增长使能
+                            .minc() // memory address increment enable
                             .bit(config.memInc)
-                            .pinc() // 外设地址增长使能
+                            .pinc() // peripheral address increment enable
                             .bit(config.periphInc)
-                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .dir() // data transfer direction, 0: read from peripheral, 1: read from memory
                             .bit(config.diretion != Direction::PeriphToMemory)
                     });
 
                     block.cpar1.write(|w| unsafe { w.bits(config.periphAddr) });
                     block.cmar1.write(|w| unsafe { w.bits(config.memAddr) });
 
-                    // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
-                    // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
-                    // 数据传输结束后，寄存器的内容或者变为 0，或 者当该通道配置为循环模式时，寄存器的内
-                    // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
-                    // 都 不会传输数据。
+                    // The transfer count is 0~65535. This register is only written while the
+                    // channel is disabled (DMA_CCRx.EN=0). Once the channel is enabled it
+                    // becomes read-only and indicates the remaining byte count, which
+                    // decrements after each transfer. At the end of the transfer the value
+                    // becomes 0, or, when the channel is configured in circular mode, is
+                    // automatically reloaded with its original value. When it is 0, no data
+                    // is transferred even if the channel starts.
                     match config.mode {
                         RepeatMode::OneTime(cnt) => {
                             block.ccr1.modify(|_, w| w.circ().bit(false));
@@ -91,28 +93,30 @@ pub(crate) mod sealed {
                     block.ccr2.modify(|_, w| unsafe {
                         w.mem2mem()
                             .bit(config.diretion == Direction::MemoryToMemory)
-                            .pl() // 优先级
+                            .pl() // priority
                             .bits(config.prioritie as u8)
-                            .msize() // 存储器宽度
+                            .msize() // memory data width
                             .bits(config.memDataSize as u8)
-                            .psize() // 外设传输宽度
+                            .psize() // peripheral data width
                             .bits(config.periphDataSize as u8)
-                            .minc() // 存储器地址增长使能
+                            .minc() // memory address increment enable
                             .bit(config.memInc)
-                            .pinc() // 外设地址增长使能
+                            .pinc() // peripheral address increment enable
                             .bit(config.periphInc)
-                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .dir() // data transfer direction, 0: read from peripheral, 1: read from memory
                             .bit(config.diretion != Direction::PeriphToMemory)
                     });
 
                     block.cpar2.write(|w| unsafe { w.bits(config.periphAddr) });
                     block.cmar2.write(|w| unsafe { w.bits(config.memAddr) });
 
-                    // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
-                    // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
-                    // 数据传输结束后，寄存器的内容或者变为 0，或 者当该通道配置为循环模式时，寄存器的内
-                    // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
-                    // 都 不会传输数据。
+                    // The transfer count is 0~65535. This register is only written while the
+                    // channel is disabled (DMA_CCRx.EN=0). Once the channel is enabled it
+                    // becomes read-only and indicates the remaining byte count, which
+                    // decrements after each transfer. At the end of the transfer the value
+                    // becomes 0, or, when the channel is configured in circular mode, is
+                    // automatically reloaded with its original value. When it is 0, no data
+                    // is transferred even if the channel starts.
                     match config.mode {
                         RepeatMode::OneTime(cnt) => {
                             block.ccr2.modify(|_, w| w.circ().bit(false));
@@ -128,28 +132,30 @@ pub(crate) mod sealed {
                     block.ccr3.modify(|_, w| unsafe {
                         w.mem2mem()
                             .bit(config.diretion == Direction::MemoryToMemory)
-                            .pl() // 优先级
+                            .pl() // priority
                             .bits(config.prioritie as u8)
-                            .msize() // 存储器宽度
+                            .msize() // memory data width
                             .bits(config.memDataSize as u8)
-                            .psize() // 外设传输宽度
+                            .psize() // peripheral data width
                             .bits(config.periphDataSize as u8)
-                            .minc() // 存储器地址增长使能
+                            .minc() // memory address increment enable
                             .bit(config.memInc)
-                            .pinc() // 外设地址增长使能
+                            .pinc() // peripheral address increment enable
                             .bit(config.periphInc)
-                            .dir() // 数据传输方向, 0: 从外设读   1： 从存储器读
+                            .dir() // data transfer direction, 0: read from peripheral, 1: read from memory
                             .bit(config.diretion != Direction::PeriphToMemory)
                     });
 
                     block.cpar3.write(|w| unsafe { w.bits(config.periphAddr) });
                     block.cmar3.write(|w| unsafe { w.bits(config.memAddr) });
 
-                    // 数据传输数量为 0~65535。该寄存器只在通道不 工作（DMA_CCR1.EN=0）时写入。
-                    // 通道使能后 该寄存器为只读，表明剩余传输字节数。该寄存 器值在每次 DMA 传输后递减。
-                    // 数据传输结束后，寄存器的内容或者变为 0，或 者当该通道配置为循环模式时，寄存器的内
-                    // 容将 被自动重新加载为之前配置时的数值。 当该寄存器值为 0 时，即使 DMA 通道开始，
-                    // 都 不会传输数据。
+                    // The transfer count is 0~65535. This register is only written while the
+                    // channel is disabled (DMA_CCRx.EN=0). Once the channel is enabled it
+                    // becomes read-only and indicates the remaining byte count, which
+                    // decrements after each transfer. At the end of the transfer the value
+                    // becomes 0, or, when the channel is configured in circular mode, is
+                    // automatically reloaded with its original value. When it is 0, no data
+                    // is transferred even if the channel starts.
                     match config.mode {
                         RepeatMode::OneTime(cnt) => {
                             block.ccr3.modify(|_, w| w.circ().bit(false));
@@ -166,14 +172,14 @@ pub(crate) mod sealed {
             // Self::enable(false);
         }
 
-        /// 清除事件标志
+        /// Clear the event flag.
         fn event_clear(channel: Channel, event: Event) {
             Self::block()
                 .ifcr
                 .write(|w| unsafe { w.bits(1 << (event as usize + (channel as usize * 4))) });
         }
 
-        /// 返回事件标志
+        /// Return the event flag.
         fn event_flag(channel: Channel, event: Event) -> bool {
             Self::block()
                 .isr
@@ -182,7 +188,7 @@ pub(crate) mod sealed {
                 .has_bit((event as u32) + (channel as u32 * 4))
         }
 
-        /// 开启或关闭事件中断
+        /// Enable or disable the event interrupt.
         #[allow(dead_code)]
         fn event_config(channel: Channel, event: Event, en: bool) {
             let block = Self::block();
@@ -227,7 +233,7 @@ pub(crate) mod sealed {
             }
         }
 
-        /// return event config
+        /// Return whether the event interrupt is enabled.
         #[allow(dead_code)]
         fn is_event_enable(channel: Channel, event: Event) -> bool {
             let block = Self::block();

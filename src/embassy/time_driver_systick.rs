@@ -26,7 +26,7 @@ impl AlarmState {
         }
     }
 }
-/// 系统时钟
+/// System clock driver.
 pub struct SystickDriver {
     alarm_count: AtomicU8,
     alarms: Mutex<[AlarmState; ALARM_COUNT]>,
@@ -127,7 +127,6 @@ impl SystickDriver {
         critical_section::with(|cs| {
             let alarm = &self.alarms.borrow(cs)[n];
             let timestamp = alarm.timestamp.get();
-            // 闹钟触发了
             if timestamp <= self.now() {
                 self.trigger_alarm(n, cs)
             }
@@ -174,7 +173,6 @@ impl Driver for SystickDriver {
                 alarm.timestamp.set(u64::MAX);
                 false
             } else {
-                // 闹钟设置成功
                 true
             }
         })

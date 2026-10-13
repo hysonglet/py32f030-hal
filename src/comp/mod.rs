@@ -1,9 +1,10 @@
-//! 模拟比较器（COMP1 / COMP2）
+//! Analog comparator (COMP1 / COMP2)
 //!
-//! 说明：本芯片 COMP 的中断与 ADC 共用 `ADC_COMP` 向量（且该向量已被 adc 模块占用），
-//! 因此本模块仅提供**轮询**方式的输出读取，不提供中断/异步接口（同 LPTIM 的处理）。
+//! Note: on this chip the COMP interrupt shares the `ADC_COMP` vector with the ADC
+//! (which already owns it), so this module only provides **polling** output reads and
+//! exposes no interrupt/async interface (same approach as LPTIM).
 
-mod hal;
+mod instance;
 mod types;
 
 pub use types::*;
@@ -13,9 +14,9 @@ use core::marker::PhantomData;
 use embassy_hal_internal::{into_ref, Peripheral, PeripheralRef};
 
 #[allow(private_bounds)]
-pub trait Instance: Peripheral<P = Self> + hal::sealed::CompInstance + 'static + Send {}
+pub trait Instance: Peripheral<P = Self> + instance::sealed::CompInstance + 'static + Send {}
 
-/// 比较器索引
+/// Comparator index
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Id {
@@ -32,17 +33,17 @@ impl PeripheralIdToClockIndex for Id {
     }
 }
 
-hal::sealed::impl_comp_instance!(COMP1, COMP1, COMP1, has_hyst);
-hal::sealed::impl_comp_instance!(COMP2, COMP2, COMP2, no_hyst);
+instance::sealed::impl_comp_instance!(COMP1, COMP1, COMP1, has_hyst);
+instance::sealed::impl_comp_instance!(COMP2, COMP2, COMP2, no_hyst);
 
-/// 比较器句柄
+/// Comparator handle
 pub struct AnyComp<'d, T: Instance> {
     _t: PhantomData<&'d T>,
     inner: PeripheralRef<'d, T>,
 }
 
 impl<'d, T: Instance> AnyComp<'d, T> {
-    /// 新建并配置比较器（默认关闭，需调用 `enable()`）
+    /// Create and configure the comparator (disabled by default; call `enable()`).
     pub fn new(comp: impl Peripheral<P = T> + 'd, config: Config) -> Self {
         into_ref!(comp);
 
@@ -55,33 +56,34 @@ impl<'d, T: Instance> AnyComp<'d, T> {
         }
     }
 
-    /// 使能比较器
+    /// Enable the comparator.
     #[inline]
     pub fn enable(&self) {
         T::enable(true);
     }
 
-    /// 关闭比较器
+    /// Disable the comparator.
     #[inline]
     pub fn disable(&self) {
         T::enable(false);
     }
 
-    /// 读取比较器输出电平
+    /// Read the comparator output level.
     ///
-    /// true 表示同相输入高于反相输入（极性反相时含义相反）
+    /// true means the non-inverting input is above the inverting input
+    /// (reversed when polarity is inverted).
     #[inline]
     pub fn output(&self) -> bool {
         T::output()
     }
 
-    /// 阻塞等待输出变为指定电平
+    /// Block until the output reaches the given level.
     #[inline]
     pub fn wait_for(&self, level: bool) {
         while T::output() != level {}
     }
 
-    /// 重新配置（会先关闭比较器）
+    /// Reconfigure (the comparator is disabled first).
     #[inline]
     pub fn reconfig(&self, config: Config) {
         T::config(config);
@@ -107,25 +109,25 @@ impl<'d, T: Instance> AnyComp<'d, T> {
         T::set_window_mode(en);
     }
 
-    /// 锁定配置；锁定后 CSR 变为只读，直到下次复位
+    /// Lock the configuration; after locking, CSR becomes read-only until reset.
     #[inline]
     pub fn lock(&self) {
         T::lock();
     }
 
-    /// 配置是否已被锁定
+    /// Whether the configuration is locked.
     #[inline]
     pub fn is_locked(&self) -> bool {
         T::is_locked()
     }
 
-    /// 设置数字滤波
+    /// Configure the digital filter.
     #[inline]
     pub fn set_filter(&self, en: bool, count: u8) {
         T::set_filter(en, count);
     }
 
-    /// 释放：关闭比较器并关闭外设时钟
+    /// Release: disable the comparator and turn off its clock.
     pub fn deinit(self) {
         T::enable(false);
         T::id().clock().close();
@@ -138,7 +140,7 @@ impl<'d, T: Instance> Drop for AnyComp<'d, T> {
     }
 }
 
-// 保持外设引用存活
+// Keep the peripheral reference alive.
 impl<'d, T: Instance> core::ops::Deref for AnyComp<'d, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {

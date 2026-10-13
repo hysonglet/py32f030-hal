@@ -26,11 +26,11 @@ pub mod sealed {
         #[inline]
         fn enable_config() -> Result<(), Error> {
             pwr::rtc_unlock(true);
-            // 等待可配置
+            // Wait until configurable.
             wait_for_true_timeout_block(100000, || Self::configurable())
                 .map_err(|_| Error::Timeout)?;
 
-            // 等待rtc 寄存器同步
+            // Wait for RTC register synchronization.
             wait_for_true_timeout_block(100000, || Self::is_registers_synchronized())
                 .map_err(|_| Error::Timeout)?;
 

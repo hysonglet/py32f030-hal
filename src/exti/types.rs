@@ -99,14 +99,14 @@ impl From<usize> for Line {
     }
 }
 
-/// 信号边缘检测类型
+/// Signal edge detection type
 #[derive(PartialEq)]
 pub enum Edge {
-    /// 上升沿,
+    /// Rising edge
     Rising,
-    /// 下降沿
+    /// Falling edge
     Falling,
-    /// 上升沿和下降沿
+    /// Rising and falling edge
     RisingFalling,
 }
 

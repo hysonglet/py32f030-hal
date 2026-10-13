@@ -21,13 +21,13 @@ pub(super) mod sealed {
             Self::block().dr.write(|w| unsafe { w.dr().bits(v) })
         }
 
-        /// 写入独立数据寄存器（IDR），可用于暂存用户数据
+        /// Write the independent data register (IDR), usable as scratch space.
         #[inline]
         fn set_idr(v: u8) {
             Self::block().idr.write(|w| unsafe { w.idr().bits(v) })
         }
 
-        /// 读取独立数据寄存器（IDR）
+        /// Read the independent data register (IDR).
         #[inline]
         fn get_idr() -> u8 {
             Self::block().idr.read().idr().bits()

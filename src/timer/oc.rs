@@ -3,7 +3,7 @@ use super::{
 };
 use core::marker::PhantomData;
 
-/// 通道对应事件（用于查询/清除标志）
+/// Event corresponding to a channel (used to query / clear flags).
 #[inline]
 pub(super) fn channel_event(channel: Channel) -> Event {
     match channel {
@@ -14,7 +14,7 @@ pub(super) fn channel_event(channel: Channel) -> Event {
     }
 }
 
-/// 统一输出比较
+/// Unified output compare.
 pub struct OutputCompare<'d, T: Instance> {
     _t: PhantomData<&'d T>,
 }
@@ -29,12 +29,12 @@ impl<'d, T: Instance> OutputCompare<'d, T> {
     fn check_channel(channel: Channel) {
         assert!(
             channel.index() < T::CHANNELS,
-            "该定时器不支持此通道（可用通道数 = {}）",
+            "this timer does not support this channel (available channels = {})",
             T::CHANNELS
         );
     }
 
-    /// 配置输出比较通道
+    /// Configure an output-compare channel.
     pub fn channel_config(&self, channel: Channel, config: ChannelConfig) {
         Self::check_channel(channel);
         T::set_channel_type(channel, ChannelType::Pwm);
@@ -49,42 +49,42 @@ impl<'d, T: Instance> OutputCompare<'d, T> {
         T::set_channel_output_effective_level(channel, ChannelOutput::P, true, true, false);
     }
 
-    /// 设置比较值（CCR）
+    /// Set the compare value (CCR).
     #[inline]
     pub fn set_compare(&self, channel: Channel, ccr: u16) {
         Self::check_channel(channel);
         T::set_channel_compare(channel, ccr);
     }
 
-    /// 读取比较值（CCR）
+    /// Read the compare value (CCR).
     #[inline]
     pub fn get_compare(&self, channel: Channel) -> u16 {
         Self::check_channel(channel);
         T::get_channel_capture(channel)
     }
 
-    /// 使能/关闭通道输出
+    /// Enable / disable the channel output.
     #[inline]
     pub fn enable_channel(&self, channel: Channel, en: bool) {
         Self::check_channel(channel);
         T::set_enable_channel(channel, ChannelOutput::P, en);
     }
 
-    /// 是否发生比较匹配
+    /// Whether a compare match occurred.
     #[inline]
     pub fn is_matched(&self, channel: Channel) -> bool {
         Self::check_channel(channel);
         T::event_flag(channel_event(channel))
     }
 
-    /// 清除比较匹配标志
+    /// Clear the compare-match flag.
     #[inline]
     pub fn clear_match(&self, channel: Channel) {
         Self::check_channel(channel);
         T::event_clear(channel_event(channel));
     }
 
-    /// 软件产生比较事件
+    /// Generate a compare event in software.
     #[inline]
     pub fn triggle(&self, channel: Channel) {
         Self::check_channel(channel);
@@ -97,7 +97,7 @@ impl<'d, T: Instance> OutputCompare<'d, T> {
         T::triggle(sig);
     }
 
-    /// 设置周期（ARR）
+    /// Set the period (ARR).
     #[inline]
     pub fn set_period(&self, arr: u16) {
         T::set_auto_reload(arr);
@@ -114,10 +114,9 @@ impl<'d, T: Instance> OutputCompare<'d, T> {
     }
 }
 
-//////////////// 互补输出（仅 TIM1 / TIM16） ////////////////
 
 impl<'d, T: Instance + WithComplementary> OutputCompare<'d, T> {
-    /// 使能/关闭互补输出
+    /// Enable / disable the complementary output.
     #[inline]
     pub fn enable_channel_n(&self, channel: Channel, en: bool) {
         Self::check_channel(channel);

@@ -2,7 +2,7 @@ use super::*;
 use crate::gpio::{self, gpioa, gpiob, gpiof};
 use crate::mcu::peripherals;
 
-// TIM1：4 通道 + 互补 + BKIN + ETR
+// TIM1: 4 channels + complementary + BKIN + ETR
 impl_pin_af!(gpioa, PA0, TIM1, TimerChannel3Pin, AF13);
 impl_pin_af!(gpioa, PA0, TIM1, TimerChannel1NPin, AF14);
 impl_pin_af!(gpioa, PA1, TIM1, TimerChannel4Pin, AF13);
@@ -22,7 +22,7 @@ impl_pin_af!(gpiob, PB1, TIM1, TimerChannel3NPin, AF2);
 impl_pin_af!(gpiob, PB3, TIM1, TimerChannel2Pin, AF1);
 impl_pin_af!(gpiob, PB6, TIM1, TimerChannel3Pin, AF1);
 
-// TIM3：4 通道
+// TIM3: 4 channels
 impl_pin_af!(gpioa, PA2, TIM3, TimerChannel1Pin, AF13);
 impl_pin_af!(gpioa, PA4, TIM3, TimerChannel3Pin, AF13);
 impl_pin_af!(gpioa, PA5, TIM3, TimerChannel2Pin, AF13);
@@ -34,18 +34,18 @@ impl_pin_af!(gpiob, PB4, TIM3, TimerChannel2Pin, AF1);
 impl_pin_af!(gpiob, PB5, TIM3, TimerChannel2Pin, AF1);
 impl_pin_af!(gpiof, PF3, TIM3, TimerChannel3Pin, AF13);
 
-// TIM14：单通道
+// TIM14: single channel
 impl_pin_af!(gpioa, PA3, TIM14, TimerChannel1Pin, AF4);
 impl_pin_af!(gpioa, PA4, TIM14, TimerChannel1Pin, AF4);
 impl_pin_af!(gpioa, PA6, TIM14, TimerChannel1Pin, AF4);
 impl_pin_af!(gpiob, PB1, TIM14, TimerChannel1Pin, AF0);
 
-// TIM16：单通道 + 互补
+// TIM16: single channel + complementary
 impl_pin_af!(gpioa, PA5, TIM16, TimerChannel1Pin, AF4);
 impl_pin_af!(gpiob, PB7, TIM16, TimerChannel1Pin, AF2);
 impl_pin_af!(gpiob, PB6, TIM16, TimerChannel1NPin, AF2);
 
-// TIM17：单通道 + 互补 + BKIN（AF 取自数据手册复用功能表）
+// TIM17: single channel + complementary + BKIN (AF values taken from the datasheet alternate-function table)
 impl_pin_af!(gpioa, PA7, TIM17, TimerChannel1Pin, AF5);
 impl_pin_af!(gpiob, PB8, TIM17, TimerChannel1Pin, AF13);
 impl_pin_af!(gpiob, PB7, TIM17, TimerChannel1NPin, AF2);
